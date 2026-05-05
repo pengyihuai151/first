@@ -1,0 +1,11 @@
+{
+  "name": "公考助手 (Exam Assistant)",
+  "description": "个人公考备考助手：离线存储、图文错题、学习时长统计、笔记工具及PDF导出。",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "local_storage",
+    "pdf_export"
+  ]
+}
