@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { AppData, StudyModule, MAIN_MODULES, MODULE_SUB_TOPICS, WrongQuestion } from '../types';
+import { AppData, StudyModule, MAIN_MODULES, MODULE_SUB_TOPICS, WrongQuestion, HierarchicalTag } from '../types';
 import { storage } from '../lib/storage';
-import { Plus, Search, Filter, Camera, X, Trash2, Edit2, Check, BookOpen, Tag, RotateCcw } from 'lucide-react';
+import { Plus, Search, Filter, Camera, X, Trash2, Edit2, Check, BookOpen, Tag, RotateCcw, FileDown } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -84,6 +84,26 @@ export default function WrongQuestionBank({ data, onUpdate }: { data: AppData; o
   });
 
   const [activePreviewImage, setActivePreviewImage] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+
+  // Helper to get first-level tag from hierarchical path
+  const getFirstLevelTag = (tagPath: string): string => {
+    const parts = tagPath.split('-');
+    return parts.length > 1 ? parts[0] : tagPath;
+  };
+
+  // Get hierarchical reason options for current filter module
+  const getHierarchicalReasons = (moduleId: string | StudyModule): HierarchicalTag[] => {
+    return config.hierarchicalReasons?.[moduleId as string] || [];
+  };
+
+  // Get all reason tags (flattened) for current filter module
+  const getAllReasonTags = (moduleId: string | StudyModule): string[] => {
+    const hierarchical = getHierarchicalReasons(moduleId);
+    return hierarchical.flatMap((t: HierarchicalTag) => 
+      [t.name, ...t.children.map((c: HierarchicalTag) => c.name)]
+    );
+  };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -196,7 +216,20 @@ export default function WrongQuestionBank({ data, onUpdate }: { data: AppData; o
     .filter(q => filter === '全部' || q.moduleId === filter)
     .filter(q => masteredFilter === '全部' || (masteredFilter === '已掌握' ? q.mastered : !q.mastered))
     .filter(q => tagFilter === '全部' || tagFilter === '全部知识点' || q.tags?.includes(tagFilter))
-    .filter(q => reasonFilter === '全部' || q.reasonTags?.includes(reasonFilter))
+    .filter(q => {
+      if (reasonFilter === '全部') return true;
+      // Check if question's reason matches the selected filter (supports hierarchical)
+      const allTags = getAllReasonTags(q.moduleId);
+      if (allTags.includes(reasonFilter)) {
+        // Filter by first-level category if selected tag is a child
+        const firstLevel = getFirstLevelTag(reasonFilter);
+        return q.reasonTags?.some(rt => {
+          const rtFirstLevel = getFirstLevelTag(rt);
+          return rtFirstLevel === firstLevel || rt === firstLevel;
+        }) || false;
+      }
+      return true;
+    })
     .filter(q => q.content.includes(search) || (q.analysis && q.analysis.includes(search)))
     .sort((a, b) => b.createdAt - a.createdAt);
 
@@ -300,26 +333,48 @@ export default function WrongQuestionBank({ data, onUpdate }: { data: AppData; o
             </div>
           )}
 
-          {/* Reason Tag Filter */}
-          {filter !== '全部' && (config.reasonTags[filter as string] || []).length > 0 && (
-            <div ref={reasonScrollRef} className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-              {['全部', ...(config.reasonTags[filter as string] || [])].map(tag => (
+          {/* Reason Tag Filter - Hierarchical */}
+          {filter !== '全部' && (() => {
+            const hierarchicalReasons = getHierarchicalReasons(filter as string);
+            const flatTags = hierarchicalReasons.flatMap((t: HierarchicalTag) => 
+              [t.name, ...t.children.map((c: HierarchicalTag) => c.name)]
+            );
+            
+            if (flatTags.length === 0) return null;
+            
+            return (
+              <div ref={reasonScrollRef} className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
                 <button
-                  key={tag}
-                  ref={reasonFilter === tag ? activeReasonRef : null}
-                  onClick={() => setReasonFilter(tag)}
+                  key="全部"
+                  ref={reasonFilter === '全部' ? activeReasonRef : null}
+                  onClick={() => setReasonFilter('全部')}
                   className={cn(
-                    "px-3 py-1.5 rounded-xl text-[10px] font-bold whitespace-nowrap transition-all border",
-                    reasonFilter === tag 
+                    "px-3 py-1.5 rounded-xl text-[10px] font-bold whitespace-nowrap transition-all border shrink-0",
+                    reasonFilter === '全部' 
                       ? "bg-rose-500 text-white border-rose-500 shadow-sm" 
                       : "bg-white text-slate-400 border-slate-100"
                   )}
                 >
-                  {tag === '全部' ? '全部原因' : tag}
+                  全部原因
                 </button>
-              ))}
-            </div>
-          )}
+                {hierarchicalReasons.map(t => (
+                  <button
+                    key={t.name}
+                    ref={reasonFilter === t.name ? activeReasonRef : null}
+                    onClick={() => setReasonFilter(t.name)}
+                    className={cn(
+                      "px-3 py-1.5 rounded-xl text-[10px] font-bold whitespace-nowrap transition-all border shrink-0",
+                      reasonFilter === t.name
+                        ? "bg-rose-500 text-white border-rose-500 shadow-sm" 
+                        : "bg-white text-slate-400 border-slate-100"
+                    )}
+                  >
+                    {t.name}
+                  </button>
+                ))}
+              </div>
+            );
+          })()}
         </div>
       </div>
 
