@@ -4,7 +4,7 @@ import { cn, formatTimeFriendly } from '../lib/utils';
 import { motion } from 'motion/react';
 import {
   BarChart3, TrendingUp, AlertTriangle, Clock, Target,
-  BookOpen, Brain, ChevronRight, ArrowUpRight, ArrowDownRight, Minus
+  BookOpen, Brain, ChevronRight
 } from 'lucide-react';
 import { AIAssistantInline } from './AIAssistant';
 import { differenceInDays, startOfWeek, endOfWeek, isWithinInterval, subDays, format } from 'date-fns';
@@ -16,6 +16,7 @@ export default function AnalysisPage({ data, onUpdate }: { data: AppData; onUpda
   // ========== 考试数据 ==========
   const examRecords = data.examRecords || [];
   const lastExam = examRecords.length > 0 ? [...examRecords].sort((a, b) => b.date - a.date)[0] : null;
+  const prevExam = examRecords.length > 1 ? [...examRecords].sort((a, b) => b.date - a.date)[1] : null;
 
   // 各模块考试正确率 - 最近3次平均
   const moduleExamStats = MAIN_MODULES.map(m => {
@@ -147,74 +148,45 @@ export default function AnalysisPage({ data, onUpdate }: { data: AppData; onUpda
         </div>
       </div>
 
-      {/* 考试趋势 - 最近对比 */}
+      {/* 考试趋势 - 最近3次平均 */}
       {lastExam && (
         <section className="bg-white rounded-3xl border border-slate-100 shadow-sm p-5 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-bold text-slate-700 flex items-center gap-2">
               <TrendingUp size={16} className="text-indigo-500" /> 考试趋势
             </h2>
-            <div className="flex items-center gap-2 text-[10px] text-slate-400">
-              {prevExam && <span>vs {new Date(prevExam.date).toLocaleDateString()}</span>}
-              <span>{new Date(lastExam.date).toLocaleDateString()}</span>
-            </div>
+            <span className="text-[10px] text-slate-400">
+              最近{Math.min(examRecords.length, 3)}次平均
+            </span>
           </div>
           
           <div className="space-y-2.5">
             {MAIN_MODULES.map(m => {
-              const lastScore = lastExam.moduleScores.find(ms => ms.moduleId === m);
-              const lastAcc = lastScore && lastScore.totalCount > 0
-                ? Math.round(lastScore.correctCount / lastScore.totalCount * 100) : null;
+              const stats = moduleExamStats.find(s => s.moduleId === m)!;
+              const lastAcc = stats.lastAcc;
               
-              // 计算历史平均正确率（排除最近一次）
-              const historyScores = examRecords
-                .slice(0, -1) // 排除最近一次
-                .map(r => r.moduleScores.find(ms => ms.moduleId === m))
-                .filter(s => s && s.totalCount > 0);
-              
-              let diff: number | null = null;
-              if (historyScores.length > 0) {
-                const historyAvg = historyScores.reduce((acc, s) => acc + s.correctCount / s.totalCount, 0) / historyScores.length;
-                if (lastAcc !== null) {
-                  diff = Math.round(lastAcc - historyAvg * 100);
-                }
-              } else if (prevExam) {
-                const prevScore = prevExam.moduleScores.find(ms => ms.moduleId === m);
-                const prevAcc = prevScore && prevScore.totalCount > 0
-                  ? Math.round(prevScore.correctCount / prevScore.totalCount * 100) : null;
-                if (lastAcc !== null && prevAcc !== null) {
-                  diff = lastAcc - prevAcc;
-                }
-              }
-
               return (
                 <div key={m} className="flex items-center gap-3">
                   <span className="text-xs font-medium text-slate-600 w-16 truncate">{m}</span>
                   <div className="flex-1 h-6 bg-slate-50 rounded-lg overflow-hidden relative">
                     <motion.div
                       initial={{ width: 0 }}
-                      animate={{ width: `${lastAcc || 0}%` }}
+                      animate={{ width: `${stats.avgAccuracy || 0}%` }}
                       transition={{ duration: 0.6, ease: 'easeOut' }}
                       className={cn(
                         "h-full rounded-lg flex items-center justify-end pr-2",
-                        (lastAcc || 0) >= 80 ? "bg-emerald-400" :
-                        (lastAcc || 0) >= 60 ? "bg-amber-400" : "bg-rose-400"
+                        (stats.avgAccuracy || 0) >= 80 ? "bg-emerald-400" :
+                        (stats.avgAccuracy || 0) >= 60 ? "bg-amber-400" : "bg-rose-400"
                       )}
                     >
-                      <span className="text-[10px] font-bold text-white">{lastAcc !== null ? `${lastAcc}%` : '--'}</span>
+                      <span className="text-[10px] font-bold text-white">
+                        {stats.avgAccuracy !== null ? `${stats.avgAccuracy}%` : '--'}
+                      </span>
                     </motion.div>
                   </div>
-                  {diff !== null && (
-                    <div className={cn(
-                      "flex items-center gap-0.5 text-[10px] font-bold w-12 justify-end",
-                      diff > 0 ? "text-emerald-500" : diff < 0 ? "text-rose-500" : "text-slate-400"
-                    )}>
-                      {diff > 0 ? <ArrowUpRight size={10} /> : diff < 0 ? <ArrowDownRight size={10} /> : <Minus size={10} />}
-                      {Math.abs(diff)}%
-                    </div>
-                  )}
-                  {diff === null && !prevExam && <span className="text-[9px] text-slate-400 w-12">首次</span>}
-                  {diff === null && prevExam && <div className="w-12" />}
+                  <div className="text-[10px] text-slate-400 w-12 text-right">
+                    {stats.examCount > 0 ? `${stats.examCount}次` : '--'}
+                  </div>
                 </div>
               );
             })}
