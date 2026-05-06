@@ -128,7 +128,7 @@ export const storage = {
   },
 
   async resetAll() {
-    await clear();
+    await del(STORAGE_KEY); // 只删除本应用的数据，不影响其他网站
   },
 
   async importData(jsonString: string) {
