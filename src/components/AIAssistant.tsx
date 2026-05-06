@@ -32,8 +32,8 @@ export default function AIAssistant({ data, compact = false, onClose }: AIAssist
   // 快速建议问题
   const quickQuestions = [
     { label: '分析薄弱点', question: '分析我的薄弱模块和知识点，给出针对性的复习建议' },
+    { label: '错误原因分析', question: '分析我的错误原因规律，哪些原因最常见，如何针对性改进' },
     { label: '制定计划', question: '根据我的学习数据，制定接下来一周的备考计划' },
-    { label: '复盘指导', question: '如何高效复盘错题，有哪些技巧？' },
     { label: '时间分配', question: '五个模块如何分配学习时间最合理？' },
   ];
 
