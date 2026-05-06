@@ -64,11 +64,18 @@ export default function AIAssistant({ data, compact = false, onClose }: AIAssist
         const result = await streamAnalysis(aiData, text, (chunk) => {
           setMessages(prev => {
             const newMessages = [...prev];
-            // 清理叠词后再追加
-            const cleanedChunk = cleanText(chunk);
-            newMessages[newMessages.length - 1].content += cleanedChunk;
+            // 累积文本（不过滤）
+            newMessages[newMessages.length - 1].content += chunk;
             return newMessages;
           });
+        });
+        
+        // 流式结束后，整体清理叠词
+        setMessages(prev => {
+          const newMessages = [...prev];
+          const lastIndex = newMessages.length - 1;
+          newMessages[lastIndex].content = cleanText(newMessages[lastIndex].content);
+          return newMessages;
         });
       } else {
         // 后续对话，快速问答
@@ -249,7 +256,7 @@ export default function AIAssistant({ data, compact = false, onClose }: AIAssist
       </div>
 
       {/* Input */}
-      <div className="border-t border-slate-100 p-3">
+      <div className="border-t border-slate-100 p-3" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
         <div className="flex gap-2">
           <textarea
             ref={inputRef}
