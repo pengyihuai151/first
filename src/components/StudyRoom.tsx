@@ -13,6 +13,28 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
   const startTimeRef = useRef<number | null>(null);
   const intervalRef = useRef<any>(null);
   const accumulatedTimeRef = useRef(0); // 累积时间，用于中断后继续
+  const timeRef = useRef(0); // 用于在闭包中获取最新时间
+
+  // 同步 time 到 ref
+  useEffect(() => {
+    timeRef.current = time;
+  }, [time]);
+
+  // 监听页面切换（切换 Tab 时暂停计时，但不归0）
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden && isRunning) {
+        // 页面隐藏时，保存当前时间并暂停
+        accumulatedTimeRef.current = timeRef.current;
+        setIsRunning(false);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isRunning]);
 
   useEffect(() => {
     if (isRunning) {
@@ -28,11 +50,15 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
     };
   }, [isRunning]);
 
-  const handleStart = () => setIsRunning(true);
+  const handleStart = () => {
+    // 如果有累积时间，继续计时
+    if (accumulatedTimeRef.current > 0) {
+      startTimeRef.current = Date.now() - accumulatedTimeRef.current;
+    }
+    setIsRunning(true);
+  };
   
   const handleStop = async () => {
-    // 保存累积时间
-    accumulatedTimeRef.current = time;
     setIsRunning(false);
     
     const now = new Date();
@@ -49,7 +75,7 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
       await storage.addSession(session);
       onUpdate();
     }
-    // 不归0，保留当前计时（但清空用于下次重新开始）
+    // 归0
     accumulatedTimeRef.current = 0;
     setTime(0);
   };
