@@ -20,12 +20,17 @@
       "output": "release"
     },
     "files": [
-      "electron-main.js",
+      "electron-main.cjs",
       "dist/**/*"
     ],
     "win": {
       "target": [
-        { "target": "nsis", "arch": ["x64"] }
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
       ]
     }
   },
@@ -53,6 +58,8 @@
     "autoprefixer": "^10.4.21",
     "electron": "^42.0.0",
     "electron-builder": "^26.8.1",
+    "electron-serve": "^3.0.1",
+    "http-server": "^14.1.1",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",
