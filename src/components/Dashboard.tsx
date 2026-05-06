@@ -175,10 +175,20 @@ export default function Dashboard({ data, onUpdate, onNavigate }: { data: AppDat
         const essayNotes = data.notes?.filter(n => n.moduleId === StudyModule.ESSAY) || [];
         if (essayNotes.length === 0) return null;
 
+        const [shuffleKey, setShuffleKey] = React.useState(0);
         const todayReadIds = data.readingCheckIns?.[todayStr] || [];
-        const unreadNotes = essayNotes
-          .filter(n => !todayReadIds.includes(n.id))
-          .sort((a, b) => b.updatedAt - a.updatedAt);
+
+        // 展示列表：未读优先，支持随机打乱
+        const shuffled = React.useMemo(() => {
+          const list = [...essayNotes].sort((a, b) => b.updatedAt - a.updatedAt);
+          if (shuffleKey === 0) return list; // 默认按时间序
+          // Fisher-Yates 洗牌
+          for (let i = list.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [list[i], list[j]] = [list[j], list[i]];
+          }
+          return list;
+        }, [essayNotes, shuffleKey]);
 
         // 计算连续打卡天数
         let streak = 0;
@@ -223,7 +233,7 @@ export default function Dashboard({ data, onUpdate, onNavigate }: { data: AppDat
                 )}
               </div>
 
-              {unreadNotes.length > 0 ? (
+              {shuffled.length > 0 ? (
                 <>
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-[11px] text-indigo-400/80">点击阅读，完成后「已读」打卡</p>
@@ -232,61 +242,67 @@ export default function Dashboard({ data, onUpdate, onNavigate }: { data: AppDat
                     </span>
                   </div>
                   <div className="space-y-2.5">
-                    {unreadNotes.map((note, idx) => (
-                      <motion.div
-                        key={note.id}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: idx * 0.08 }}
-                        onClick={() => setSelectedNote(note)}
-                        className="bg-white/80 backdrop-blur-sm rounded-2xl p-3.5 flex items-center gap-3 cursor-pointer active:bg-white transition-colors"
-                      >
-                        <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center shrink-0 font-bold text-xs">
-                          {idx + 1}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <span className="text-xs font-bold text-slate-700 truncate block">{note.title}</span>
-                          <div className="flex items-center gap-1.5 mt-1">
-                            {note.essayType && (
-                              <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-medium">{note.essayType}</span>
-                            )}
-                            {note.essayTag && (
-                              <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 font-medium">#{note.essayTag}</span>
-                            )}
-                            <Eye size={10} className="text-indigo-300 shrink-0" />
-                            <span className="text-[9px] text-indigo-300 shrink-0">{Math.max(note.content?.length || 0, 0)}字</span>
-                          </div>
-                        </div>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleCheckIn(note.id); }}
-                          className="shrink-0 self-center w-8 h-8 rounded-xl bg-indigo-500 text-white flex items-center justify-center active:bg-indigo-600 active:scale-90 transition-all shadow-md shadow-indigo-200"
-                          title="标记已读"
+                    {shuffled.map((note, idx) => {
+                      const isRead = todayReadIds.includes(note.id);
+                      return (
+                        <motion.div
+                          key={note.id}
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: idx * 0.04 }}
+                          onClick={() => setSelectedNote(note)}
+                          className={cn(
+                            "bg-white/80 backdrop-blur-sm rounded-2xl p-3.5 flex items-center gap-3 cursor-pointer active:bg-white transition-colors",
+                            isRead && "opacity-70"
+                          )}
                         >
-                          <CheckCircle2 size={16} />
-                        </button>
-                      </motion.div>
-                    ))}
+                          <div className={cn(
+                            "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 font-bold text-xs",
+                            isRead ? "bg-emerald-100 text-emerald-500" : "bg-amber-100 text-amber-600"
+                          )}>
+                            {idx + 1}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-xs font-bold text-slate-700 truncate block">{note.title}</span>
+                            <div className="flex items-center gap-1.5 mt-1">
+                              {note.essayType && (
+                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-medium">{note.essayType}</span>
+                              )}
+                              {note.essayTag && (
+                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 font-medium">#{note.essayTag}</span>
+                              )}
+                              <Eye size={10} className="text-indigo-300 shrink-0" />
+                              <span className="text-[9px] text-indigo-300 shrink-0">{note.content?.length || 0}字</span>
+                            </div>
+                          </div>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleCheckIn(note.id); }}
+                            className={cn(
+                              "shrink-0 self-center w-8 h-8 rounded-xl flex items-center justify-center active:scale-90 transition-all shadow-md",
+                              isRead
+                                ? "bg-emerald-100 text-emerald-500 shadow-emerald-100"
+                                : "bg-indigo-500 text-white shadow-indigo-200 active:bg-indigo-600"
+                            )}
+                            title={isRead ? "已打卡" : "标记已读"}
+                          >
+                            <CheckCircle2 size={16} />
+                          </button>
+                        </motion.div>
+                      );
+                    })}
                   </div>
+                  <button
+                    onClick={() => setShuffleKey(k => k + 1)}
+                    className="w-full mt-2 py-2 rounded-xl border border-dashed border-indigo-200 text-[11px] text-indigo-400 font-medium hover:bg-indigo-50 transition-colors active:scale-98"
+                  >
+                    随机换一批
+                  </button>
                 </>
               ) : (
                 <div className="py-3 text-center space-y-2">
-                  {todayReadIds.length >= essayNotes.length ? (
-                    <>
-                      <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', damping: 15 }}>
-                        <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-500 mx-auto flex items-center justify-center">
-                          <CheckCircle2 size={24} />
-                        </div>
-                      </motion.div>
-                      <p className="text-sm font-bold text-emerald-600">今日阅读完成！</p>
-                      <p className="text-[11px] text-slate-400">全部 {essayNotes.length} 篇已读完</p>
-                    </>
-                  ) : (
-                    <>
-                      <BookOpen size={28} className="text-indigo-200 mx-auto" />
-                      <p className="text-sm text-slate-400">今日暂无可读笔记</p>
-                      <p className="text-[11px] text-slate-300">前往笔记管理添加更多申论笔记吧</p>
-                    </>
-                  )}
+                  <BookOpen size={28} className="text-indigo-200 mx-auto" />
+                  <p className="text-sm text-slate-400">暂无申论笔记</p>
+                  <p className="text-[11px] text-slate-300">前往笔记管理添加申论笔记吧</p>
                 </div>
               )}
             </div>
