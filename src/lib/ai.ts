@@ -60,9 +60,17 @@ function buildUserProfilePrompt(data: {
   
   // 模考统计
   const recentExams = examRecords.slice(-5);
-  const avgScore = recentExams.length > 0 
-    ? Math.round(recentExams.reduce((acc: number, r: any) => acc + r.score / r.total * 100, 0) / recentExams.length)
-    : null;
+  let totalCorrect = 0;
+  let totalQuestions = 0;
+  recentExams.forEach((r: any) => {
+    (r.moduleScores || []).forEach((ms: any) => {
+      if (ms.totalCount > 0) {
+        totalCorrect += ms.correctCount || 0;
+        totalQuestions += ms.totalCount || 0;
+      }
+    });
+  });
+  const avgScore = totalQuestions > 0 ? Math.round(totalCorrect / totalQuestions * 100) : null;
   
   // 学习时长
   const now = new Date();

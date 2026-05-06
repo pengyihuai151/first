@@ -318,6 +318,34 @@ function ExamLiveMode({ onFinish, onClose }: { onFinish: (res: any) => void, onC
     activeModuleRef.current = currentModule;
   }, [currentModule]);
 
+  // 页面切换时暂停计时
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden && isStarted && timerRef.current) {
+        // 页面隐藏时，记录当前状态
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      } else if (!document.hidden && isStarted && !timerRef.current) {
+        // 页面恢复时，继续计时
+        lastTickRef.current = Date.now();
+        timerRef.current = setInterval(() => {
+          const now = Date.now();
+          const delta = now - lastTickRef.current;
+          lastTickRef.current = now;
+
+          setElapsed(prev => prev + delta);
+          setModuleDurations(prev => ({
+            ...prev,
+            [activeModuleRef.current]: (prev[activeModuleRef.current] || 0) + delta
+          }));
+        }, 100);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isStarted]);
+
   const startExam = () => {
     setIsStarted(true);
     lastTickRef.current = Date.now();
