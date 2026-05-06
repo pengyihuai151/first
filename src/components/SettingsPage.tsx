@@ -141,6 +141,12 @@ export default function SettingsPage({ data, onUpdate, onNavigate }: { data: App
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      const confirmed = confirm('恢复数据将完全覆盖当前所有数据，确定要继续吗？\n\n建议先点击上方"备份数据"保存当前数据！');
+      if (!confirmed) {
+        e.target.value = ''; // 清空 input
+        return;
+      }
+      
       const reader = new FileReader();
       reader.onload = async (event) => {
         try {
@@ -150,6 +156,8 @@ export default function SettingsPage({ data, onUpdate, onNavigate }: { data: App
           alert('数据导入成功');
         } catch {
           alert('导入失败，不兼容的文件');
+        } finally {
+          e.target.value = ''; // 清空 input，防止重复导入
         }
       };
       reader.readAsText(file);
