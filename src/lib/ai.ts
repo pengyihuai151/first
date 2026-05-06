@@ -126,8 +126,18 @@ async function callAI(messages: Array<{ role: string; content: string }>, maxTok
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      return { text: `API 请求失败: ${response.status}`, error: true };
+      let errorMessage = `API 请求失败: ${response.status}`;
+      try {
+        const errorData = JSON.parse(await response.text());
+        if (errorData.error?.message) {
+          errorMessage = errorData.error.message;
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
+        }
+      } catch (e) {
+        // 解析失败，使用原始状态码
+      }
+      return { text: errorMessage, error: true };
     }
 
     const data = await response.json();
