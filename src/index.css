@@ -26,8 +26,41 @@
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: #cbd5e1;
   }
+
+  /* 移动端优化 */
+  .touch-none {
+    touch-action: none;
+  }
+  .touch-manipulation {
+    touch-action: manipulation;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 body {
   @apply antialiased;
+}
+
+/* 移动端优化 */
+@media (max-width: 640px) {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  html, body {
+    overflow-x: hidden;
+    position: relative;
+    width: 100%;
+  }
+}
+
+/* 防止双击缩放 */
+* {
+  touch-action: manipulation;
 }
