@@ -59,16 +59,6 @@ export default function SettingsPage({ data, onUpdate, onNavigate }: { data: App
     onUpdate();
   };
 
-  const setModuleTarget = async (moduleId: string, value: number) => {
-    const targets = { ...(data.settings.moduleTargets || {}) };
-    targets[moduleId] = value;
-    await storage.updateSettings({
-      ...data.settings,
-      moduleTargets: targets
-    });
-    onUpdate();
-  };
-
   const exportPDF = async (type: 'xingce' | 'shenlun' = 'xingce') => {
     if (type === 'xingce' && !exportOptions.stats && !exportOptions.wrong && !exportOptions.notes) {
       alert('请至少选择一个导出项');
@@ -585,40 +575,6 @@ export default function SettingsPage({ data, onUpdate, onNavigate }: { data: App
             onChange={(e) => setExamDate(e.target.value)}
             className="flex-1 bg-slate-50 border-none rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500/20"
           />
-        </div>
-      </section>
-
-      {/* Module Targets Extension */}
-      <section className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm space-y-4">
-        <h3 className="text-xs font-bold text-slate-400 uppercase flex items-center gap-2">
-          <Target size={14} /> 模块目标正确率设置
-        </h3>
-        <div className="space-y-4">
-          {MAIN_MODULES.map(m => (
-            <div key={m} className="space-y-1.5">
-              <div className="flex justify-between items-center px-1">
-                <span className="text-xs font-bold text-slate-700">{m}</span>
-                <span className="text-xs font-black text-indigo-600">
-                  {Math.round((data.settings.moduleTargets?.[m] || 0.8) * 100)}%
-                </span>
-              </div>
-              <input 
-                type="range"
-                min="0"
-                max="100"
-                step="5"
-                value={(data.settings.moduleTargets?.[m] || 0.8) * 100}
-                onChange={(e) => setModuleTarget(m, Number(e.target.value) / 100)}
-                className="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-600"
-              />
-            </div>
-          ))}
-          <div className="flex items-start gap-2 bg-slate-50 p-3 rounded-2xl">
-            <Info size={14} className="text-slate-400 shrink-0 mt-0.5" />
-            <p className="text-[10px] text-slate-500 leading-relaxed">
-              智能建议会根据您的实时表现与这些目标值的差距，动态调整复习优先级和改进提示。
-            </p>
-          </div>
         </div>
       </section>
 
