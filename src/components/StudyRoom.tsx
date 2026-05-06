@@ -12,10 +12,11 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
   const [time, setTime] = useState(0);
   const startTimeRef = useRef<number | null>(null);
   const intervalRef = useRef<any>(null);
+  const accumulatedTimeRef = useRef(0); // 累积时间，用于中断后继续
 
   useEffect(() => {
     if (isRunning) {
-      startTimeRef.current = Date.now() - time;
+      startTimeRef.current = Date.now() - accumulatedTimeRef.current;
       intervalRef.current = setInterval(() => {
         setTime(Date.now() - (startTimeRef.current || 0));
       }, 100);
@@ -30,7 +31,10 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
   const handleStart = () => setIsRunning(true);
   
   const handleStop = async () => {
+    // 保存累积时间
+    accumulatedTimeRef.current = time;
     setIsRunning(false);
+    
     const now = new Date();
     const localDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     
@@ -45,7 +49,18 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
       await storage.addSession(session);
       onUpdate();
     }
+    // 不归0，保留当前计时（但清空用于下次重新开始）
+    accumulatedTimeRef.current = 0;
     setTime(0);
+  };
+
+  // 切换模块时，如果正在计时则暂停，但不归0
+  const handleModuleChange = (module: StudyModule) => {
+    if (isRunning) {
+      accumulatedTimeRef.current = time;
+      setIsRunning(false);
+    }
+    setActiveModule(module);
   };
 
   const deleteSession = async (id: string) => {
@@ -77,11 +92,11 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
         </div>
 
         <div className="flex flex-wrap justify-center gap-2 mb-4">
-          {MAIN_MODULES.map(m => (
+          {[...MAIN_MODULES, StudyModule.ESSAY].map(m => (
             <button
               key={m}
               disabled={isRunning}
-              onClick={() => setActiveModule(m)}
+              onClick={() => handleModuleChange(m)}
               className={cn(
                 "px-3 py-1.5 rounded-full text-xs font-medium transition-all",
                 activeModule === m 

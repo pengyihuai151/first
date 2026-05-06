@@ -63,6 +63,10 @@ export default function Dashboard({ data, onUpdate }: { data: AppData; onUpdate:
 
   const totalAllMs = data.sessions.reduce((acc, s) => acc + s.duration, 0);
 
+  // 申论学习时间统计
+  const todayEssayMs = todaySessions.filter(s => s.moduleId === StudyModule.ESSAY).reduce((acc, s) => acc + s.duration, 0);
+  const totalEssayMs = data.sessions.filter(s => s.moduleId === StudyModule.ESSAY).reduce((acc, s) => acc + s.duration, 0);
+
   const [timeLeft, setTimeLeft] = React.useState<{days:number, hours:number, minutes:number, seconds:number} | null>(null);
 
   React.useEffect(() => {
@@ -212,6 +216,32 @@ export default function Dashboard({ data, onUpdate }: { data: AppData; onUpdate:
              剩余 {data.wrongQuestions.filter(q => !q.mastered).length} 题 <ChevronRight size={14} className="text-slate-300" />
           </span>
         </button>
+      </div>
+
+      {/* Essay Study Time Card */}
+      <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-4 rounded-2xl border border-amber-100">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold text-sm">
+              论
+            </div>
+            <div>
+              <span className="text-xs text-amber-600 font-medium">申论学习</span>
+              <div className="flex items-baseline gap-2">
+                <span className="text-xl font-bold text-slate-800">
+                  {todayEssayMs > 0 ? formatTimeFriendly(todayEssayMs) : '--'}
+                </span>
+                <span className="text-xs text-slate-400">今日</span>
+              </div>
+            </div>
+          </div>
+          <div className="text-right">
+            <span className="text-xs text-slate-400">累计</span>
+            <div className="text-sm font-semibold text-slate-600">
+              {totalEssayMs > 0 ? formatTimeFriendly(totalEssayMs) : '暂无记录'}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Recent Exam Highlighting */}
