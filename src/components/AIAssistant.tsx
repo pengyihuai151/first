@@ -17,6 +17,7 @@ export default function AIAssistant({ data, compact = false, onClose }: AIAssist
   const [messages, setMessages] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasHadConversation, setHasHadConversation] = useState(false); // 跟踪是否有过对话
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -63,36 +64,23 @@ export default function AIAssistant({ data, compact = false, onClose }: AIAssist
       };
       
       // 有快捷问题或首次对话时传数据
-      if (question) {
-        // 快捷问题：始终传数据
-        const result = await streamAnalysis(aiData, text, (chunk) => {
+      if (question || !hasHadConversation) {
+        // 快捷问题或首次对话：传数据，使用累积器处理叠词
+        let accumulatedText = '';
+        
+        await streamAnalysis(aiData, text, (chunk) => {
+          accumulatedText += chunk;
+          // 实时清理叠词
+          let cleaned = cleanText(accumulatedText);
+          // 更新显示
           setMessages(prev => {
             const newMessages = [...prev];
-            newMessages[newMessages.length - 1].content += chunk;
+            newMessages[newMessages.length - 1].content = cleaned;
             return newMessages;
           });
         });
         
-        setMessages(prev => {
-          const newMessages = [...prev];
-          newMessages[newMessages.length - 1].content = cleanText(newMessages[newMessages.length - 1].content);
-          return newMessages;
-        });
-      } else if (messages.length === 0) {
-        // 首次对话：传数据
-        const result = await streamAnalysis(aiData, text, (chunk) => {
-          setMessages(prev => {
-            const newMessages = [...prev];
-            newMessages[newMessages.length - 1].content += chunk;
-            return newMessages;
-          });
-        });
-        
-        setMessages(prev => {
-          const newMessages = [...prev];
-          newMessages[newMessages.length - 1].content = cleanText(newMessages[newMessages.length - 1].content);
-          return newMessages;
-        });
+        setHasHadConversation(true);
       } else {
         // 后续对话：不传数据
         const result = await quickAsk(text);
