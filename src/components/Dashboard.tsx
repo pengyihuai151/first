@@ -178,8 +178,7 @@ export default function Dashboard({ data, onUpdate, onNavigate }: { data: AppDat
         const todayReadIds = data.readingCheckIns?.[todayStr] || [];
         const unreadNotes = essayNotes
           .filter(n => !todayReadIds.includes(n.id))
-          .sort((a, b) => b.updatedAt - a.updatedAt)
-          .slice(0, 2);
+          .sort((a, b) => b.updatedAt - a.updatedAt);
 
         // 计算连续打卡天数
         let streak = 0;
@@ -226,7 +225,12 @@ export default function Dashboard({ data, onUpdate, onNavigate }: { data: AppDat
 
               {unreadNotes.length > 0 ? (
                 <>
-                  <p className="text-[11px] text-indigo-400/80 mb-3">今日推荐 · 点击阅读，完成后「已读」打卡</p>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-[11px] text-indigo-400/80">点击阅读，完成后「已读」打卡</p>
+                    <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+                      已读 {todayReadIds.length}/{essayNotes.length}
+                    </span>
+                  </div>
                   <div className="space-y-2.5">
                     {unreadNotes.map((note, idx) => (
                       <motion.div
@@ -265,20 +269,20 @@ export default function Dashboard({ data, onUpdate, onNavigate }: { data: AppDat
                   </div>
                 </>
               ) : (
-                <div className="py-4 text-center space-y-2">
-                  {todayReadIds.length >= Math.min(essayNotes.length, 2) ? (
+                <div className="py-3 text-center space-y-2">
+                  {todayReadIds.length >= essayNotes.length ? (
                     <>
                       <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', damping: 15 }}>
-                        <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-500 mx-auto flex items-center justify-center">
-                          <CheckCircle2 size={28} />
+                        <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-500 mx-auto flex items-center justify-center">
+                          <CheckCircle2 size={24} />
                         </div>
                       </motion.div>
-                      <p className="text-sm font-bold text-emerald-600">今日阅读已完成！</p>
-                      <p className="text-[11px] text-slate-400">已打卡 {todayReadIds.length}/{Math.min(essayNotes.length, 2)} 篇，继续保持</p>
+                      <p className="text-sm font-bold text-emerald-600">今日阅读完成！</p>
+                      <p className="text-[11px] text-slate-400">全部 {essayNotes.length} 篇已读完</p>
                     </>
                   ) : (
                     <>
-                      <BookOpen size={32} className="text-indigo-200 mx-auto" />
+                      <BookOpen size={28} className="text-indigo-200 mx-auto" />
                       <p className="text-sm text-slate-400">今日暂无可读笔记</p>
                       <p className="text-[11px] text-slate-300">前往笔记管理添加更多申论笔记吧</p>
                     </>
