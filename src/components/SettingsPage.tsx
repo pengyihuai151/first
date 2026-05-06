@@ -30,7 +30,7 @@ export default function SettingsPage({ data, onUpdate, onNavigate }: { data: App
     
     const currentTags = (config[type] as string[]);
     if (currentTags.includes(newTagValue.trim())) {
-        alert('标签已存在');
+        setAlertModal({ open: true, message: '标签已存在' });
         return;
     }
     const updated = { ...config, [type]: [...currentTags, newTagValue.trim()] };
@@ -50,6 +50,8 @@ export default function SettingsPage({ data, onUpdate, onNavigate }: { data: App
     notes: true
   });
   const [isExporting, setIsExporting] = useState<boolean | string>(false);
+  const [importModeModal, setImportModeModal] = useState<{ open: boolean; file: File | null }>({ open: false, file: null });
+  const [alertModal, setAlertModal] = useState<{ open: boolean; message: string; onClose?: () => void }>({ open: false, message: '' });
 
   const setExamDate = async (date: string) => {
     await storage.saveData({
@@ -61,7 +63,7 @@ export default function SettingsPage({ data, onUpdate, onNavigate }: { data: App
 
   const exportPDF = async (type: 'xingce' | 'shenlun' = 'xingce') => {
     if (type === 'xingce' && !exportOptions.stats && !exportOptions.wrong && !exportOptions.notes) {
-      alert('请至少选择一个导出项');
+      setAlertModal({ open: true, message: '请至少选择一个导出项' });
       return;
     }
     
@@ -122,7 +124,7 @@ export default function SettingsPage({ data, onUpdate, onNavigate }: { data: App
       pdf.save(`${fileName}-${new Date().toISOString().split('T')[0]}.pdf`);
     } catch (e) {
       console.error('Export failed:', e);
-      alert('导出 PDF 失败，请确保网络正常并重试');
+      setAlertModal({ open: true, message: '导出 PDF 失败，请确保网络正常并重试' });
     } finally {
       setIsExporting(false);
     }
@@ -131,52 +133,48 @@ export default function SettingsPage({ data, onUpdate, onNavigate }: { data: App
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // 先让用户选择模式
-      const mode = prompt('请输入导入模式（1=覆盖，2=合并不覆盖已有，3=合并并覆盖已有）\n\n提示：建议先备份数据！', '2');
-      if (mode === null) { // 用户取消
-        e.target.value = '';
-        return;
-      }
-      
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        try {
-          const content = event.target?.result as string;
-          const importedData: AppData = JSON.parse(content);
-          
-          let finalData: AppData;
-          
-          switch (mode.trim()) {
-            case '1': // 完全覆盖
-              await storage.importData(content);
-              onUpdate();
-              alert('数据已完全替换');
-              break;
-              
-            case '2': // 合并（保留已有）
-              await mergeData(importedData, false);
-              onUpdate();
-              alert('数据已合并（保留原有数据）');
-              break;
-              
-            case '3': // 合并（覆盖已有）
-              await mergeData(importedData, true);
-              onUpdate();
-              alert('数据已合并并更新');
-              break;
-              
-            default:
-              alert('无效选项，请重新操作');
-          }
-        } catch (err) {
-          console.error(err);
-          alert('导入失败，不兼容的文件');
-        } finally {
-          e.target.value = ''; // 清空 input，防止重复导入
-        }
-      };
-      reader.readAsText(file);
+      setImportModeModal({ open: true, file });
+      e.target.value = '';
     }
+  };
+
+  const executeImport = async (mode: string) => {
+    if (!importModeModal.file) return;
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const content = event.target?.result as string;
+        const importedData: AppData = JSON.parse(content);
+        
+        switch (mode.trim()) {
+          case '1': // 完全覆盖
+            await storage.importData(content);
+            onUpdate();
+            setAlertModal({ open: true, message: '数据已完全替换' });
+            break;
+            
+          case '2': // 合并（保留已有）
+            await mergeData(importedData, false);
+            onUpdate();
+            setAlertModal({ open: true, message: '数据已合并（保留原有数据）' });
+            break;
+            
+          case '3': // 合并（覆盖已有）
+            await mergeData(importedData, true);
+            onUpdate();
+            setAlertModal({ open: true, message: '数据已合并（覆盖原有数据）' });
+            break;
+            
+          default:
+            setAlertModal({ open: true, message: '无效的模式，操作已取消' });
+        }
+      } catch (error) {
+        console.error('Import failed:', error);
+        setAlertModal({ open: true, message: '导入失败，请确保文件格式正确' });
+      }
+    };
+    reader.readAsText(importModeModal.file);
+    setImportModeModal({ open: false, file: null });
   };
 
   /**
@@ -816,6 +814,81 @@ export default function SettingsPage({ data, onUpdate, onNavigate }: { data: App
         </div>
         <p className="text-[10px]">纯本地存储 • 无广告 • 极简备考</p>
       </div>
+
+      {/* 自定义弹窗：导入模式选择 */}
+      <AnimatePresence>
+        {importModeModal.open && importModeModal.file && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setImportModeModal({ open: false, file: null })} />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 10 }} 
+              animate={{ scale: 1, opacity: 1, y: 0 }} 
+              exit={{ scale: 0.9, opacity: 0, y: 10 }}
+              className="bg-white w-full max-w-sm rounded-3xl shadow-2xl relative z-10 overflow-hidden"
+            >
+              <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                <h3 className="font-bold text-slate-800">选择导入模式</h3>
+                <button onClick={() => setImportModeModal({ open: false, file: null })} className="text-slate-400 hover:text-slate-600"><X size={20}/></button>
+              </div>
+              <div className="p-6 space-y-3">
+                <p className="text-xs text-slate-500">请选择如何处理数据合并：</p>
+                
+                <button 
+                  onClick={() => executeImport('1')}
+                  className="w-full py-3 rounded-2xl border border-slate-200 hover:bg-slate-50 text-left px-4 transition-all"
+                >
+                  <div className="font-bold text-slate-700 text-sm">1️⃣ 完全覆盖</div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">新数据完全替换旧数据</div>
+                </button>
+                
+                <button 
+                  onClick={() => executeImport('2')}
+                  className="w-full py-3 rounded-2xl border border-slate-200 hover:bg-slate-50 text-left px-4 transition-all"
+                >
+                  <div className="font-bold text-slate-700 text-sm">2️⃣ 合并（保留）</div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">旧数据优先，新数据只追加</div>
+                </button>
+                
+                <button 
+                  onClick={() => executeImport('3')}
+                  className="w-full py-3 rounded-2xl border border-slate-200 hover:bg-slate-50 text-left px-4 transition-all"
+                >
+                  <div className="font-bold text-slate-700 text-sm">3️⃣ 合并（覆盖）</div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">新数据覆盖同名旧数据</div>
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* 自定义弹窗：提示 */}
+      <AnimatePresence>
+        {alertModal.open && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setAlertModal({ open: false, message: '' })} />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 10 }} 
+              animate={{ scale: 1, opacity: 1, y: 0 }} 
+              exit={{ scale: 0.9, opacity: 0, y: 10 }}
+              className="bg-white w-full max-w-sm rounded-3xl shadow-2xl relative z-10 overflow-hidden"
+            >
+              <div className="p-6 pt-8 pb-6 text-center">
+                <div className="mb-4 text-indigo-500"><Info size={40} /></div>
+                <p className="text-sm text-slate-700 font-medium leading-relaxed">{alertModal.message}</p>
+              </div>
+              <div className="px-6 pb-6">
+                <button 
+                  onClick={() => setAlertModal({ open: false, message: '' })}
+                  className="w-full py-3 rounded-2xl bg-slate-800 text-white font-bold text-sm active:bg-slate-900 active:scale-95 transition-all"
+                >
+                  确定
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
