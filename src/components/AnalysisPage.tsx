@@ -147,27 +147,45 @@ export default function AnalysisPage({ data, onUpdate }: { data: AppData; onUpda
         </div>
       </div>
 
-      {/* 考试趋势 - 最近两次对比 */}
+      {/* 考试趋势 - 最近对比 */}
       {lastExam && (
         <section className="bg-white rounded-3xl border border-slate-100 shadow-sm p-5 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-bold text-slate-700 flex items-center gap-2">
               <TrendingUp size={16} className="text-indigo-500" /> 考试趋势
             </h2>
-            <span className="text-[10px] text-slate-400">{new Date(lastExam.date).toLocaleDateString()}</span>
+            <div className="flex items-center gap-2 text-[10px] text-slate-400">
+              {prevExam && <span>vs {new Date(prevExam.date).toLocaleDateString()}</span>}
+              <span>{new Date(lastExam.date).toLocaleDateString()}</span>
+            </div>
           </div>
           
           <div className="space-y-2.5">
             {MAIN_MODULES.map(m => {
               const lastScore = lastExam.moduleScores.find(ms => ms.moduleId === m);
-              const prevScore = prevExam?.moduleScores.find(ms => ms.moduleId === m);
-              
               const lastAcc = lastScore && lastScore.totalCount > 0
                 ? Math.round(lastScore.correctCount / lastScore.totalCount * 100) : null;
-              const prevAcc = prevScore && prevScore.totalCount > 0
-                ? Math.round(prevScore.correctCount / prevScore.totalCount * 100) : null;
               
-              const diff = lastAcc !== null && prevAcc !== null ? lastAcc - prevAcc : null;
+              // 计算历史平均正确率（排除最近一次）
+              const historyScores = examRecords
+                .slice(0, -1) // 排除最近一次
+                .map(r => r.moduleScores.find(ms => ms.moduleId === m))
+                .filter(s => s && s.totalCount > 0);
+              
+              let diff: number | null = null;
+              if (historyScores.length > 0) {
+                const historyAvg = historyScores.reduce((acc, s) => acc + s.correctCount / s.totalCount, 0) / historyScores.length;
+                if (lastAcc !== null) {
+                  diff = Math.round(lastAcc - historyAvg * 100);
+                }
+              } else if (prevExam) {
+                const prevScore = prevExam.moduleScores.find(ms => ms.moduleId === m);
+                const prevAcc = prevScore && prevScore.totalCount > 0
+                  ? Math.round(prevScore.correctCount / prevScore.totalCount * 100) : null;
+                if (lastAcc !== null && prevAcc !== null) {
+                  diff = lastAcc - prevAcc;
+                }
+              }
 
               return (
                 <div key={m} className="flex items-center gap-3">
@@ -188,14 +206,15 @@ export default function AnalysisPage({ data, onUpdate }: { data: AppData; onUpda
                   </div>
                   {diff !== null && (
                     <div className={cn(
-                      "flex items-center gap-0.5 text-[10px] font-bold w-10 justify-end",
+                      "flex items-center gap-0.5 text-[10px] font-bold w-12 justify-end",
                       diff > 0 ? "text-emerald-500" : diff < 0 ? "text-rose-500" : "text-slate-400"
                     )}>
                       {diff > 0 ? <ArrowUpRight size={10} /> : diff < 0 ? <ArrowDownRight size={10} /> : <Minus size={10} />}
                       {Math.abs(diff)}%
                     </div>
                   )}
-                  {diff === null && <div className="w-10" />}
+                  {diff === null && !prevExam && <span className="text-[9px] text-slate-400 w-12">首次</span>}
+                  {diff === null && prevExam && <div className="w-12" />}
                 </div>
               );
             })}
