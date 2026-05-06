@@ -9,10 +9,17 @@
 
 /// <reference types="vite/client" />
 
-// 环境变量配置
-const API_KEY = (import.meta.env.VITE_AI_API_KEY as string | undefined) || '';
-const BASE_URL = (import.meta.env.VITE_AI_BASE_URL as string | undefined) || 'https://open.bigmodel.cn/api/paas/v4';
-const MODEL = (import.meta.env.VITE_AI_MODEL as string | undefined) || 'glm-4-flash';
+// 从 localStorage 读取配置（优先级高于环境变量）
+function getConfig() {
+  const savedKey = localStorage.getItem('ai_api_key');
+  const savedUrl = localStorage.getItem('ai_base_url');
+  const savedModel = localStorage.getItem('ai_model');
+  return {
+    apiKey: savedKey || (import.meta.env.VITE_AI_API_KEY as string | undefined) || '',
+    baseUrl: savedUrl || (import.meta.env.VITE_AI_BASE_URL as string | undefined) || 'https://open.bigmodel.cn/api/paas/v4',
+    model: savedModel || (import.meta.env.VITE_AI_MODEL as string | undefined) || 'glm-4-flash'
+  };
+}
 
 // 系统提示词
 const SYSTEM_PROMPT = `你是公考备考助手，专门帮助用户高效备考。
@@ -177,19 +184,20 @@ export function cleanText(text: string): string {
 
 // API 调用
 async function callAI(messages: Array<{ role: string; content: string }>, maxTokens = 500): Promise<{ text: string; error?: boolean }> {
-  if (!API_KEY) {
+  const config = getConfig();
+  if (!config.apiKey) {
     return { text: '请先配置 AI API Key', error: true };
   }
 
   try {
-    const response = await fetch(`${BASE_URL}/chat/completions`, {
+    const response = await fetch(`${config.baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_KEY}`
+        'Authorization': `Bearer ${config.apiKey}`
       },
       body: JSON.stringify({
-        model: MODEL,
+        model: config.model,
         messages,
         max_tokens: maxTokens,
         temperature: 0.5,

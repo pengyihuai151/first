@@ -15,6 +15,11 @@ export default function SettingsPage({ data, onUpdate, onNavigate }: { data: App
     noteTags: ['公式', '技巧', '反例', '易错点', '口诀']
   };
 
+  // AI 配置状态
+  const [apiKey, setApiKey] = useState(localStorage.getItem('ai_api_key') || '');
+  const [baseUrl, setBaseUrl] = useState(localStorage.getItem('ai_base_url') || 'https://open.bigmodel.cn/api/paas/v4');
+  const [model, setModel] = useState(localStorage.getItem('ai_model') || 'glm-4-flash');
+
   const [editingConfigType, setEditingConfigType] = useState<keyof AppConfig | null>(null);
   const [newTagValue, setNewTagValue] = useState('');
 
@@ -293,6 +298,60 @@ export default function SettingsPage({ data, onUpdate, onNavigate }: { data: App
               <div className="text-[10px] text-slate-400">查看学习笔记</div>
             </div>
           </button>
+        </div>
+      </div>
+
+      {/* AI API 配置 */}
+      <div className="space-y-3">
+        <h3 className="text-xs font-bold text-slate-400 uppercase px-1">AI 配置</h3>
+        <div className="bg-white p-5 rounded-2xl border border-slate-100 space-y-4">
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-slate-700">API Key</label>
+            <input
+              type="password"
+              placeholder="sk-..."
+              value={apiKey}
+              onChange={(e) => {
+                setApiKey(e.target.value);
+                localStorage.setItem('ai_api_key', e.target.value);
+              }}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-slate-700">API 地址</label>
+            <input
+              type="text"
+              placeholder="https://open.bigmodel.cn/api/paas/v4"
+              value={baseUrl}
+              onChange={(e) => {
+                setBaseUrl(e.target.value);
+                localStorage.setItem('ai_base_url', e.target.value);
+              }}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-slate-700">模型名称</label>
+            <input
+              type="text"
+              placeholder="glm-4-flash"
+              value={model}
+              onChange={(e) => {
+                setModel(e.target.value);
+                localStorage.setItem('ai_model', e.target.value);
+              }}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+            />
+          </div>
+          <a
+            href="https://open.bigmodel.cn"
+            target="_blank"
+            rel="noreferrer"
+            className="text-sm text-indigo-500 hover:text-indigo-600 font-semibold"
+          >
+            👉 获取免费智谱 AI Key
+          </a>
         </div>
       </div>
 
