@@ -10,7 +10,7 @@ import { AIAssistantInline } from './AIAssistant';
 import KnowledgePointRanking from './KnowledgePointRanking';
 import { differenceInDays, startOfWeek, endOfWeek, isWithinInterval, subDays, format } from 'date-fns';
 
-export default function AnalysisPage({ data, onUpdate }: { data: AppData; onUpdate: () => void }) {
+export default function AnalysisPage({ data, onUpdate, onNavigate }: { data: AppData; onUpdate: () => void; onNavigate?: (tab: string) => void }) {
   const [showKnowledgePoints, setShowKnowledgePoints] = React.useState(false);
   const now = new Date();
   const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -478,7 +478,7 @@ export default function AnalysisPage({ data, onUpdate }: { data: AppData; onUpda
 
       {/* AI 智能建议 */}
       <section>
-        <AIAssistantInline data={data} />
+        <AIAssistantInline data={data} onNavigate={onNavigate} />
       </section>
     </div>
   );

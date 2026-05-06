@@ -10,9 +10,10 @@ interface AIAssistantProps {
   data: AppData;
   compact?: boolean;
   onClose?: () => void;
+  onNavigate?: (tab: string) => void;
 }
 
-export default function AIAssistant({ data, compact = false, onClose }: AIAssistantProps) {
+export default function AIAssistant({ data, compact = false, onClose, onNavigate }: AIAssistantProps) {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -119,28 +120,25 @@ export default function AIAssistant({ data, compact = false, onClose }: AIAssist
             <div className="text-sm">
               <p className="font-medium">需要配置 AI API</p>
               <p className="text-xs text-white/70 mt-1">
-                请在 <code className="bg-white/20 px-1 rounded">.env.local</code> 中配置：
+                请前往设置页配置 API Key 即可使用
               </p>
             </div>
           </div>
 
-          <div className="bg-white/10 rounded-xl p-3 text-xs font-mono space-y-1">
-            <p>VITE_AI_API_KEY=sk-xxx</p>
-            <p>VITE_AI_BASE_URL=https://api.siliconflow.cn/v1</p>
-            <p>VITE_AI_MODEL=deepseek-ai/DeepSeek-V2.5</p>
-          </div>
+          <button
+            onClick={() => onNavigate?.('settings')}
+            className="block w-full text-center bg-white hover:bg-white/90 transition-colors rounded-xl py-3 text-sm font-bold text-indigo-600 cursor-pointer"
+          >
+            去设置页配置 →
+          </button>
 
           <a
-            onClick={(e) => {
-              e.preventDefault();
-              // window.open 的 _system 会在系统浏览器中打开（Electron 和浏览器通用）
-              window.open('https://cloud.siliconflow.cn', '_system');
-            }}
-            href="https://cloud.siliconflow.cn"
+            href="https://open.bigmodel.cn"
+            target="_blank"
             rel="noopener noreferrer"
-            className="block text-center bg-white/20 hover:bg-white/30 transition-colors rounded-xl py-2 text-sm font-medium cursor-pointer"
+            className="block text-center text-xs text-white/60 hover:text-white/80 underline"
           >
-            获取免费 API Key →
+            还没有 API Key？去智谱免费获取
           </a>
         </div>
       </div>
@@ -281,7 +279,7 @@ export default function AIAssistant({ data, compact = false, onClose }: AIAssist
 }
 
 // 简单的内联版本（用于 Dashboard）
-export function AIAssistantInline({ data }: { data: AppData }) {
+export function AIAssistantInline({ data, onNavigate }: { data: AppData; onNavigate?: (tab: string) => void }) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
@@ -324,6 +322,7 @@ export function AIAssistantInline({ data }: { data: AppData }) {
                 data={data}
                 compact
                 onClose={() => setIsExpanded(false)}
+                onNavigate={onNavigate}
               />
             </motion.div>
           </motion.div>

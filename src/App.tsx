@@ -41,7 +41,7 @@ export default function App() {
       case 'home': return <Dashboard data={data} onUpdate={loadData} onNavigate={handleNavigate} />;
       case 'study': return <StudyRoom data={data} onUpdate={loadData} />;
       case 'wrong': return <WrongQuestionBank data={data} onUpdate={loadData} />;
-      case 'analysis': return <AnalysisPage data={data} onUpdate={loadData} />;
+      case 'analysis': return <AnalysisPage data={data} onUpdate={loadData} onNavigate={handleNavigate} />;
       case 'settings': return <SettingsPage data={data} onUpdate={loadData} onNavigate={handleNavigate} />;
       case 'exam': return <ExamBank data={data} onUpdate={loadData} />;
       case 'notes': return <NotesSection data={data} onUpdate={loadData} />;
