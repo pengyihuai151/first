@@ -214,12 +214,9 @@ export default function SettingsPage({ data, onUpdate, onNavigate }: { data: App
       quotes: overwrite 
         ? (imported.settings.quotes || current.settings.quotes)
         : (current.settings.quotes || []),
-      examDate: overwrite 
+      examDate: overwrite
         ? (imported.settings.examDate || current.settings.examDate)
         : current.settings.examDate,
-      dailyTarget: overwrite 
-        ? (imported.settings.dailyTarget || current.settings.dailyTarget)
-        : current.settings.dailyTarget,
     };
 
     const result = {
@@ -228,7 +225,10 @@ export default function SettingsPage({ data, onUpdate, onNavigate }: { data: App
       examRecords: Array.from(examMap.values()),
       notes: Array.from(notesMap.values()),
       settings: mergedSettings,
-      config: current.config || imported.config
+      config: current.config || imported.config,
+      readingCheckIns: overwrite
+        ? (imported.readingCheckIns || current.readingCheckIns || {})
+        : (current.readingCheckIns || imported.readingCheckIns || {})
     };
 
     await storage.saveData(result);
@@ -256,7 +256,8 @@ export default function SettingsPage({ data, onUpdate, onNavigate }: { data: App
         wrongQuestions: [],
         notes: [],
         settings: currentData.settings,
-        config: currentData.config
+        config: currentData.config,
+        readingCheckIns: currentData.readingCheckIns || {}
       });
     }
     window.location.reload();
@@ -383,25 +384,6 @@ export default function SettingsPage({ data, onUpdate, onNavigate }: { data: App
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '30px', paddingLeft: '15px' }}>
                               {questions.map(q => (
                                 <div key={q.id} style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '20px' }}>
-                                  {/* Multi-image support */}
-                                  {((q.imageUrls && q.imageUrls.length > 0) || q.imageUrl) && (
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '15px', background: '#f8fafc', padding: '10px', borderRadius: '12px', justifyContent: 'center' }}>
-                                      {(q.imageUrls || (q.imageUrl ? [q.imageUrl] : [])).map((url, idx) => (
-                                        <img 
-                                          key={idx} 
-                                          src={url} 
-                                          alt={`Question image ${idx+1}`} 
-                                          style={{ 
-                                            maxWidth: (q.imageUrls?.length || 1) > 1 ? '48%' : '100%', 
-                                            maxHeight: '300px', 
-                                            objectFit: 'contain',
-                                            borderRadius: '8px',
-                                            border: '1px solid #e2e8f0'
-                                          }} 
-                                        />
-                                      ))}
-                                    </div>
-                                  )}
                                   <div style={{ fontSize: '15px', color: '#1e293b', marginBottom: '12px', lineHeight: '1.6', fontWeight: '500', whiteSpace: 'pre-wrap' }}>{q.content}</div>
                                   {q.analysis && (
                                     <div style={{ background: '#fffbeb', padding: '15px', borderRadius: '12px', fontSize: '14px', color: '#475569', borderLeft: '4px solid #f59e0b' }}>
@@ -435,11 +417,6 @@ export default function SettingsPage({ data, onUpdate, onNavigate }: { data: App
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '25px', paddingLeft: '10px' }}>
                           {tagQs.map(q => (
                             <div key={q.id} style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '20px' }}>
-                              {q.imageUrl && (
-                                <div style={{ marginBottom: '15px', background: '#f8fafc', padding: '10px', borderRadius: '12px', textAlign: 'center' }}>
-                                    <img src={q.imageUrl} alt="Wrong question" style={{ maxWidth: '100%', maxHeight: '300px', objectFit: 'contain' }} />
-                                </div>
-                              )}
                               <div style={{ fontSize: '15px', color: '#1e293b', marginBottom: '12px', lineHeight: '1.6', fontWeight: '500', whiteSpace: 'pre-wrap' }}>{q.content}</div>
                               {q.analysis && (
                                 <div style={{ background: '#f0fdf4', padding: '15px', borderRadius: '12px', fontSize: '14px', color: '#166534', borderLeft: '4px solid #22c55e' }}>

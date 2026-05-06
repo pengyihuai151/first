@@ -60,7 +60,7 @@ export default function AIAssistant({ data, compact = false, onClose }: AIAssist
         examRecords: data.examRecords || [],
         sessions: data.sessions || [],
         settings: data.settings,
-        examNotes: (data as any).examNotes || []
+        notes: data.notes || []
       };
       
       let accumulatedText = '';

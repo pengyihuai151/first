@@ -18,6 +18,36 @@ export default function Dashboard({ data, onUpdate, onNavigate }: { data: AppDat
   const [tempIndex, setTempIndex] = React.useState<number | null>(null);
   const [selectedNote, setSelectedNote] = React.useState<ExamNote | null>(null);
   const displayIndex = tempIndex !== null ? tempIndex : dailyIndex;
+
+  // 阅读打卡状态（提升到组件顶层，避免 IIFE 内 hooks 风险）
+  const [readingShuffleKey, setReadingShuffleKey] = React.useState(0);
+  const essayNotesForReading = data.notes?.filter(n => n.moduleId === StudyModule.ESSAY) || [];
+  const todayReadIdsForReading = data.readingCheckIns?.[todayStr] || [];
+
+  // 展示列表：默认最新3条，点击换一批则随机3条
+  const readingDisplayNotes = React.useMemo(() => {
+    const list = [...essayNotesForReading].sort((a, b) => b.updatedAt - a.updatedAt);
+    if (readingShuffleKey === 0) return list.slice(0, 3);
+    // 基于readingShuffleKey种子的伪随机打乱
+    const arr = [...list];
+    let seed = readingShuffleKey * 9973;
+    const rand = () => { seed = (seed * 1664525 + 1013904223) & 0x7fffffff; return (seed / 0x7fffffff); };
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(rand() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr.slice(0, 3);
+  }, [essayNotesForReading, readingShuffleKey]);
+
+  const handleReadingCheckIn = async (noteId: string) => {
+    const newCheckIns = { ...(data.readingCheckIns || {}) };
+    if (!newCheckIns[todayStr]) newCheckIns[todayStr] = [];
+    if (!newCheckIns[todayStr].includes(noteId)) {
+      newCheckIns[todayStr].push(noteId);
+    }
+    await storage.saveData({ ...data, readingCheckIns: newCheckIns });
+    onUpdate();
+  };
   const currentQuote = quotes[displayIndex] || "积跬步，以至千里。";
 
   const handleShuffle = () => {
@@ -270,23 +300,10 @@ export default function Dashboard({ data, onUpdate, onNavigate }: { data: AppDat
         const essayNotes = data.notes?.filter(n => n.moduleId === StudyModule.ESSAY) || [];
         if (essayNotes.length === 0) return null;
 
-        const [shuffleKey, setShuffleKey] = React.useState(0);
         const todayReadIds = data.readingCheckIns?.[todayStr] || [];
 
-        // 展示列表：默认最新3条，点击换一批则随机3条（基于shuffleKey种子稳定）
-        const shuffled = React.useMemo(() => {
-          const list = [...essayNotes].sort((a, b) => b.updatedAt - a.updatedAt);
-          if (shuffleKey === 0) return list.slice(0, 3);
-          // 基于shuffleKey的伪随机打乱（同key每次结果一致）
-          const arr = [...list];
-          let seed = shuffleKey * 9973;
-          const rand = () => { seed = (seed * 1664525 + 1013904223) & 0x7fffffff; return (seed / 0x7fffffff); };
-          for (let i = arr.length - 1; i > 0; i--) {
-            const j = Math.floor(rand() * (i + 1));
-            [arr[i], arr[j]] = [arr[j], arr[i]];
-          }
-          return arr.slice(0, 3);
-        }, [essayNotes, shuffleKey]);
+        // 使用组件顶层计算好的 readingDisplayNotes（已提升到外层）
+        const displayList = readingDisplayNotes;
 
         // 计算连续打卡天数
         let streak = 0;
@@ -304,16 +321,6 @@ export default function Dashboard({ data, onUpdate, onNavigate }: { data: AppDat
             }
           }
         }
-
-        const handleCheckIn = async (noteId: string) => {
-          const newCheckIns = { ...(data.readingCheckIns || {}) };
-          if (!newCheckIns[todayStr]) newCheckIns[todayStr] = [];
-          if (!newCheckIns[todayStr].includes(noteId)) {
-            newCheckIns[todayStr].push(noteId);
-          }
-          await storage.saveData({ ...data, readingCheckIns: newCheckIns });
-          onUpdate();
-        };
 
         return (
           <>
@@ -340,7 +347,7 @@ export default function Dashboard({ data, onUpdate, onNavigate }: { data: AppDat
                     </span>
                   </div>
                   <div className="space-y-2.5">
-                    {shuffled.map((note, idx) => {
+                    {displayList.map((note, idx) => {
                       const isRead = todayReadIds.includes(note.id);
                       return (
                         <motion.div
@@ -374,7 +381,7 @@ export default function Dashboard({ data, onUpdate, onNavigate }: { data: AppDat
                             </div>
                           </div>
                           <button
-                            onClick={(e) => { e.stopPropagation(); handleCheckIn(note.id); }}
+                            onClick={(e) => { e.stopPropagation(); handleReadingCheckIn(note.id); }}
                             className={cn(
                               "shrink-0 self-center w-8 h-8 rounded-xl flex items-center justify-center active:scale-90 transition-all shadow-md",
                               isRead
@@ -390,7 +397,7 @@ export default function Dashboard({ data, onUpdate, onNavigate }: { data: AppDat
                     })}
                   </div>
                   <button
-                    onClick={() => setShuffleKey(k => k + 1)}
+                    onClick={() => setReadingShuffleKey(k => k + 1)}
                     className="w-full mt-2 py-2 rounded-xl border border-dashed border-indigo-200 text-[11px] text-indigo-400 font-medium hover:bg-indigo-50 transition-colors active:scale-98"
                   >
                     随机换一批
@@ -458,8 +465,8 @@ export default function Dashboard({ data, onUpdate, onNavigate }: { data: AppDat
 
                   <div className="px-5 py-3 border-t border-slate-100 flex gap-3 shrink-0 pb-safe">
                     <button
-                      onClick={() => handleCheckIn(selectedNote.id)}
-                      disabled={todayReadIds.includes(selectedNote.id)}
+                      onClick={() => handleReadingCheckIn(selectedNote.id)}
+                      disabled={todayReadIdsForReading.includes(selectedNote.id)}
                       className={cn(
                         "flex-1 py-3 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-md",
                         todayReadIds.includes(selectedNote.id)
@@ -468,7 +475,7 @@ export default function Dashboard({ data, onUpdate, onNavigate }: { data: AppDat
                       )}
                     >
                       <CheckCircle2 size={16} />
-                      {todayReadIds.includes(selectedNote.id) ? '已打卡' : '标记已读'}
+                      {todayReadIdsForReading.includes(selectedNote.id) ? '已打卡' : '标记已读'}
                     </button>
                     <button
                       onClick={() => onNavigate('notes')}

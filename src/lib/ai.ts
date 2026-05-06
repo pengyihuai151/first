@@ -31,9 +31,9 @@ function buildUserProfilePrompt(data: {
   examRecords: any[];
   sessions: any[];
   settings: any;
-  examNotes?: any[];
+  notes?: any[]; // 实际笔记字段
 }) {
-  const { wrongQuestions = [], examRecords = [], sessions = [], settings, examNotes = [] } = data;
+  const { wrongQuestions = [], examRecords = [], sessions = [], settings, notes = [] } = data;
   
   // 错题统计
   const totalWrong = wrongQuestions.length;
@@ -87,7 +87,7 @@ function buildUserProfilePrompt(data: {
   const totalTime = sessions.reduce((acc: number, s: any) => acc + s.duration, 0);
   
   // 笔记统计
-  const noteCount = (data as any).examNotes?.length || 0;
+  const noteCount = notes?.length || 0;
   
   // 错误原因统计
   const errorReasons = wrongQuestions.filter((q: any) => q.errorReason).map((q: any) => q.errorReason);
