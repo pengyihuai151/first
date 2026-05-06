@@ -63,16 +63,28 @@ export default function AIAssistant({ data, compact = false, onClose }: AIAssist
         examNotes: (data as any).examNotes || []
       };
       
-      // 有快捷问题或首次对话时传数据
-      if (question || !hasHadConversation) {
-        // 快捷问题或首次对话：传数据，使用累积器处理叠词
+      // 只要是快捷问题就传完整数据
+      if (question) {
         let accumulatedText = '';
         
         await streamAnalysis(aiData, text, (chunk) => {
           accumulatedText += chunk;
-          // 实时清理叠词
           let cleaned = cleanText(accumulatedText);
-          // 更新显示
+          setMessages(prev => {
+            const newMessages = [...prev];
+            newMessages[newMessages.length - 1].content = cleaned;
+            return newMessages;
+          });
+        });
+        
+        setHasHadConversation(true);
+      } else if (!hasHadConversation) {
+        // 首次对话传数据
+        let accumulatedText = '';
+        
+        await streamAnalysis(aiData, text, (chunk) => {
+          accumulatedText += chunk;
+          let cleaned = cleanText(accumulatedText);
           setMessages(prev => {
             const newMessages = [...prev];
             newMessages[newMessages.length - 1].content = cleaned;
@@ -82,7 +94,7 @@ export default function AIAssistant({ data, compact = false, onClose }: AIAssist
         
         setHasHadConversation(true);
       } else {
-        // 后续对话：不传数据
+        // 后续对话不传数据
         const result = await quickAsk(text);
         setMessages(prev => {
           const newMessages = [...prev];
