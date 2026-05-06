@@ -54,7 +54,7 @@ export default function AIAssistant({ data, compact = false, onClose }: AIAssist
     setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
 
     try {
-      // 准备数据
+      // 准备数据 - 所有对话都传完整数据
       const aiData = {
         wrongQuestions: data.wrongQuestions || [],
         examRecords: data.examRecords || [],
@@ -63,45 +63,19 @@ export default function AIAssistant({ data, compact = false, onClose }: AIAssist
         examNotes: (data as any).examNotes || []
       };
       
-      // 只要是快捷问题就传完整数据
-      if (question) {
-        let accumulatedText = '';
-        
-        await streamAnalysis(aiData, text, (chunk) => {
-          accumulatedText += chunk;
-          let cleaned = cleanText(accumulatedText);
-          setMessages(prev => {
-            const newMessages = [...prev];
-            newMessages[newMessages.length - 1].content = cleaned;
-            return newMessages;
-          });
-        });
-        
-        setHasHadConversation(true);
-      } else if (!hasHadConversation) {
-        // 首次对话传数据
-        let accumulatedText = '';
-        
-        await streamAnalysis(aiData, text, (chunk) => {
-          accumulatedText += chunk;
-          let cleaned = cleanText(accumulatedText);
-          setMessages(prev => {
-            const newMessages = [...prev];
-            newMessages[newMessages.length - 1].content = cleaned;
-            return newMessages;
-          });
-        });
-        
-        setHasHadConversation(true);
-      } else {
-        // 后续对话不传数据
-        const result = await quickAsk(text);
+      let accumulatedText = '';
+      
+      await streamAnalysis(aiData, text, (chunk) => {
+        accumulatedText += chunk;
+        let cleaned = cleanText(accumulatedText);
         setMessages(prev => {
           const newMessages = [...prev];
-          newMessages[newMessages.length - 1].content = cleanText(result.text);
+          newMessages[newMessages.length - 1].content = cleaned;
           return newMessages;
         });
-      }
+      });
+      
+      setHasHadConversation(true);
     } catch (err: any) {
       setMessages(prev => {
         const newMessages = [...prev];
