@@ -113,9 +113,12 @@ ${moduleStats.length > 0 ? moduleStats.map(m =>
 ${topReasons.length > 0 ? topReasons.map(r => `• ${r[0]}：${r[1]}次`).join('\n') : '- 暂无错误原因记录'}
 
 📝 模考记录：
-${recentExams.length > 0 ? recentExams.map((r: any, i: number) => 
-  `• 第${recentExams.length - i}次：${r.score}/${r.total}（${Math.round(r.score/r.total*100)}%）`
-).join('\n') : '- 暂无模考记录'}
+${recentExams.length > 0 ? recentExams.map((r: any, i: number) => {
+  const totalCorrect = (r.moduleScores || []).reduce((s: number, ms: any) => s + (ms.correctCount || 0), 0);
+  const totalCount = (r.moduleScores || []).reduce((s: number, ms: any) => s + (ms.totalCount || 0), 0);
+  const pct = totalCount > 0 ? Math.round(totalCorrect / totalCount * 100) : 0;
+  return `• 第${recentExams.length - i}次：${totalCorrect}/${totalCount}（${pct}%）`;
+}).join('\n') : '- 暂无模考记录'}
 
 ⏱️ 学习时长：
 - 今日：${Math.round(todayTime / 60000)} 分钟
