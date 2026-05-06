@@ -34,6 +34,12 @@ function buildUserProfilePrompt(data: {
 }) {
   const { wrongQuestions = [], examRecords = [], sessions = [], settings, examNotes = [] } = data;
   
+  console.log('=== buildUserProfilePrompt called ===');
+  console.log('wrongQuestions.length:', wrongQuestions.length);
+  console.log('examRecords.length:', examRecords.length);
+  console.log('sessions.length:', sessions.length);
+  console.log('examNotes.length:', examNotes.length);
+  
   // 错题统计
   const totalWrong = wrongQuestions.length;
   const masteredWrong = wrongQuestions.filter((q: any) => q.mastered).length;

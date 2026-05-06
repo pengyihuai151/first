@@ -63,8 +63,17 @@ export default function AIAssistant({ data, compact = false, onClose }: AIAssist
         examNotes: (data as any).examNotes || []
       };
       
+      console.log('=== AI Debug Info ===');
+      console.log('hasHadConversation:', hasHadConversation);
+      console.log('has question param:', !!question);
+      console.log('wrongQuestions count:', aiData.wrongQuestions.length);
+      console.log('examRecords count:', aiData.examRecords.length);
+      console.log('sessions count:', aiData.sessions.length);
+      console.log('Condition:', question || !hasHadConversation);
+      
       // 有快捷问题或首次对话时传数据
       if (question || !hasHadConversation) {
+        console.log('→ Sending with data');
         // 快捷问题或首次对话：传数据，使用累积器处理叠词
         let accumulatedText = '';
         
@@ -82,6 +91,7 @@ export default function AIAssistant({ data, compact = false, onClose }: AIAssist
         
         setHasHadConversation(true);
       } else {
+        console.log('→ Sending without data (quickAsk)');
         // 后续对话：不传数据
         const result = await quickAsk(text);
         setMessages(prev => {
