@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AppData, StudyModule, MAIN_MODULES, ExamNote } from '../types';
 import { storage } from '../lib/storage';
-import { Plus, Search, X, Trash2, Edit2, FileText, ChevronRight } from 'lucide-react';
+import { Plus, Search, X, Trash2, Edit2, FileText, ChevronRight, Eye, BookOpen } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -17,6 +17,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
 
   const [category, setCategory] = useState<'行测' | '申论'>('行测');
   const [editingNote, setEditingNote] = useState<ExamNote | null>(null);
+  const [selectedNote, setSelectedNote] = useState<ExamNote | null>(null);
   const [filter, setFilter] = useState<StudyModule | '全部'>('全部');
   
   // Essay specific filters
@@ -289,7 +290,8 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
             <motion.div 
               layout
               key={n.id} 
-              className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm relative active:bg-slate-50 transition-colors group"
+              className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm relative active:bg-slate-50 transition-colors group cursor-pointer"
+              onClick={() => setSelectedNote(n)}
             >
               <div className="flex justify-between items-start mb-2">
                 <div className="flex flex-wrap gap-1.5 items-center">
@@ -316,10 +318,10 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                     ))}
                 </div>
                 <div className="flex gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => handleEdit(n)} className="text-slate-400 p-2 active:bg-indigo-50 active:text-indigo-600 rounded-full">
+                    <button onClick={(e) => { e.stopPropagation(); handleEdit(n); }} className="text-slate-400 p-2 active:bg-indigo-50 active:text-indigo-600 rounded-full">
                         <Edit2 size={14} />
                     </button>
-                    <button onClick={() => deleteNote(n.id)} className="text-slate-400 p-2 active:bg-rose-50 active:text-rose-500 rounded-full">
+                    <button onClick={(e) => { e.stopPropagation(); deleteNote(n.id); }} className="text-slate-400 p-2 active:bg-rose-50 active:text-rose-500 rounded-full">
                         <Trash2 size={14} />
                     </button>
                 </div>
@@ -482,6 +484,105 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                         保存笔记
                     </button>
                 </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 笔记详情弹层 */}
+      <AnimatePresence>
+        {selectedNote && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+          >
+            <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setSelectedNote(null)} />
+            <motion.div
+              initial={{ y: '100%', opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: '100%', opacity: 0 }}
+              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              className="bg-white w-full max-w-sm sm:max-w-lg rounded-t-3xl sm:rounded-3xl relative z-10 flex flex-col max-h-[85vh] shadow-2xl"
+            >
+              {/* 头部 */}
+              <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center shrink-0">
+                <div className="flex items-center gap-2 min-w-0">
+                  <BookOpen size={16} className={cn(
+                    "shrink-0",
+                    selectedNote.moduleId === StudyModule.ESSAY ? "text-amber-500" : "text-indigo-500"
+                  )} />
+                  <h3 className="font-bold text-slate-800 truncate">{selectedNote.title}</h3>
+                </div>
+                <button onClick={() => setSelectedNote(null)} className="text-slate-400 hover:text-slate-600 shrink-0 ml-2 p-1">
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* 内容区 */}
+              <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4 custom-scrollbar">
+                {/* 标签 */}
+                <div className="flex flex-wrap gap-1.5">
+                  <span className={cn(
+                    "px-2.5 py-1 rounded-lg text-xs font-bold",
+                    selectedNote.moduleId === StudyModule.ESSAY
+                      ? "bg-amber-100 text-amber-700"
+                      : "bg-indigo-50 text-indigo-600"
+                  )}>
+                    {selectedNote.moduleId}
+                  </span>
+                  {selectedNote.essayType && (
+                    <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-100 text-slate-500">
+                      {selectedNote.essayType}
+                    </span>
+                  )}
+                  {selectedNote.essayTag && (
+                    <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-50 text-amber-600">
+                      #{selectedNote.essayTag}
+                    </span>
+                  )}
+                  {(selectedNote.tags || []).map(tag => (
+                    <span key={tag} className="px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-50 text-slate-400">
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+
+                {/* 正文 */}
+                <div className="bg-slate-50 rounded-2xl p-5">
+                  <pre className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap font-sans">
+                    {selectedNote.content}
+                  </pre>
+                </div>
+
+                {/* 元信息 */}
+                <div className="text-[10px] text-slate-300 font-medium font-mono space-y-1 pt-2 border-t border-slate-100">
+                  <div>创建时间：{new Date(selectedNote.updatedAt).toLocaleString()}</div>
+                  {selectedNote.content && (
+                    <div>字数约：{selectedNote.content.length}</div>
+                  )}
+                </div>
+              </div>
+
+              {/* 底部操作栏 */}
+              <div className="px-6 py-4 border-t border-slate-100 flex gap-3 shrink-0">
+                <button
+                  onClick={() => {
+                    handleEdit(selectedNote);
+                    setSelectedNote(null);
+                  }}
+                  className="flex-1 py-3 rounded-2xl border border-slate-200 text-slate-700 text-sm font-bold flex items-center justify-center gap-2 active:bg-slate-50 transition-colors"
+                >
+                  <Edit2 size={15} /> 编辑
+                </button>
+                <button
+                  onClick={() => deleteNote(selectedNote.id)}
+                  className="py-3 px-5 rounded-2xl border border-rose-200 text-rose-500 text-sm font-bold flex items-center justify-center gap-2 active:bg-rose-50 transition-colors"
+                >
+                  <Trash2 size={15} />
+                </button>
+              </div>
             </motion.div>
           </motion.div>
         )}

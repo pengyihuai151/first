@@ -2,7 +2,7 @@ import React from 'react';
 import { AppData, MAIN_MODULES, StudyModule } from '../types';
 import { cn, formatTimeFriendly } from '../lib/utils';
 import { motion } from 'motion/react';
-import { Trophy, Clock, AlertTriangle, Calendar, RotateCw, ChevronRight, BarChart3 } from 'lucide-react';
+import { Trophy, Clock, AlertTriangle, Calendar, RotateCw, ChevronRight, BarChart3, BookOpen, CheckCircle2, Flame, Eye } from 'lucide-react';
 import { startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
 import { storage } from '../lib/storage';
 
@@ -168,6 +168,125 @@ export default function Dashboard({ data, onUpdate, onNavigate }: { data: AppDat
           </div>
         </div>
       </div>
+
+      {/* 每日阅读积累打卡 */}
+      {(() => {
+        const essayNotes = data.notes?.filter(n => n.moduleId === StudyModule.ESSAY) || [];
+        if (essayNotes.length === 0) return null;
+
+        const todayReadIds = data.readingCheckIns?.[todayStr] || [];
+        const unreadNotes = essayNotes
+          .filter(n => !todayReadIds.includes(n.id))
+          .sort((a, b) => b.updatedAt - a.updatedAt)
+          .slice(0, 2);
+
+        // 计算连续打卡天数
+        let streak = 0;
+        const checkIns = data.readingCheckIns || {};
+        if (Object.keys(checkIns).length > 0) {
+          let d = new Date();
+          // 从今天往前推算连续天数
+          while (true) {
+            const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            if (checkIns[ds] && checkIns[ds].length > 0) {
+              streak++;
+              d.setDate(d.getDate() - 1);
+            } else {
+              break;
+            }
+          }
+        }
+
+        const handleCheckIn = async (noteId: string) => {
+          const newCheckIns = { ...(data.readingCheckIns || {}) };
+          if (!newCheckIns[todayStr]) newCheckIns[todayStr] = [];
+          if (!newCheckIns[todayStr].includes(noteId)) {
+            newCheckIns[todayStr].push(noteId);
+          }
+          await storage.saveData({ ...data, readingCheckIns: newCheckIns });
+          onUpdate();
+        };
+
+        return (
+          <section className="bg-gradient-to-br from-violet-50 via-indigo-50 to-purple-50 rounded-3xl border border-indigo-100/60 p-5 space-y-3.5 overflow-hidden relative">
+            <div className="absolute -top-6 -right-6 w-24 h-24 bg-indigo-200/20 rounded-full blur-xl" />
+            <div className="relative">
+              <div className="flex items-center justify-between mb-1">
+                <h3 className="text-sm font-bold text-indigo-700 flex items-center gap-1.5">
+                  <BookOpen size={15} /> 每日阅读积累
+                </h3>
+                {streak > 0 && (
+                  <span className="flex items-center gap-1 text-xs font-bold text-orange-500 bg-orange-50 px-2 py-0.5 rounded-full">
+                    <Flame size={12} /> 连续{streak}天
+                  </span>
+                )}
+              </div>
+
+              {unreadNotes.length > 0 ? (
+                <>
+                  <p className="text-[11px] text-indigo-400/80 mb-3">今日推荐 · 阅读后点击「已读」完成打卡</p>
+                  <div className="space-y-2.5">
+                    {unreadNotes.map((note, idx) => (
+                      <motion.div
+                        key={note.id}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: idx * 0.08 }}
+                        className="bg-white/80 backdrop-blur-sm rounded-2xl p-3.5 flex items-start gap-3"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center shrink-0 font-bold text-xs mt-0.5">
+                          {idx + 1}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 mb-0.5">
+                            <span className="text-xs font-bold text-slate-700 truncate">{note.title}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 mb-1.5">
+                            {note.essayType && (
+                              <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-medium">{note.essayType}</span>
+                            )}
+                            {note.essayTag && (
+                              <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 font-medium">#{note.essayTag}</span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed whitespace-pre-wrap">{note.content}</p>
+                        </div>
+                        <button
+                          onClick={() => handleCheckIn(note.id)}
+                          className="shrink-0 self-center w-8 h-8 rounded-xl bg-indigo-500 text-white flex items-center justify-center active:bg-indigo-600 active:scale-90 transition-all shadow-md shadow-indigo-200"
+                          title="标记已读"
+                        >
+                          <CheckCircle2 size={16} />
+                        </button>
+                      </motion.div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className="py-4 text-center space-y-2">
+                  {todayReadIds.length >= Math.min(essayNotes.length, 2) ? (
+                    <>
+                      <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', damping: 15 }}>
+                        <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-500 mx-auto flex items-center justify-center">
+                          <CheckCircle2 size={28} />
+                        </div>
+                      </motion.div>
+                      <p className="text-sm font-bold text-emerald-600">今日阅读已完成！</p>
+                      <p className="text-[11px] text-slate-400">已打卡 {todayReadIds.length}/{Math.min(essayNotes.length, 2)} 篇，继续保持</p>
+                    </>
+                  ) : (
+                    <>
+                      <BookOpen size={32} className="text-indigo-200 mx-auto" />
+                      <p className="text-sm text-slate-400">今日暂无可读笔记</p>
+                      <p className="text-[11px] text-slate-300">前往笔记管理添加更多申论笔记吧</p>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          </section>
+        );
+      })()}
 
       {/* 最近模考 */}
       {(() => {

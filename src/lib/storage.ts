@@ -33,7 +33,8 @@ export const storage = {
         essayTypes: ['金句', '文章结构', '首尾段'],
         essayTags: ['政治', '社会', '生态', '文化', '经济'],
         noteTags: ['公式', '技巧', '反例', '易错点', '口诀']
-      }
+      },
+      readingCheckIns: {}
     };
 
     if (!data) return defaultData;

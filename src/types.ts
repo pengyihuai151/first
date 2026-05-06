@@ -107,4 +107,6 @@ export interface AppData {
     moduleTargets?: Record<string, number>; // moduleId -> target multiplier (0-1)
   };
   config?: AppConfig;
+  /** 阅读打卡记录：日期 -> 已读笔记ID列表 */
+  readingCheckIns?: Record<string, string[]>;
 }
