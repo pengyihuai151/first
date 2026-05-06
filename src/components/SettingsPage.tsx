@@ -812,7 +812,7 @@ export default function SettingsPage({ data, onUpdate, onNavigate }: { data: App
       {/* About */}
       <div className="p-8 text-center space-y-2 opacity-50">
         <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-slate-400">
-          <Info size={12} /> 公考个人自用版 v1.0
+          <Info size={12} /> 公考（淮）自用版v1.0
         </div>
         <p className="text-[10px]">纯本地存储 • 无广告 • 极简备考</p>
       </div>
