@@ -111,14 +111,25 @@ export default function AnalysisPage({ data, onUpdate }: { data: AppData; onUpda
   // ========== 学习时长 ==========
   const totalAllMs = data.sessions.reduce((acc, s) => acc + s.duration, 0);
 
-  // 近7天学习时长
+  // 近7天学习时长（区分行测和申论）
   const last7Days = Array.from({ length: 7 }, (_, i) => {
     const d = subDays(now, 6 - i);
     const dateStr = format(d, 'yyyy-MM-dd');
-    const dayMs = data.sessions.filter(s => s.date === dateStr).reduce((acc, s) => acc + s.duration, 0);
-    return { date: dateStr, label: format(d, 'MM/dd'), ms: dayMs, minutes: Math.round(dayMs / 60000) };
+    const daySessions = data.sessions.filter(s => s.date === dateStr);
+    const xingzhenMs = daySessions.filter(s => s.moduleId !== StudyModule.ESSAY).reduce((acc, s) => acc + s.duration, 0);
+    const essayMs = daySessions.filter(s => s.moduleId === StudyModule.ESSAY).reduce((acc, s) => acc + s.duration, 0);
+    return {
+      date: dateStr,
+      label: format(d, 'MM/dd'),
+      totalMs: xingzhenMs + essayMs,
+      xingzhenMs,
+      essayMs,
+      totalMinutes: Math.round((xingzhenMs + essayMs) / 60000),
+      xingzhenMinutes: Math.round(xingzhenMs / 60000),
+      essayMinutes: Math.round(essayMs / 60000)
+    };
   });
-  const maxDayMinutes = Math.max(...last7Days.map(d => d.minutes), 30);
+  const maxDayMinutes = Math.max(...last7Days.map(d => d.totalMinutes), 30);
 
   // ========== 综合薄弱度排序 ==========
   const moduleAnalysis = MAIN_MODULES.map(m => {
@@ -327,23 +338,55 @@ export default function AnalysisPage({ data, onUpdate }: { data: AppData; onUpda
         <h2 className="text-sm font-bold text-slate-700 flex items-center gap-2">
           <Clock size={16} className="text-indigo-500" /> 近7天学习
         </h2>
-        <div className="flex items-end gap-1.5 h-24">
+        {/* 图例 */}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded-sm bg-indigo-400" />
+            <span className="text-[10px] text-slate-500">行测</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded-sm bg-amber-400" />
+            <span className="text-[10px] text-slate-500">申论</span>
+          </div>
+        </div>
+        <div className="flex items-end gap-1.5 h-28">
           {last7Days.map(day => {
-            const height = maxDayMinutes > 0 ? Math.max(day.minutes / maxDayMinutes * 100, 4) : 4;
+            const totalHeight = maxDayMinutes > 0 ? Math.max(day.totalMinutes / maxDayMinutes * 100, 4) : 4;
+            const essayPct = day.totalMinutes > 0 ? (day.essayMinutes / day.totalMinutes) * totalHeight : 0;
+            const xingzhenPct = totalHeight - essayPct;
             const isToday = day.date === todayStr;
             return (
               <div key={day.date} className="flex-1 flex flex-col items-center gap-1">
-                <span className="text-[9px] font-bold text-slate-400">{day.minutes}m</span>
-                <div className="w-full bg-slate-50 rounded-t-lg relative overflow-hidden" style={{ height: '80px' }}>
-                  <motion.div
-                    initial={{ height: 0 }}
-                    animate={{ height: `${height}%` }}
-                    transition={{ duration: 0.5 }}
-                    className={cn(
-                      "absolute bottom-0 w-full rounded-t-lg",
-                      isToday ? "bg-indigo-500" : "bg-indigo-200"
-                    )}
-                  />
+                <div className="flex items-end gap-1 flex-wrap justify-center">
+                  {day.totalMinutes > 0 && (
+                    <span className="text-[9px] font-bold text-slate-500 leading-none">{day.totalMinutes}m</span>
+                  )}
+                </div>
+                <div className="w-full rounded-t-lg relative overflow-hidden flex flex-col justify-end" style={{ height: '88px' }}>
+                  {/* 申论部分（顶部，琥珀色） */}
+                  {essayPct > 0 && (
+                    <motion.div
+                      initial={{ height: 0 }}
+                      animate={{ height: `${essayPct}%` }}
+                      transition={{ duration: 0.5 }}
+                      className={cn(
+                        "w-full rounded-t-sm",
+                        isToday ? "bg-amber-400" : "bg-amber-200"
+                      )}
+                    />
+                  )}
+                  {/* 行测部分（底部，靛蓝色） */}
+                  {xingzhenPct > 0 && (
+                    <motion.div
+                      initial={{ height: 0 }}
+                      animate={{ height: `${xingzhenPct}%` }}
+                      transition={{ duration: 0.5 }}
+                      className={cn(
+                        "w-full rounded-b-sm",
+                        isToday ? "bg-indigo-500" : "bg-indigo-200"
+                      )}
+                    />
+                  )}
                 </div>
                 <span className={cn(
                   "text-[8px] font-bold",
