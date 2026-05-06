@@ -2,7 +2,7 @@ import React from 'react';
 import { AppData, MAIN_MODULES, StudyModule, ExamNote } from '../types';
 import { cn, formatTimeFriendly } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
-import { Trophy, Clock, AlertTriangle, Calendar, RotateCw, ChevronRight, BarChart3, BookOpen, CheckCircle2, Flame, Eye, X, Edit2, Trash2 } from 'lucide-react';
+import { Trophy, Clock, AlertTriangle, Calendar, RotateCw, ChevronRight, BarChart3, BookOpen, CheckCircle2, Flame, Eye, X, Edit2, Trash2, Zap } from 'lucide-react';
 import { startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
 import { storage } from '../lib/storage';
 
@@ -145,6 +145,101 @@ export default function Dashboard({ data, onUpdate, onNavigate }: { data: AppDat
           </span>
         </button>
       </div>
+
+      {/* 懈怠提醒 */}
+      {(() => {
+        // 计算近7天（不含今天）的平均学习时长
+        const past7Days = Array.from({ length: 7 }, (_, i) => {
+          const d = new Date(now);
+          d.setDate(d.getDate() - i - 1); // 从昨天开始
+          return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        });
+        const pastAvgMs = past7Days.reduce((acc, ds) => {
+          return acc + data.sessions.filter(s => s.date === ds).reduce((a, s) => a + s.duration, 0);
+        }, 0) / past7Days.length;
+
+        // 判断是否懈怠：有历史数据且今天不足平均的60%
+        const hasHistoryData = pastAvgMs > 60000; // 至少有1分钟以上的日均记录
+        const isSlacking = hasHistoryData && totalTodayMs < pastAvgMs * 0.6;
+
+        if (!isSlacking) return null;
+
+        // 懈怠语录库（犀利+激励随机混合）
+        const lazyQuotes = [
+          { text: "你现在的对手，正在你偷懒的时候多刷了5道题。", type: "strict" },
+          { text: "公考不是比谁聪明，是比谁能坐得住。你今天坐住了吗？", type: "strict" },
+          { text: "别人在卷，你在躺？上岸的人里没有躺赢的。", type: "strict" },
+          { text: "今天的「明天再学」，就是考场上那道做不出来的题。", type: "strict" },
+          { text: "你的对手不会因为你累了就停下来等你。", type: "strict" },
+          { text: "刷手机的时间，够你做完一篇资料分析再加10道言语题。", type: "strict" },
+          { text: "每天差30分钟，一个月就是15个小时的差距。这差距能拉开多少分，你自己算算。", type: "strict" },
+          { text: "别假装努力，结果不会陪你演戏。", type: "strict" },
+          { text: "你现在流的汗，都是当初脑子进的水——还不赶紧学！", type: "strict" },
+          { text: "上岸和落榜之间，差的从来不是智商，而是你能不能坚持每天的那几个小时。", type: "strict" },
+          { text: "你已经坚持了这么久，别让今天成为那个「放弃的一天」。", type: "motivate" },
+          { text: "每多学一分钟，离上岸就又近了一步。动起来！", type: "motivate" },
+          { text: "今天的努力，就是明天的底气。现在就开始，还来得及。", type: "motivate" },
+          { text: "你不是没有能力，你只是还没逼自己一把。", type: "motivate" },
+          { text: "想想拿到录取通知书那一刻——值不值得现在多拼一下？", type: "motivate" },
+          { text: "最怕的不是失败，而是本可以做到却没有全力以赴。", type: "motivate" },
+          { text: "休息是为了走更远的路，但你现在走的路还不够远。", type: "motivate" },
+          { text: "把手机放下，去学20分钟。就20分钟，你会发现没那么难。", type: "action" },
+          { text: "先做个5道题热身，状态自然就来了。别犹豫，去做。", type: "action" },
+          { text: "打开错题本看3道题，就当给大脑开个胃。现在就去。", type: "action" },
+        ];
+
+        // 基于日期种子的稳定随机
+        const seed = new Date(todayStr).getTime() % lazyQuotes.length;
+        const quote = lazyQuotes[seed] || lazyQuotes[0];
+        const isStrict = quote.type === 'strict' || quote.type === 'action';
+        const diffMinutes = Math.round((pastAvgMs - totalTodayMs) / 60000);
+
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.2 }}
+            className={cn(
+              "rounded-3xl border p-5 space-y-3 relative overflow-hidden",
+              isStrict
+                ? "bg-gradient-to-br from-rose-50 to-orange-50 border-rose-200/60"
+                : "bg-gradient-to-br from-sky-50 to-cyan-50 border-cyan-200/60"
+            )}
+          >
+            <div className="absolute -top-4 -right-4 w-24 h-24 bg-white/40 rounded-full blur-xl" />
+            <div className="relative">
+              <div className="flex items-center gap-2 mb-1">
+                <Zap size={16} className={cn(isStrict ? "text-orange-500" : "text-cyan-500")} />
+                <h3 className={cn("text-sm font-bold", isStrict ? "text-orange-700" : "text-cyan-700")}>
+                  {isStrict ? "今日提醒" : "加油提醒"}
+                </h3>
+                <span className={cn(
+                  "text-[9px] px-2 py-0.5 rounded-full font-medium ml-auto",
+                  isStrict ? "bg-rose-100 text-rose-500" : "bg-cyan-100 text-cyan-500"
+                )}>
+                  距均值差{diffMinutes}分钟
+                </span>
+              </div>
+              <p className={cn(
+                "text-sm leading-relaxed font-medium",
+                isStrict ? "text-rose-700" : "text-cyan-700"
+              )}>{quote.text}</p>
+
+              <button
+                onClick={() => onNavigate('study')}
+                className={cn(
+                  "mt-2 w-full py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all active:scale-[0.97]",
+                  isStrict
+                    ? "bg-orange-500 text-white shadow-md shadow-orange-200 hover:bg-orange-600"
+                    : "bg-cyan-500 text-white shadow-md shadow-cyan-200 hover:bg-cyan-600"
+                )}
+              >
+                <Clock size={13} /> 去计时学习
+              </button>
+            </div>
+          </motion.div>
+        );
+      })()}
 
       {/* 申论学习 */}
       <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-4 rounded-2xl border border-amber-100">
