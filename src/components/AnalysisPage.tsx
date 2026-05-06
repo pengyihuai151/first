@@ -18,11 +18,9 @@ export default function AnalysisPage({ data, onUpdate }: { data: AppData; onUpda
   const lastExam = examRecords.length > 0 ? [...examRecords].sort((a, b) => b.date - a.date)[0] : null;
   const prevExam = examRecords.length > 1 ? [...examRecords].sort((a, b) => b.date - a.date)[1] : null;
 
-  // 各模块考试正确率 - 最近3次平均
+  // 各模块考试正确率 - 所有历史平均（用于薄弱度排序）
   const moduleExamStats = MAIN_MODULES.map(m => {
-    // 按时间排序，取最近3次
-    const sortedRecords = [...examRecords].sort((a, b) => b.date - a.date).slice(0, 3);
-    const scores = sortedRecords
+    const scores = examRecords
       .map(r => r.moduleScores.find(ms => ms.moduleId === m))
       .filter((s): s is NonNullable<typeof s> => !!s && s.totalCount > 0);
     
@@ -30,10 +28,10 @@ export default function AnalysisPage({ data, onUpdate }: { data: AppData; onUpda
       ? scores.reduce((acc, s) => acc + s.correctCount / s.totalCount, 0) / scores.length
       : 0;
     
-    // 最近3次趋势（第一次 vs 最后一次）
-    const trend = scores.length >= 2
-      ? (scores[scores.length - 1].correctCount / scores[scores.length - 1].totalCount) -
-        (scores[0].correctCount / scores[0].totalCount)
+    const recentScores = scores.slice(-3);
+    const trend = recentScores.length >= 2
+      ? (recentScores[recentScores.length - 1].correctCount / recentScores[recentScores.length - 1].totalCount) -
+        (recentScores[0].correctCount / recentScores[0].totalCount)
       : 0;
 
     return {
@@ -47,6 +45,24 @@ export default function AnalysisPage({ data, onUpdate }: { data: AppData; onUpda
       avgDuration: scores.length > 0
         ? Math.round(scores.reduce((acc, s) => acc + s.duration, 0) / scores.length / 60000)
         : 0
+    };
+  });
+
+  // 各模块考试正确率 - 最近3次平均（用于考试趋势显示）
+  const moduleRecentStats = MAIN_MODULES.map(m => {
+    const sortedRecords = [...examRecords].sort((a, b) => b.date - a.date).slice(0, 3);
+    const scores = sortedRecords
+      .map(r => r.moduleScores.find(ms => ms.moduleId === m))
+      .filter((s): s is NonNullable<typeof s> => !!s && s.totalCount > 0);
+    
+    const avgAcc = scores.length > 0
+      ? scores.reduce((acc, s) => acc + s.correctCount / s.totalCount, 0) / scores.length
+      : 0;
+
+    return {
+      moduleId: m,
+      examCount: scores.length,
+      avgAccuracy: Math.round(avgAcc * 100)
     };
   });
 
@@ -162,8 +178,7 @@ export default function AnalysisPage({ data, onUpdate }: { data: AppData; onUpda
           
           <div className="space-y-2.5">
             {MAIN_MODULES.map(m => {
-              const stats = moduleExamStats.find(s => s.moduleId === m)!;
-              const lastAcc = stats.lastAcc;
+              const stats = moduleRecentStats.find(s => s.moduleId === m)!;
               
               return (
                 <div key={m} className="flex items-center gap-3">
