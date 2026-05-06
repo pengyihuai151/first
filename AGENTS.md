@@ -79,3 +79,4 @@ React + Vite + TypeScript + Tailwind CSS Web 应用，公考备考助手。
 - 技术项目根目录与工作区根目录重合（`path = "."`）
 - 预览链路采用 Vite dev server 直接提供前端服务
 - 部署链路采用 Vite build + npx serve 提供静态产物
+- 计时功能：切换页面时计时状态保存到 localStorage，可选择继续或放弃

@@ -10,37 +10,45 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
   const [activeModule, setActiveModule] = useState<StudyModule>(MAIN_MODULES[0]);
   const [isRunning, setIsRunning] = useState(false);
   const [time, setTime] = useState(0);
+  const [showResume, setShowResume] = useState(false); // 显示继续计时提示
   const startTimeRef = useRef<number | null>(null);
   const intervalRef = useRef<any>(null);
-  const accumulatedTimeRef = useRef(0); // 累积时间，用于中断后继续
-  const timeRef = useRef(0); // 用于在闭包中获取最新时间
+  const timeRef = useRef(0);
 
   // 同步 time 到 ref
   useEffect(() => {
     timeRef.current = time;
   }, [time]);
 
-  // 监听页面切换（切换 Tab 时暂停计时，但不归0）
+  // 初始化：从 localStorage 恢复计时状态
   useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.hidden && isRunning) {
-        // 页面隐藏时，保存当前时间并暂停
-        accumulatedTimeRef.current = timeRef.current;
-        setIsRunning(false);
+    const savedState = localStorage.getItem('studyTimerState');
+    if (savedState) {
+      const { savedTime, savedModule, savedAt } = JSON.parse(savedState);
+      // 计算经过的时间
+      const elapsed = Date.now() - savedAt;
+      const totalTime = savedTime + elapsed;
+      
+      // 如果超过 4 小时，认为过期，清理
+      if (elapsed > 4 * 60 * 60 * 1000) {
+        localStorage.removeItem('studyTimerState');
+        return;
       }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [isRunning]);
+      
+      timeRef.current = totalTime;
+      setTime(totalTime);
+      setActiveModule(savedModule);
+      setShowResume(true);
+    }
+  }, []);
 
   useEffect(() => {
     if (isRunning) {
-      startTimeRef.current = Date.now() - accumulatedTimeRef.current;
+      startTimeRef.current = Date.now() - timeRef.current;
       intervalRef.current = setInterval(() => {
-        setTime(Date.now() - (startTimeRef.current || 0));
+        const newTime = Date.now() - (startTimeRef.current || 0);
+        timeRef.current = newTime;
+        setTime(newTime);
       }, 100);
     } else {
       if (intervalRef.current) clearInterval(intervalRef.current);
@@ -50,21 +58,48 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
     };
   }, [isRunning]);
 
+  // 页面隐藏时保存状态
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden && time > 1000) {
+        // 保存到 localStorage
+        localStorage.setItem('studyTimerState', JSON.stringify({
+          savedTime: time,
+          savedModule: activeModule,
+          savedAt: Date.now()
+        }));
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [time, activeModule]);
+
+  const handleResume = () => {
+    setShowResume(false);
+    setIsRunning(true);
+  };
+
+  const handleDiscard = () => {
+    localStorage.removeItem('studyTimerState');
+    setShowResume(false);
+    setTime(0);
+    timeRef.current = 0;
+  };
+
   const handleStart = () => {
-    // 如果有累积时间，继续计时
-    if (accumulatedTimeRef.current > 0) {
-      startTimeRef.current = Date.now() - accumulatedTimeRef.current;
-    }
+    localStorage.removeItem('studyTimerState');
     setIsRunning(true);
   };
   
   const handleStop = async () => {
     setIsRunning(false);
+    localStorage.removeItem('studyTimerState');
     
     const now = new Date();
     const localDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     
-    if (time > 1000) { // Only save if more than 1 second
+    if (time > 1000) {
       const session = {
         id: uuidv4(),
         moduleId: activeModule,
@@ -75,18 +110,21 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
       await storage.addSession(session);
       onUpdate();
     }
-    // 归0
-    accumulatedTimeRef.current = 0;
     setTime(0);
+    timeRef.current = 0;
   };
 
-  // 切换模块时，如果正在计时则暂停，但不归0
   const handleModuleChange = (module: StudyModule) => {
-    if (isRunning) {
-      accumulatedTimeRef.current = time;
-      setIsRunning(false);
+    // 保存当前计时状态
+    if (time > 1000) {
+      localStorage.setItem('studyTimerState', JSON.stringify({
+        savedTime: time,
+        savedModule: module,
+        savedAt: Date.now()
+      }));
     }
     setActiveModule(module);
+    setIsRunning(false);
   };
 
   const deleteSession = async (id: string) => {
@@ -103,6 +141,32 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
         <h1 className="text-2xl font-bold text-slate-800">学习计划</h1>
         <p className="text-sm text-slate-500">专注当前，记录每一分钟。</p>
       </header>
+
+      {/* Resume Timer Prompt */}
+      {showResume && !isRunning && time > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-amber-800">检测到未保存的计时记录</p>
+            <p className="text-xs text-amber-600 mt-1">
+              {activeModule} • {formatDuration(time)}
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={handleDiscard}
+              className="px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-100 rounded-lg"
+            >
+              放弃
+            </button>
+            <button
+              onClick={handleResume}
+              className="px-3 py-1.5 text-xs bg-amber-500 text-white rounded-lg hover:bg-amber-600"
+            >
+              继续计时
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Timer Section */}
       <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 flex flex-col items-center gap-8 relative overflow-hidden">
