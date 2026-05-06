@@ -129,19 +129,20 @@ export default function WrongQuestionBank({ data, onUpdate }: { data: AppData; o
       
       setIsAdding(false);
       setEditingId(null);
-      // Reset logic: if we just added, next one should inherit the tags we just saved
-      const nextSettings = editingId ? lastUsedSettings : {
+      // Reset for next entry - inherit current module and tags, clear content and images
+      const resetSettings = {
         moduleId: newQuestion.moduleId as StudyModule,
-        tags: newQuestion.tags || []
+        tags: newQuestion.tags || [],
+        imageUrls: [] as string[]
       };
-
+      
       setNewQuestion({ 
-        moduleId: nextSettings.moduleId, 
+        moduleId: resetSettings.moduleId, 
         content: '', 
         analysis: '', 
         imageUrl: undefined, 
-        imageUrls: (editingId ? [] : nextSettings.imageUrls) || [],
-        tags: nextSettings.tags
+        imageUrls: [],
+        tags: resetSettings.tags
       });
       onUpdate();
     } catch (error) {

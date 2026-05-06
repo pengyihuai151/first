@@ -31,6 +31,12 @@ export default function ReviewSession({ data, onClose, onUpdate }: ReviewSession
   }, [data.wrongQuestions]);
 
   const handleMark = async (type: 'mastered' | 'unclear') => {
+    // Guard against empty or out of bounds
+    if (sessionQuestions.length === 0 || currentIndex >= sessionQuestions.length) {
+      setIsFinished(true);
+      return;
+    }
+    
     const question = sessionQuestions[currentIndex];
     const newResults = { ...results };
     
@@ -54,8 +60,10 @@ export default function ReviewSession({ data, onClose, onUpdate }: ReviewSession
     setResults(newResults);
     onUpdate(); // Background update
 
-    if (currentIndex < sessionQuestions.length - 1) {
-      setCurrentIndex(prev => prev + 1);
+    // Move to next question or finish
+    const nextIndex = currentIndex + 1;
+    if (nextIndex < sessionQuestions.length) {
+      setCurrentIndex(nextIndex);
       setShowAnalysis(false);
     } else {
       setIsFinished(true);
