@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { AppData, MAIN_MODULES, StudyModule, AppConfig } from '../types';
 import { storage } from '../lib/storage';
-import { FileDown, Database, Trash2, Calendar, AlertCircle, Info, ChevronRight, Check, Quote, BookOpen, Tag, X, Target, Brain, GitBranch } from 'lucide-react';
+import { FileDown, Database, Trash2, Calendar, AlertCircle, Info, ChevronRight, Check, Quote, BookOpen, Tag, X, Target, Brain, GitBranch, ClipboardList, FileText } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { cn, formatDuration } from '../lib/utils';
@@ -186,6 +186,37 @@ export default function SettingsPage({ data, onUpdate, onNavigate }: { data: App
 
   return (
     <div className="space-y-6 pb-6 text-slate-800">
+      {/* 快捷入口 */}
+      <div className="space-y-3">
+        <h3 className="text-xs font-bold text-slate-400 uppercase px-1">快捷入口</h3>
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            onClick={() => onNavigate('exam')}
+            className="bg-white p-4 rounded-2xl border border-slate-100 flex flex-col gap-3 hover:border-indigo-200 transition-colors active:scale-95"
+          >
+            <div className="bg-indigo-50 w-fit p-2 rounded-xl text-indigo-500">
+              <ClipboardList size={20} />
+            </div>
+            <div className="text-left">
+              <div className="text-sm font-bold">考试录入</div>
+              <div className="text-[10px] text-slate-400">录入模考成绩</div>
+            </div>
+          </button>
+          <button
+            onClick={() => onNavigate('notes')}
+            className="bg-white p-4 rounded-2xl border border-slate-100 flex flex-col gap-3 hover:border-amber-200 transition-colors active:scale-95"
+          >
+            <div className="bg-amber-50 w-fit p-2 rounded-xl text-amber-500">
+              <FileText size={20} />
+            </div>
+            <div className="text-left">
+              <div className="text-sm font-bold">笔记管理</div>
+              <div className="text-[10px] text-slate-400">查看学习笔记</div>
+            </div>
+          </button>
+        </div>
+      </div>
+
       {/* Hidden Report Template (Using basic hex colors to avoid oklch errors) */}
       <div id="report-template" style={{ display: 'none', width: '800px', padding: '60px', background: '#ffffff', color: '#1e293b', fontFamily: 'sans-serif', lineBreak: 'anywhere' }}>
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>

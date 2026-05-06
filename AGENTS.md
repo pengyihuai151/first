@@ -13,23 +13,34 @@ React + Vite + TypeScript + Tailwind CSS Web 应用，公考备考助手。
 ```
 /workspace/projects
 ├── src/
-│   ├── App.tsx          # 主应用组件
+│   ├── App.tsx          # 主应用组件（5 Tab 导航）
 │   ├── main.tsx         # 入口文件
-│   ├── components/      # UI 组件
-│   ├── constants/       # 常量定义
-│   ├── lib/             # 工具库
-│   └── types.ts         # 类型定义
-├── scripts/             # 构建与预览脚本
-│   ├── coze-preview-build.sh  # 预览构建
-│   ├── coze-preview-run.sh    # 预览运行
-│   ├── build.sh         # 部署构建
-│   └── run.sh           # 部署运行
-├── index.html           # HTML 入口
-├── vite.config.ts       # Vite 配置
-├── tsconfig.json        # TypeScript 配置
-├── package.json
-└── .coze               # Coze 项目配置
+│   ├── components/
+│   │   ├── Dashboard.tsx      # 总览页
+│   │   ├── StudyRoom.tsx      # 学习计划+计时
+│   │   ├── WrongQuestionBank.tsx  # 错题录入（无图片）
+│   │   ├── AnalysisPage.tsx   # 学情分析（考试+错题综合）
+│   │   ├── AIAssistant.tsx    # AI 智能建议
+│   │   ├── ExamBank.tsx       # 考试录入（设置页跳转）
+│   │   ├── NotesSection.tsx   # 笔记管理（设置页跳转）
+│   │   ├── QuotesManager.tsx  # 箴言管理
+│   │   └── SettingsPage.tsx   # 设置页
+│   ├── constants/
+│   ├── lib/
+│   │   ├── ai.ts        # AI 服务（智谱 GLM-4-Flash）
+│   │   ├── storage.ts   # IndexedDB 存储
+│   │   └── utils.ts
+│   └── types.ts
+├── scripts/
+├── index.html
+├── vite.config.ts
+└── .coze
 ```
+
+## 导航结构
+5 个主 Tab：总览 / 计划 / 错题 / 分析 / 设置
+- 设置页提供考试录入、笔记管理快捷入口
+- 已砍掉错题复盘功能（ReviewSession 已删除）
 
 ## 关键入口
 - **开发**：`pnpm run dev`（端口 3000）
@@ -80,3 +91,6 @@ React + Vite + TypeScript + Tailwind CSS Web 应用，公考备考助手。
 - 预览链路采用 Vite dev server 直接提供前端服务
 - 部署链路采用 Vite build + npx serve 提供静态产物
 - 计时功能：切换页面时计时状态保存到 localStorage，可选择继续或放弃
+- 错题录入不使用图片，使用错误原因快捷选择（10 个预设原因）
+- AI 所有对话都传完整学习数据（包括错误原因统计）
+- 错题复盘功能已移除，分析页整合考试+错题综合分析

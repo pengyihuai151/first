@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, Clock, BookOpen, PenTool, Settings, Trophy } from 'lucide-react';
+import { LayoutDashboard, Clock, BookOpen, BarChart3, Settings } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AppData } from './types';
 import { storage } from './lib/storage';
@@ -8,14 +8,17 @@ import { storage } from './lib/storage';
 import Dashboard from './components/Dashboard';
 import StudyRoom from './components/StudyRoom';
 import WrongQuestionBank from './components/WrongQuestionBank';
-import NotesSection from './components/NotesSection';
+import AnalysisPage from './components/AnalysisPage';
 import SettingsPage from './components/SettingsPage';
-import QuotesManager from './components/QuotesManager';
 
 import ExamBank from './components/ExamBank';
+import NotesSection from './components/NotesSection';
+import QuotesManager from './components/QuotesManager';
+
+type Tab = 'home' | 'study' | 'wrong' | 'analysis' | 'settings' | 'exam' | 'notes';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'home' | 'study' | 'wrong' | 'exam' | 'notes' | 'settings' | 'quotes'>('home');
+  const [activeTab, setActiveTab] = useState<Tab>('home');
   const [data, setData] = useState<AppData | null>(null);
 
   useEffect(() => {
@@ -27,18 +30,22 @@ export default function App() {
     setData(appData);
   };
 
+  const handleNavigate = (tab: string) => {
+    setActiveTab(tab as Tab);
+  };
+
   const renderContent = () => {
     if (!data) return null;
 
     switch (activeTab) {
-      case 'home': return <Dashboard data={data} onUpdate={loadData} />;
+      case 'home': return <Dashboard data={data} onUpdate={loadData} onNavigate={handleNavigate} />;
       case 'study': return <StudyRoom data={data} onUpdate={loadData} />;
       case 'wrong': return <WrongQuestionBank data={data} onUpdate={loadData} />;
+      case 'analysis': return <AnalysisPage data={data} onUpdate={loadData} />;
+      case 'settings': return <SettingsPage data={data} onUpdate={loadData} onNavigate={handleNavigate} />;
       case 'exam': return <ExamBank data={data} onUpdate={loadData} />;
       case 'notes': return <NotesSection data={data} onUpdate={loadData} />;
-      case 'settings': return <SettingsPage data={data} onUpdate={loadData} onNavigate={setActiveTab} />;
-      case 'quotes': return <QuotesManager data={data} onUpdate={loadData} onBack={() => setActiveTab('settings')} />;
-      default: return <Dashboard data={data} onUpdate={loadData} />;
+      default: return <Dashboard data={data} onUpdate={loadData} onNavigate={handleNavigate} />;
     }
   };
 
@@ -58,7 +65,7 @@ export default function App() {
         </AnimatePresence>
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-lg border-t border-slate-200 px-3 py-1.5 pb-6 md:pb-3 flex justify-between items-center z-50">
+      <nav className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-lg border-t border-slate-200 px-4 py-1.5 pb-6 md:pb-3 flex justify-between items-center z-50">
         <NavButton
           active={activeTab === 'home'}
           onClick={() => setActiveTab('home')}
@@ -78,16 +85,10 @@ export default function App() {
           label="错题"
         />
         <NavButton
-          active={activeTab === 'exam'}
-          onClick={() => setActiveTab('exam')}
-          icon={<Trophy size={18} />}
-          label="考试"
-        />
-        <NavButton
-          active={activeTab === 'notes'}
-          onClick={() => setActiveTab('notes')}
-          icon={<PenTool size={18} />}
-          label="笔记"
+          active={activeTab === 'analysis'}
+          onClick={() => setActiveTab('analysis')}
+          icon={<BarChart3 size={18} />}
+          label="分析"
         />
         <NavButton
           active={activeTab === 'settings'}

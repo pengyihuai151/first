@@ -57,9 +57,8 @@ export interface WrongQuestion {
   moduleId: StudyModule;
   content: string;
   analysis: string;
-  imageUrl?: string; // base64 or blob URL stored in IDB
-  imageUrls?: string[];
   tags?: string[];
+  errorReason?: string;
   mastered?: boolean;
   reviewCount?: number;
   createdAt: number;
