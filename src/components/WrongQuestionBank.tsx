@@ -193,9 +193,9 @@ export default function WrongQuestionBank({ data, onUpdate }: { data: AppData; o
                 moduleId: lastUsedSettings.moduleId, 
                 content: '', 
                 analysis: '', 
-                imageUrl: undefined, 
-                tags: [...lastUsedSettings.tags], 
-                reasonTags: [...lastUsedSettings.reasonTags] 
+                imageUrl: undefined,
+                imageUrls: [],
+                tags: [...lastUsedSettings.tags]
               });
               setIsAdding(true);
             }}
