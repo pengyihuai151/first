@@ -22,7 +22,8 @@ const SYSTEM_PROMPT = `你是公考备考助手，专门帮助用户高效备考
 2. 回复简洁，100字以内
 3. 不要重复词语或句子
 4. 直接给出建议，不要客套话
-5. 如果用户没有某些数据，直接说"暂无相关数据"而不是猜测`;
+5. 如果用户有部分数据（如错题、学习时长），先分析有数据的部分，不要只说"暂无相关数据"
+6. 优先根据错题和学习时长给出建议，没有模考记录没关系`;
 
 // 构建用户画像
 function buildUserProfilePrompt(data: {
@@ -33,12 +34,6 @@ function buildUserProfilePrompt(data: {
   examNotes?: any[];
 }) {
   const { wrongQuestions = [], examRecords = [], sessions = [], settings, examNotes = [] } = data;
-  
-  console.log('=== buildUserProfilePrompt called ===');
-  console.log('wrongQuestions.length:', wrongQuestions.length);
-  console.log('examRecords.length:', examRecords.length);
-  console.log('sessions.length:', sessions.length);
-  console.log('examNotes.length:', examNotes.length);
   
   // 错题统计
   const totalWrong = wrongQuestions.length;
