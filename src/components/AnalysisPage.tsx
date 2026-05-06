@@ -16,11 +16,12 @@ export default function AnalysisPage({ data, onUpdate }: { data: AppData; onUpda
   // ========== 考试数据 ==========
   const examRecords = data.examRecords || [];
   const lastExam = examRecords.length > 0 ? [...examRecords].sort((a, b) => b.date - a.date)[0] : null;
-  const prevExam = examRecords.length > 1 ? [...examRecords].sort((a, b) => b.date - a.date)[1] : null;
 
-  // 各模块考试正确率
+  // 各模块考试正确率 - 最近3次平均
   const moduleExamStats = MAIN_MODULES.map(m => {
-    const scores = examRecords
+    // 按时间排序，取最近3次
+    const sortedRecords = [...examRecords].sort((a, b) => b.date - a.date).slice(0, 3);
+    const scores = sortedRecords
       .map(r => r.moduleScores.find(ms => ms.moduleId === m))
       .filter((s): s is NonNullable<typeof s> => !!s && s.totalCount > 0);
     
@@ -28,11 +29,10 @@ export default function AnalysisPage({ data, onUpdate }: { data: AppData; onUpda
       ? scores.reduce((acc, s) => acc + s.correctCount / s.totalCount, 0) / scores.length
       : 0;
     
-    // 最近3次趋势
-    const recentScores = scores.slice(-3);
-    const trend = recentScores.length >= 2
-      ? (recentScores[recentScores.length - 1].correctCount / recentScores[recentScores.length - 1].totalCount) -
-        (recentScores[0].correctCount / recentScores[0].totalCount)
+    // 最近3次趋势（第一次 vs 最后一次）
+    const trend = scores.length >= 2
+      ? (scores[scores.length - 1].correctCount / scores[scores.length - 1].totalCount) -
+        (scores[0].correctCount / scores[0].totalCount)
       : 0;
 
     return {
