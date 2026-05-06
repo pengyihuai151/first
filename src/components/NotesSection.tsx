@@ -496,7 +496,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+            className="fixed inset-0 z-50 flex items-center justify-center px-4 pb-6"
           >
             <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setSelectedNote(null)} />
             <motion.div
@@ -504,8 +504,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: '100%', opacity: 0 }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="bg-white w-full max-w-sm sm:max-w-lg rounded-t-3xl sm:rounded-3xl relative z-10 flex flex-col shadow-2xl"
-              style={{ maxHeight: 'calc(100dvh - 48px)' }}
+              className="bg-white w-full max-w-sm rounded-3xl relative z-10 flex flex-col shadow-2xl max-h-[80dvh]"
             >
               {/* 头部 */}
               <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center shrink-0">
