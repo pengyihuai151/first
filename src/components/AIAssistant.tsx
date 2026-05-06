@@ -146,7 +146,7 @@ export default function AIAssistant({ data, compact = false, onClose }: AIAssist
   return (
     <div className={cn(
       "bg-white rounded-3xl shadow-sm border border-slate-100 flex flex-col overflow-hidden",
-      compact ? "h-full" : "h-[500px] max-h-[70vh]"
+      compact ? "h-[85vh] max-h-[600px]" : "h-[500px] max-h-[70vh]"
     )}>
       {/* Header */}
       <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-4 py-3 flex items-center justify-between">
@@ -246,7 +246,7 @@ export default function AIAssistant({ data, compact = false, onClose }: AIAssist
       </div>
 
       {/* Input */}
-      <div className="border-t border-slate-100 p-3" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
+      <div className="border-t border-slate-100 p-3" style={{ paddingBottom: 'calc(12px + env(safe-area-inset-bottom))' }}>
         <div className="flex gap-2">
           <textarea
             ref={inputRef}
