@@ -273,16 +273,29 @@ export async function quickAsk(question: string) {
   return callAI(messages, 300);
 }
 
-// 过滤重复词和叠词
-function cleanText(text: string): string {
-  // 移除连续的重复字符（如 "好好好" → "好"）
-  text = text.replace(/(.)\1{2,}/g, '$1');
+// 过滤重复词和叠词（增强版）
+export function cleanText(text: string): string {
+  // 多次迭代清理，确保彻底
+  for (let i = 0; i < 3; i++) {
+    // 移除连续3个及以上相同字符（如 "好好好" → "好"）
+    text = text.replace(/(.)\1{2,}/g, '$1');
+    
+    // 移除无空格连续重复词（如 "建议建议" → "建议"）
+    text = text.replace(/(.{2,})\1+/g, '$1');
+    
+    // 移除有空格连续重复词（如 "建议 建议" → "建议"）
+    text = text.replace(/(\S+)( \1)+/g, '$1');
+    
+    // 移除句内重复（如 "建议建议你" 可能需要更复杂的处理，这里简化）
+    text = text.replace(/([\u4e00-\u9fa5]{2,})\1+/g, '$1');
+  }
   
-  // 移除连续的相同词语（如 "建议 建议" → "建议"）
-  text = text.replace(/(\S+)( \1)+/g, '$1');
-  
-  // 移除多余的空格
+  // 移除多余的空格和标点
+  text = text.replace(/([，。！？、])\1+/g, '$1'); // 连续标点
   text = text.replace(/\s+/g, ' ').trim();
+  
+  // 移除开头和结尾的重复
+  text = text.replace(/^(.+)\1+$/g, '$1');
   
   return text;
 }

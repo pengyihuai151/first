@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { AppData } from '../types';
 import { generateAnalysis, streamAnalysis, quickAsk, isAIEnabled, getAIConfig } from '../lib/ai';
+import { cleanText } from '../lib/ai';
 import { Brain, Send, Loader2, Sparkles, X, AlertCircle, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -63,7 +64,9 @@ export default function AIAssistant({ data, compact = false, onClose }: AIAssist
         const result = await streamAnalysis(aiData, text, (chunk) => {
           setMessages(prev => {
             const newMessages = [...prev];
-            newMessages[newMessages.length - 1].content += chunk;
+            // 清理叠词后再追加
+            const cleanedChunk = cleanText(chunk);
+            newMessages[newMessages.length - 1].content += cleanedChunk;
             return newMessages;
           });
         });
