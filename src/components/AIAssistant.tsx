@@ -82,7 +82,7 @@ export default function AIAssistant({ data, compact = false, onClose }: AIAssist
         const result = await quickAsk(text);
         setMessages(prev => {
           const newMessages = [...prev];
-          newMessages[newMessages.length - 1].content = result.text;
+          newMessages[newMessages.length - 1].content = cleanText(result.text);
           return newMessages;
         });
       }

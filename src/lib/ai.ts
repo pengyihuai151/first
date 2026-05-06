@@ -273,31 +273,42 @@ export async function quickAsk(question: string) {
   return callAI(messages, 300);
 }
 
-// 过滤重复词和叠词（增强版）
+// 过滤重复词和叠词（彻底版）
 export function cleanText(text: string): string {
-  // 多次迭代清理，确保彻底
-  for (let i = 0; i < 3; i++) {
-    // 移除连续3个及以上相同字符（如 "好好好" → "好"）
-    text = text.replace(/(.)\1{2,}/g, '$1');
+  // 迭代清理，直到没有变化
+  let prev = '';
+  let maxIterations = 10;
+  
+  while (prev !== text && maxIterations-- > 0) {
+    prev = text;
     
-    // 移除无空格连续重复词（如 "建议建议" → "建议"）
-    text = text.replace(/(.{2,})\1+/g, '$1');
+    // 移除连续2个及以上相同字符（中文、英文、标点）
+    // 例如："好好好" → "好"，"建议建议" → "建议"
+    text = text.replace(/(.)\1+/g, '$1');
     
-    // 移除有空格连续重复词（如 "建议 建议" → "建议"）
-    text = text.replace(/(\S+)( \1)+/g, '$1');
+    // 移除连续重复的中文词语（2-4字词）
+    // 例如："建议你你" → "建议你"
+    text = text.replace(/([\u4e00-\u9fa5]{2,4})\1+/g, '$1');
     
-    // 移除句内重复（如 "建议建议你" 可能需要更复杂的处理，这里简化）
-    text = text.replace(/([\u4e00-\u9fa5]{2,})\1+/g, '$1');
+    // 移除连续重复的英文单词
+    text = text.replace(/([a-zA-Z]{2,})\1+/gi, '$1');
+    
+    // 移除连续标点
+    text = text.replace(/([，。！？、；：""''（）【】])\1+/g, '$1');
+    
+    // 移除句尾的重复字符
+    text = text.replace(/(.)\1{2,}$/g, '$1');
   }
   
-  // 移除多余的空格和标点
-  text = text.replace(/([，。！？、])\1+/g, '$1'); // 连续标点
-  text = text.replace(/\s+/g, ' ').trim();
+  // 移除开头可能残留的单字重复
+  text = text.replace(/^(.)\1+/g, '$1');
   
-  // 移除开头和结尾的重复
-  text = text.replace(/^(.+)\1+$/g, '$1');
+  // 清理多余空格（但保留必要的中英文空格）
+  text = text.replace(/ {2,}/g, ' ');
+  text = text.replace(/([a-zA-Z])[\u4e00-\u9fa5]/g, '$1 $2'); // 英文和中文之间加空格
+  text = text.replace(/[\u4e00-\u9fa5]([a-zA-Z])/g, '$1 $2');
   
-  return text;
+  return text.trim();
 }
 
 // 检查 API 是否可用
