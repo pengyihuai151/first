@@ -1,5 +1,5 @@
 // 简单的 Service Worker - 用于 PWA 离线缓存
-const CACHE_NAME = 'gongkao-v2';
+const CACHE_NAME = 'gongkao-v3';
 
 // 安装：缓存静态资源
 self.addEventListener('install', (event) => {
