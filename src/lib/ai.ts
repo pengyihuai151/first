@@ -20,21 +20,14 @@ const BASE_URL = (import.meta.env.VITE_AI_BASE_URL as string | undefined) || 'ht
 const MODEL = (import.meta.env.VITE_AI_MODEL as string | undefined) || 'deepseek-ai/DeepSeek-V2.5';
 
 // 系统提示词
-const SYSTEM_PROMPT = `你是公考备考助手「上岸小帮手」，专注于帮助用户高效备考公务员/事业单位考试。
+const SYSTEM_PROMPT = `你是公考备考助手「上岸小帮手」，帮助用户高效备考。
 
-你的职责：
-1. 分析用户的错题数据，发现薄弱知识点
-2. 根据学习数据给出针对性的备考建议
-3. 帮助制定合理的复习计划
-4. 解答备考过程中的疑问
-
-回复要求：
-- 简洁明了，突出重点
-- 结合用户实际数据给出建议
-- 使用友好的语气，像朋友一样交流
-- 如有数据支撑，请引用具体数字
-- 控制在 200 字以内
-- 不要使用 Markdown 格式，纯文本回复`;
+重要规则：
+1. 回复简洁，控制在 150 字以内
+2. 不要重复相同的词语或句子
+3. 不要使用 Markdown 格式
+4. 直接回答，不要说"好的"或"我来帮你分析"之类的废话
+5. 结合用户数据给出具体建议`;
 
 // 用户画像提示词
 function buildUserProfilePrompt(data: {
@@ -141,7 +134,8 @@ async function callAI(messages: Array<{ role: string; content: string }>, maxTok
     }
 
     const data = await response.json();
-    return { text: data.choices?.[0]?.message?.content || '无回复' };
+    const content = data.choices?.[0]?.message?.content || '无回复';
+    return { text: cleanText(content) };
   } catch (error: any) {
     console.error('AI 调用失败:', error);
     return { text: `网络错误: ${error.message}`, error: true };
@@ -213,7 +207,7 @@ async function callAIStream(
       }
     }
 
-    return { text: fullText };
+    return { text: cleanText(fullText) };
   } catch (error: any) {
     console.error('AI 流式调用失败:', error);
     return { text: `网络错误: ${error.message}`, error: true };
@@ -277,6 +271,20 @@ export async function quickAsk(question: string) {
   ];
 
   return callAI(messages, 300);
+}
+
+// 过滤重复词和叠词
+function cleanText(text: string): string {
+  // 移除连续的重复字符（如 "好好好" → "好"）
+  text = text.replace(/(.)\1{2,}/g, '$1');
+  
+  // 移除连续的相同词语（如 "建议 建议" → "建议"）
+  text = text.replace(/(\S+)( \1)+/g, '$1');
+  
+  // 移除多余的空格
+  text = text.replace(/\s+/g, ' ').trim();
+  
+  return text;
 }
 
 // 检查 API 是否可用
