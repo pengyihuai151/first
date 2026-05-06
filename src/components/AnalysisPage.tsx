@@ -4,12 +4,14 @@ import { cn, formatTimeFriendly } from '../lib/utils';
 import { motion } from 'motion/react';
 import {
   BarChart3, TrendingUp, AlertTriangle, Clock, Target,
-  BookOpen, Brain, ChevronRight
+  BookOpen, Brain, ChevronRight, Sparkles
 } from 'lucide-react';
 import { AIAssistantInline } from './AIAssistant';
+import KnowledgePointRanking from './KnowledgePointRanking';
 import { differenceInDays, startOfWeek, endOfWeek, isWithinInterval, subDays, format } from 'date-fns';
 
 export default function AnalysisPage({ data, onUpdate }: { data: AppData; onUpdate: () => void }) {
+  const [showKnowledgePoints, setShowKnowledgePoints] = React.useState(false);
   const now = new Date();
   const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
@@ -141,11 +143,29 @@ export default function AnalysisPage({ data, onUpdate }: { data: AppData; onUpda
     };
   }).sort((a, b) => b.weaknessScore - a.weaknessScore);
 
+  // 知识点排行视图
+  if (showKnowledgePoints) {
+    return (
+      <div className="space-y-6 pb-6">
+        <KnowledgePointRanking data={data} onBack={() => setShowKnowledgePoints(false)} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 pb-6">
-      <header>
-        <h1 className="text-2xl font-bold text-slate-800">学情分析</h1>
-        <p className="text-xs text-slate-400 mt-1">基于考试+错题数据，精准定位薄弱环节</p>
+      <header className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800">学情分析</h1>
+          <p className="text-xs text-slate-400 mt-1">基于考试+错题数据，精准定位薄弱环节</p>
+        </div>
+        <button
+          onClick={() => setShowKnowledgePoints(true)}
+          className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-indigo-500 to-violet-500 text-white text-xs font-bold rounded-xl active:scale-95 transition-all shadow-md shadow-indigo-200"
+        >
+          <Sparkles size={14} />
+          知识点细分
+        </button>
       </header>
 
       {/* 综合得分概览 */}

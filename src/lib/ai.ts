@@ -112,6 +112,36 @@ ${moduleStats.length > 0 ? moduleStats.map(m =>
 🔍 错误原因分析：
 ${topReasons.length > 0 ? topReasons.map(r => `• ${r[0]}：${r[1]}次`).join('\n') : '- 暂无错误原因记录'}
 
+📊 知识点细分排行（按模块）：
+${(() => {
+  const modules = ['言语理解', '判断推理', '数量关系', '资料分析', '常识判断', '政治理论'];
+  const lines: string[] = [];
+  modules.forEach(mod => {
+    const modQuestions = wrongQuestions.filter((q: any) => q.moduleId === mod);
+    if (modQuestions.length === 0) return;
+    
+    // 统计每个知识点的错题
+    const pointCount: Record<string, number> = {};
+    modQuestions.forEach((q: any) => {
+      const tags = q.tags || [];
+      if (tags.length === 0) {
+        pointCount['未分类'] = (pointCount['未分类'] || 0) + 1;
+      } else {
+        tags.forEach((t: string) => { pointCount[t] = (pointCount[t] || 0) + 1; });
+      }
+    });
+    const sortedPoints = Object.entries(pointCount).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    
+    if (sortedPoints.length > 0) {
+      lines.push(`• ${mod}（共${modQuestions.length}题）：`);
+      sortedPoints.forEach(([p, c]) => {
+        lines.push(`  - ${p}：${c}题`);
+      });
+    }
+  });
+  return lines.length > 0 ? lines.join('\n') : '- 暂无知识点数据';
+})()}
+
 📝 模考记录：
 ${recentExams.length > 0 ? recentExams.map((r: any, i: number) => {
   const totalCorrect = (r.moduleScores || []).reduce((s: number, ms: any) => s + (ms.correctCount || 0), 0);

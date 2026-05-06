@@ -20,6 +20,7 @@ React + Vite + TypeScript + Tailwind CSS Web 应用，公考备考助手。
 │   │   ├── StudyRoom.tsx      # 学习计划+计时
 │   │   ├── WrongQuestionBank.tsx  # 错题录入（无图片）
 │   │   ├── AnalysisPage.tsx   # 学情分析（考试+错题综合）
+│   │   ├── KnowledgePointRanking.tsx  # 知识点细分排行（分析页子页面）
 │   │   ├── AIAssistant.tsx    # AI 智能建议
 │   │   ├── ExamBank.tsx       # 考试录入（设置页跳转）
 │   │   ├── NotesSection.tsx   # 笔记管理（设置页跳转）
