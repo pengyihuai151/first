@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Trophy, Plus, Trash2, Calendar, Clock, Target, ChevronRight, X, Play, StopCircle, SkipForward, Timer, Edit2 } from 'lucide-react';
-import { AppData, MAIN_MODULES, StudyModule, ExamRecord, ExamModuleScore } from '../types';
+import { AppData, MAIN_MODULES, StudyModule, ExamRecord, ExamModuleScore, StudySession } from '../types';
 import { storage } from '../lib/storage';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
+import { v4 as uuidv4 } from 'uuid';
 
 export default function ExamBank({ data, onUpdate }: { data: AppData; onUpdate: () => void }) {
   const [isAdding, setIsAdding] = useState(false);
@@ -21,6 +22,7 @@ export default function ExamBank({ data, onUpdate }: { data: AppData; onUpdate: 
     }))
   });
 
+  // 保存考试记录，并同时创建学习记录
   const saveExam = async () => {
     if (!newExam.title) {
       alert('请输入考试名称');
@@ -35,10 +37,32 @@ export default function ExamBank({ data, onUpdate }: { data: AppData; onUpdate: 
       note: newExam.note
     };
 
+    // 创建各模块的学习记录
+    const now = new Date();
+    const localDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    
+    const newSessions: StudySession[] = [];
+    for (const ms of record.moduleScores) {
+      if (ms.duration > 5000) { // 只记录超过5秒的模块
+        newSessions.push({
+          id: uuidv4(),
+          moduleId: ms.moduleId,
+          startTime: record.date,
+          duration: ms.duration,
+          date: localDate
+        });
+      }
+    }
+
     if (editingId) {
       await storage.updateExamRecord(record);
     } else {
       await storage.addExamRecord(record);
+    }
+    
+    // 保存学习记录
+    for (const session of newSessions) {
+      await storage.addSession(session);
     }
     
     setIsAdding(false);
@@ -96,7 +120,7 @@ export default function ExamBank({ data, onUpdate }: { data: AppData; onUpdate: 
       <header className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">考试录入</h1>
-          <p className="text-xs text-slate-400 mt-1">记录全真模拟，复盘提分路径</p>
+          <p className="text-xs text-slate-400 mt-1">各模块时间自动计入学习时长</p>
         </div>
         <div className="flex gap-2">
           <button 
