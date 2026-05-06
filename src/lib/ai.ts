@@ -1,102 +1,129 @@
 /**
  * AI 服务层 - 支持多种国内 AI API
  * 
- * 支持的提供商：
- * 1. 硅基流动 (SiliconFlow) - 默认，免费额度充足
- * 2. DeepSeek - 高性价比
- * 3. 智谱 AI - 国内稳定
- * 4. 自定义 OpenAI 兼容 API
- * 
- * 使用方式：
- * - 设置 VITE_AI_API_KEY 环境变量
- * - 选择对应的 VITE_AI_PROVIDER
+ * 推荐模型优先级：
+ * 1. 智谱 GLM-4-Flash - 免费额度大，国内稳定
+ * 2. 硅基流动 Qwen2.5-72B - 能力强
+ * 3. DeepSeek-V2.5 - 性价比高
  */
 
 /// <reference types="vite/client" />
 
 // 环境变量配置
 const API_KEY = (import.meta.env.VITE_AI_API_KEY as string | undefined) || '';
-const BASE_URL = (import.meta.env.VITE_AI_BASE_URL as string | undefined) || 'https://api.siliconflow.cn/v1';
-const MODEL = (import.meta.env.VITE_AI_MODEL as string | undefined) || 'deepseek-ai/DeepSeek-V2.5';
+const BASE_URL = (import.meta.env.VITE_AI_BASE_URL as string | undefined) || 'https://open.bigmodel.cn/api/paas/v4';
+const MODEL = (import.meta.env.VITE_AI_MODEL as string | undefined) || 'glm-4-flash';
 
 // 系统提示词
-const SYSTEM_PROMPT = `你是公考备考助手「上岸小帮手」，帮助用户高效备考。
+const SYSTEM_PROMPT = `你是公考备考助手，专门帮助用户高效备考。
 
-重要规则：
-1. 回复简洁，控制在 150 字以内
-2. 不要重复相同的词语或句子
-3. 不要使用 Markdown 格式
-4. 直接回答，不要说"好的"或"我来帮你分析"之类的废话
-5. 结合用户数据给出具体建议`;
+要求：
+1. 只基于用户提供的真实数据回答，不要编造数据
+2. 回复简洁，100字以内
+3. 不要重复词语或句子
+4. 直接给出建议，不要客套话
+5. 如果用户没有某些数据，直接说"暂无相关数据"而不是猜测`;
 
-// 用户画像提示词
+// 构建用户画像
 function buildUserProfilePrompt(data: {
   wrongQuestions: any[];
   examRecords: any[];
   sessions: any[];
   settings: any;
 }) {
-  const { wrongQuestions, examRecords, sessions, settings } = data;
+  const { wrongQuestions = [], examRecords = [], sessions = [], settings } = data;
   
-  // 统计各模块错题
-  const moduleStats = [...new Set(wrongQuestions.map(q => q.moduleId))].map(moduleId => {
-    const moduleQs = wrongQuestions.filter(q => q.moduleId === moduleId);
-    const masteredCount = moduleQs.filter(q => q.mastered).length;
-    const tags = moduleQs.flatMap(q => q.tags || []).reduce((acc: Record<string, number>, tag) => {
-      acc[tag] = (acc[tag] || 0) + 1;
-      return acc;
-    }, {});
-    const topTags = Object.entries(tags).sort((a, b) => (b[1] as number) - (a[1] as number)).slice(0, 3);
-    
+  // 错题统计
+  const totalWrong = wrongQuestions.length;
+  const masteredWrong = wrongQuestions.filter((q: any) => q.mastered).length;
+  const unMasteredWrong = totalWrong - masteredWrong;
+  
+  // 按模块统计
+  const modules = ['言语理解', '判断推理', '数量关系', '资料分析', '常识判断', '政治理论'];
+  const moduleStats = modules.map(mod => {
+    const modQuestions = wrongQuestions.filter((q: any) => q.moduleId === mod);
+    const mastered = modQuestions.filter((q: any) => q.mastered).length;
+    const tags = modQuestions.flatMap((q: any) => q.tags || []);
+    const tagCount: Record<string, number> = {};
+    tags.forEach((t: string) => { tagCount[t] = (tagCount[t] || 0) + 1; });
+    const topTags = Object.entries(tagCount).sort((a, b) => b[1] - a[1]).slice(0, 3);
     return {
-      moduleId,
-      total: moduleQs.length,
-      mastered: masteredCount,
-      masteryRate: moduleQs.length > 0 ? (masteredCount / moduleQs.length * 100).toFixed(1) : 0,
+      name: mod,
+      total: modQuestions.length,
+      mastered,
+      rate: modQuestions.length > 0 ? Math.round(mastered / modQuestions.length * 100) : 0,
       topTags
     };
-  });
-
-  // 统计学习时长
-  const totalStudyTime = sessions.reduce((acc: number, s) => acc + s.duration, 0);
-  const todayTime = sessions
-    .filter(s => {
-      const today = new Date();
-      const sessionDate = new Date(s.createdAt);
-      return sessionDate.toDateString() === today.toDateString();
-    })
-    .reduce((acc: number, s) => acc + s.duration, 0);
-
+  }).filter(m => m.total > 0);
+  
   // 模考统计
-  const examStats = (examRecords || []).slice(-5).map(r => ({
-    date: new Date(r.createdAt).toLocaleDateString(),
-    score: r.score,
-    total: r.total,
-    rate: ((r.score / r.total) * 100).toFixed(1)
-  }));
+  const recentExams = examRecords.slice(-5);
+  const avgScore = recentExams.length > 0 
+    ? Math.round(recentExams.reduce((acc: number, r: any) => acc + r.score / r.total * 100, 0) / recentExams.length)
+    : null;
+  
+  // 学习时长
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const todayTime = sessions
+    .filter((s: any) => s.createdAt >= todayStart)
+    .reduce((acc: number, s: any) => acc + s.duration, 0);
+  
+  const weekStart = todayStart - 7 * 24 * 60 * 60 * 1000;
+  const weekTime = sessions
+    .filter((s: any) => s.createdAt >= weekStart)
+    .reduce((acc: number, s: any) => acc + s.duration, 0);
+  
+  const totalTime = sessions.reduce((acc: number, s: any) => acc + s.duration, 0);
+  
+  // 笔记统计
+  const noteCount = (data as any).examNotes?.length || 0;
+  
+  // 学习天数
+  const studyDays = new Set(sessions.map((s: any) => new Date(s.createdAt).toDateString())).size;
+  
+  return `【学习数据】
 
-  return `
-【用户学习画像】
+📌 错题情况：
+- 总错题：${totalWrong} 题
+- 已掌握：${masteredWrong} 题
+- 待复习：${unMasteredWrong} 题
 
-📊 错题统计：
-${moduleStats.length > 0 ? moduleStats.map(m => `- ${m.moduleId}：共 ${m.total} 题，掌握 ${m.masteryRate}%${
-  m.topTags.length > 0 ? `\n  薄弱点：${m.topTags.map(t => `${t[0]}(${t[1]}次)`).join('、')}` : ''
-}`).join('\n') : '暂无错题记录'}
+${moduleStats.length > 0 ? moduleStats.map(m => 
+  `• ${m.name}：${m.total}题（掌握${m.rate}%）${m.topTags.length > 0 ? ` | 高频错点：${m.topTags.map(t => `${t[0]}(${t[1]}次)`).join('、')}` : ''}`
+).join('\n') : '- 各模块暂无错题'}
 
-📈 模考最近5次：
-${examStats.length > 0 
-  ? examStats.map(e => `- ${e.date}：${e.score}/${e.total} (${e.rate}%)`).join('\n')
-  : '暂无模考记录'}
+📝 模考记录：
+${recentExams.length > 0 ? recentExams.map((r: any, i: number) => 
+  `• 第${recentExams.length - i}次：${r.score}/${r.total}（${Math.round(r.score/r.total*100)}%）`
+).join('\n') : '- 暂无模考记录'}
 
 ⏱️ 学习时长：
-- 今日：${(todayTime / 60000).toFixed(0)} 分钟
-- 累计：${(totalStudyTime / 3600000).toFixed(1)} 小时
+- 今日：${Math.round(todayTime / 60000)} 分钟
+- 本周：${Math.round(weekTime / 3600000 * 10) / 10} 小时
+- 累计：${Math.round(totalTime / 3600000 * 10) / 10} 小时
+- 学习天数：${studyDays} 天
 
-🎯 目标：每日 ${settings?.dailyTarget || 30} 分钟
-`;
+📚 笔记数量：${noteCount} 篇
+
+🎯 目标：每日 ${settings?.dailyTarget || 30} 分钟`;
 }
 
-// 通用 API 调用
+// 过滤重复词
+export function cleanText(text: string): string {
+  let prev = '';
+  let maxIterations = 10;
+  
+  while (prev !== text && maxIterations-- > 0) {
+    prev = text;
+    text = text.replace(/(.)\1+/g, '$1');
+    text = text.replace(/([\u4e00-\u9fa5]{2,4})\1+/g, '$1');
+  }
+  
+  return text.trim();
+}
+
+// API 调用
 async function callAI(messages: Array<{ role: string; content: string }>, maxTokens = 500): Promise<{ text: string; error?: boolean }> {
   if (!API_KEY) {
     return { text: '请先配置 AI API Key', error: true };
@@ -113,31 +140,21 @@ async function callAI(messages: Array<{ role: string; content: string }>, maxTok
         model: MODEL,
         messages,
         max_tokens: maxTokens,
-        temperature: 0.7,
+        temperature: 0.5,
         stream: false
       })
     });
 
     if (!response.ok) {
-      let errorMessage = `API 请求失败: ${response.status}`;
-      try {
-        const errorData = JSON.parse(await response.text());
-        if (errorData.error?.message) {
-          errorMessage = errorData.error.message;
-        } else if (errorData.message) {
-          errorMessage = errorData.message;
-        }
-      } catch (e) {
-        // 解析失败，使用原始状态码
-      }
-      return { text: errorMessage, error: true };
+      const errorData = JSON.parse(await response.text()).error || JSON.parse(await response.text());
+      const message = errorData.message || `请求失败: ${response.status}`;
+      return { text: message, error: true };
     }
 
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content || '无回复';
     return { text: cleanText(content) };
   } catch (error: any) {
-    console.error('AI 调用失败:', error);
     return { text: `网络错误: ${error.message}`, error: true };
   }
 }
@@ -163,19 +180,20 @@ async function callAIStream(
         model: MODEL,
         messages,
         max_tokens: maxTokens,
-        temperature: 0.7,
+        temperature: 0.5,
         stream: true
       })
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      return { text: `API 请求失败: ${response.status}`, error: true };
+      const errorData = JSON.parse(await response.text()).error || JSON.parse(await response.text());
+      const message = errorData.message || `请求失败: ${response.status}`;
+      return { text: message, error: true };
     }
 
     const reader = response.body?.getReader();
     if (!reader) {
-      return { text: '无法读取响应流', error: true };
+      return { text: '无法读取响应', error: true };
     }
 
     const decoder = new TextDecoder();
@@ -200,28 +218,20 @@ async function callAIStream(
               fullText += content;
               onChunk(content);
             }
-          } catch (e) {
-            // 忽略解析错误
-          }
+          } catch (e) {}
         }
       }
     }
 
     return { text: cleanText(fullText) };
   } catch (error: any) {
-    console.error('AI 流式调用失败:', error);
     return { text: `网络错误: ${error.message}`, error: true };
   }
 }
 
 // 生成分析
 export async function generateAnalysis(
-  data: {
-    wrongQuestions: any[];
-    examRecords: any[];
-    sessions: any[];
-    settings: any;
-  },
+  data: any,
   question?: string
 ) {
   const userProfile = buildUserProfilePrompt(data);
@@ -240,14 +250,9 @@ export async function generateAnalysis(
 
 // 流式生成分析
 export async function streamAnalysis(
-  data: {
-    wrongQuestions: any[];
-    examRecords: any[];
-    sessions: any[];
-    settings: any;
-  },
-  question?: string,
-  onChunk?: (text: string) => void
+  data: any,
+  question: string,
+  onChunk: (text: string) => void
 ) {
   const userProfile = buildUserProfilePrompt(data);
   
@@ -260,10 +265,10 @@ export async function streamAnalysis(
     messages.push({ role: 'user', content: question });
   }
 
-  return callAIStream(messages, onChunk || (() => {}), 500);
+  return callAIStream(messages, onChunk, 500);
 }
 
-// 快速问答（不传入用户数据）
+// 快速问答
 export async function quickAsk(question: string) {
   const messages = [
     { role: 'system', content: SYSTEM_PROMPT },
@@ -273,54 +278,14 @@ export async function quickAsk(question: string) {
   return callAI(messages, 300);
 }
 
-// 过滤重复词和叠词（彻底版）
-export function cleanText(text: string): string {
-  // 迭代清理，直到没有变化
-  let prev = '';
-  let maxIterations = 10;
-  
-  while (prev !== text && maxIterations-- > 0) {
-    prev = text;
-    
-    // 移除连续2个及以上相同字符（中文、英文、标点）
-    // 例如："好好好" → "好"，"建议建议" → "建议"
-    text = text.replace(/(.)\1+/g, '$1');
-    
-    // 移除连续重复的中文词语（2-4字词）
-    // 例如："建议你你" → "建议你"
-    text = text.replace(/([\u4e00-\u9fa5]{2,4})\1+/g, '$1');
-    
-    // 移除连续重复的英文单词
-    text = text.replace(/([a-zA-Z]{2,})\1+/gi, '$1');
-    
-    // 移除连续标点
-    text = text.replace(/([，。！？、；：""''（）【】])\1+/g, '$1');
-    
-    // 移除句尾的重复字符
-    text = text.replace(/(.)\1{2,}$/g, '$1');
-  }
-  
-  // 移除开头可能残留的单字重复
-  text = text.replace(/^(.)\1+/g, '$1');
-  
-  // 清理多余空格（但保留必要的中英文空格）
-  text = text.replace(/ {2,}/g, ' ');
-  text = text.replace(/([a-zA-Z])[\u4e00-\u9fa5]/g, '$1 $2'); // 英文和中文之间加空格
-  text = text.replace(/[\u4e00-\u9fa5]([a-zA-Z])/g, '$1 $2');
-  
-  return text.trim();
-}
-
-// 检查 API 是否可用
+// 检查配置
 export function isAIEnabled(): boolean {
   return !!API_KEY;
 }
 
-// 获取当前配置信息
 export function getAIConfig() {
   return {
     enabled: isAIEnabled(),
-    provider: import.meta.env.VITE_AI_PROVIDER || 'siliconflow',
     model: MODEL,
     baseUrl: BASE_URL
   };

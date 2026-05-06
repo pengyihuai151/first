@@ -53,32 +53,33 @@ export default function AIAssistant({ data, compact = false, onClose }: AIAssist
     setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
 
     try {
-      if (messages.length === 0 && !question) {
-        // 首次对话，传入完整数据
-        const aiData = {
-          wrongQuestions: data.wrongQuestions || [],
-          examRecords: data.examRecords || [],
-          sessions: data.sessions || [],  // 正确字段名
-          settings: data.settings
-        };
+      // 首次对话或使用快捷问题，传入完整数据
+      const isFirstOrQuick = messages.length === 0 || question;
+      const aiData = {
+        wrongQuestions: data.wrongQuestions || [],
+        examRecords: data.examRecords || [],
+        sessions: data.sessions || [],
+        settings: data.settings
+      };
+      
+      if (isFirstOrQuick) {
         const result = await streamAnalysis(aiData, text, (chunk) => {
           setMessages(prev => {
             const newMessages = [...prev];
-            // 累积文本（不过滤）
+            // 实时清理叠词
             newMessages[newMessages.length - 1].content += chunk;
             return newMessages;
           });
         });
         
-        // 流式结束后，整体清理叠词
+        // 流式结束后，整体清理
         setMessages(prev => {
           const newMessages = [...prev];
-          const lastIndex = newMessages.length - 1;
-          newMessages[lastIndex].content = cleanText(newMessages[lastIndex].content);
+          newMessages[newMessages.length - 1].content = cleanText(newMessages[newMessages.length - 1].content);
           return newMessages;
         });
       } else {
-        // 后续对话，快速问答
+        // 后续对话
         const result = await quickAsk(text);
         setMessages(prev => {
           const newMessages = [...prev];
