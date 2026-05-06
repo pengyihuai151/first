@@ -6,6 +6,7 @@ import { Trophy, Clock, AlertTriangle, Calendar, RotateCw, Brain, ChevronRight }
 import { differenceInDays, startOfDay, isWithinInterval, startOfWeek, endOfWeek } from 'date-fns';
 import { storage } from '../lib/storage';
 import ReviewSession from './ReviewSession';
+import { AIAssistantInline } from './AIAssistant';
 
 export default function Dashboard({ data, onUpdate }: { data: AppData; onUpdate: () => void }) {
   const now = new Date();
@@ -402,6 +403,11 @@ export default function Dashboard({ data, onUpdate }: { data: AppData; onUpdate:
             );
           })()}
         </motion.div>
+      </section>
+
+      {/* AI 助手入口 */}
+      <section>
+        <AIAssistantInline data={data} />
       </section>
 
       {/* Module Breakdown */}
