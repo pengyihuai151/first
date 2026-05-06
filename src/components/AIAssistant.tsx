@@ -55,9 +55,9 @@ export default function AIAssistant({ data, compact = false, onClose }: AIAssist
       if (messages.length === 0 && !question) {
         // 首次对话，传入完整数据
         const aiData = {
-          wrongQuestions: data.wrongQuestions,
+          wrongQuestions: data.wrongQuestions || [],
           examRecords: data.examRecords || [],
-          sessions: data.studySessions || [],
+          sessions: data.sessions || [],  // 正确字段名
           settings: data.settings
         };
         const result = await streamAnalysis(aiData, text, (chunk) => {
