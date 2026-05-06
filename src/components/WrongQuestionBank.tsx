@@ -1,10 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AppData, StudyModule, MAIN_MODULES, MODULE_SUB_TOPICS, WrongQuestion } from '../types';
 import { storage } from '../lib/storage';
-import { Plus, Search, Filter, Camera, X, Trash2, Edit2, Check, BookOpen, Tag, RotateCcw, FileDown } from 'lucide-react';
+import { Plus, Search, Filter, X, Trash2, Edit2, Check, BookOpen, Tag, RotateCcw } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
+
+// 常见错误原因选项
+const ERROR_REASONS = [
+  '审题不清', '概念混淆', '公式记错', '计算失误',
+  '思路卡壳', '粗心大意', '时间不够', '方法不当',
+  '陷阱踩坑', '知识点遗忘'
+];
+
 export default function WrongQuestionBank({ data, onUpdate }: { data: AppData; onUpdate: () => void }) {
   const config = data.config || {
     essayTypes: ['金句', '文章结构', '首尾段'],
@@ -24,14 +32,15 @@ export default function WrongQuestionBank({ data, onUpdate }: { data: AppData; o
   const tagScrollRef = useRef<HTMLDivElement>(null);
   const activeTagRef = useRef<HTMLButtonElement>(null);
 
+  // 记住上次使用的设置
   const [lastUsedSettings, setLastUsedSettings] = useState<{
     moduleId: StudyModule;
     tags: string[];
-    imageUrls?: string[];
+    errorReason: string;
   }>({
     moduleId: MAIN_MODULES[0] as StudyModule,
     tags: [],
-    imageUrls: []
+    errorReason: ''
   });
 
   useEffect(() => {
@@ -60,39 +69,16 @@ export default function WrongQuestionBank({ data, onUpdate }: { data: AppData; o
     moduleId: lastUsedSettings.moduleId,
     content: '',
     analysis: '',
-    imageUrl: undefined,
-    imageUrls: lastUsedSettings.imageUrls || [],
-    tags: lastUsedSettings.tags
+    tags: lastUsedSettings.tags,
+    errorReason: lastUsedSettings.errorReason
   });
 
-  const [activePreviewImage, setActivePreviewImage] = useState<string | null>(null);
-  const [isExporting, setIsExporting] = useState(false);
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files) {
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        if (file) {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            setNewQuestion(prev => ({ 
-              ...prev, 
-              imageUrls: [...(prev.imageUrls || []), reader.result as string] 
-            }));
-          };
-          reader.readAsDataURL(file);
-        }
-      }
-    }
-  };
-
   const saveQuestion = async () => {
-    if (!newQuestion.content && !(newQuestion.imageUrls?.length) && !newQuestion.imageUrl) {
-      alert('请填写题目内容或上传图片');
+    if (!newQuestion.content && !newQuestion.errorReason) {
+      alert('请填写题目或选择错误原因');
       return;
     }
-    
+
     try {
       if (editingId) {
         const existing = data.wrongQuestions.find(q => q.id === editingId);
@@ -102,9 +88,8 @@ export default function WrongQuestionBank({ data, onUpdate }: { data: AppData; o
             moduleId: newQuestion.moduleId as StudyModule,
             content: newQuestion.content || '',
             analysis: newQuestion.analysis || '',
-            imageUrl: newQuestion.imageUrls?.[0] || newQuestion.imageUrl,
-            imageUrls: newQuestion.imageUrls || [],
-            tags: newQuestion.tags || []
+            tags: newQuestion.tags || [],
+            errorReason: newQuestion.errorReason || ''
           });
         }
       } else {
@@ -113,36 +98,28 @@ export default function WrongQuestionBank({ data, onUpdate }: { data: AppData; o
           moduleId: newQuestion.moduleId as StudyModule,
           content: newQuestion.content || '',
           analysis: newQuestion.analysis || '',
-          imageUrl: newQuestion.imageUrls?.[0] || newQuestion.imageUrl,
-          imageUrls: newQuestion.imageUrls || [],
           tags: newQuestion.tags || [],
+          errorReason: newQuestion.errorReason || '',
           createdAt: Date.now()
         });
-
-        // Remember settings for next entry
+        
         setLastUsedSettings({
           moduleId: newQuestion.moduleId as StudyModule,
           tags: newQuestion.tags || [],
-          imageUrls: newQuestion.imageUrls || []
+          errorReason: newQuestion.errorReason || ''
         });
       }
-      
+
       setIsAdding(false);
       setEditingId(null);
-      // Reset for next entry - inherit current module and tags, clear content and images
-      const resetSettings = {
-        moduleId: newQuestion.moduleId as StudyModule,
-        tags: newQuestion.tags || [],
-        imageUrls: [] as string[]
-      };
       
-      setNewQuestion({ 
-        moduleId: resetSettings.moduleId, 
-        content: '', 
-        analysis: '', 
-        imageUrl: undefined, 
-        imageUrls: [],
-        tags: resetSettings.tags
+      // 重置表单
+      setNewQuestion({
+        moduleId: newQuestion.moduleId as StudyModule,
+        content: '',
+        analysis: '',
+        tags: [...(newQuestion.tags || [])],
+        errorReason: ''
       });
       onUpdate();
     } catch (error) {
@@ -155,9 +132,8 @@ export default function WrongQuestionBank({ data, onUpdate }: { data: AppData; o
       moduleId: q.moduleId,
       content: q.content,
       analysis: q.analysis,
-      imageUrl: q.imageUrl,
-      imageUrls: q.imageUrls || (q.imageUrl ? [q.imageUrl] : []),
-      tags: q.tags || []
+      tags: q.tags || [],
+      errorReason: q.errorReason || ''
     });
     setEditingId(q.id);
     setIsAdding(true);
@@ -192,10 +168,9 @@ export default function WrongQuestionBank({ data, onUpdate }: { data: AppData; o
               setNewQuestion({ 
                 moduleId: lastUsedSettings.moduleId, 
                 content: '', 
-                analysis: '', 
-                imageUrl: undefined,
-                imageUrls: [],
-                tags: [...lastUsedSettings.tags]
+                analysis: '',
+                tags: [...lastUsedSettings.tags],
+                errorReason: ''
               });
               setIsAdding(true);
             }}
@@ -284,29 +259,6 @@ export default function WrongQuestionBank({ data, onUpdate }: { data: AppData; o
         {filteredQuestions.length > 0 ? (
           filteredQuestions.map(q => (
             <div key={q.id} className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm group">
-              {(q.imageUrls && q.imageUrls.length > 0) ? (
-                <div className="h-48 overflow-hidden bg-slate-50 border-b border-slate-50 flex gap-1 p-1">
-                  {q.imageUrls.map((url, idx) => (
-                    <div key={idx} className={cn("relative", q.imageUrls!.length === 1 ? "w-full" : "flex-1")}>
-                      <img 
-                        src={url} 
-                        alt="Wrong question" 
-                        className="w-full h-full object-contain cursor-pointer" 
-                        onClick={(e) => { e.stopPropagation(); setActivePreviewImage(url); }} 
-                      />
-                    </div>
-                  ))}
-                </div>
-              ) : q.imageUrl && (
-                <div className="h-48 overflow-hidden bg-slate-50 border-b border-slate-50">
-                  <img 
-                    src={q.imageUrl} 
-                    alt="Wrong question" 
-                    className="w-full h-full object-contain cursor-pointer" 
-                    onClick={(e) => { e.stopPropagation(); setActivePreviewImage(q.imageUrl || null); }}
-                  />
-                </div>
-              )}
               <div 
                 className="p-5 active:bg-slate-50 transition-colors cursor-pointer"
                 onClick={() => setViewingQuestion(q)}
@@ -319,6 +271,11 @@ export default function WrongQuestionBank({ data, onUpdate }: { data: AppData; o
                     {q.mastered && (
                       <span className="flex items-center gap-0.5 px-1.5 py-0.5 bg-emerald-50 text-emerald-600 text-[9px] font-black rounded uppercase">
                         <Check size={10} /> 已掌握
+                      </span>
+                    )}
+                    {q.errorReason && (
+                      <span className="px-1.5 py-0.5 bg-rose-50 text-rose-500 text-[9px] font-bold rounded">
+                        {q.errorReason}
                       </span>
                     )}
                   </div>
@@ -405,34 +362,32 @@ export default function WrongQuestionBank({ data, onUpdate }: { data: AppData; o
               </div>
 
               <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
-                {(viewingQuestion.imageUrls && viewingQuestion.imageUrls.length > 0) ? (
-                  <div className="space-y-2">
-                    {viewingQuestion.imageUrls.map((url, idx) => (
-                      <div key={idx} className="rounded-2xl overflow-hidden border border-slate-100 bg-slate-50 cursor-pointer" onClick={() => setActivePreviewImage(url)}>
-                        <img src={url} alt={`Question image ${idx + 1}`} className="w-full h-auto max-h-96 object-contain" />
-                      </div>
-                    ))}
-                  </div>
-                ) : viewingQuestion.imageUrl && (
-                  <div className="rounded-2xl overflow-hidden border border-slate-100 bg-slate-50 cursor-pointer" onClick={() => setActivePreviewImage(viewingQuestion.imageUrl || null)}>
-                    <img src={viewingQuestion.imageUrl} alt="Wrong question" className="w-full h-auto max-h-96 object-contain" />
-                  </div>
-                )}
-                
                 <div className="space-y-4">
                   <section>
                     <h4 className="text-[10px] font-bold text-slate-400 uppercase mb-2 flex items-center gap-2">
-                       <div className="w-1 h-3 bg-indigo-500 rounded-full" /> 题目/核心内容
+                       <div className="w-1 h-3 bg-indigo-500 rounded-full" /> 题目/考点内容
                     </h4>
                     <p className="text-base text-slate-800 leading-relaxed font-medium whitespace-pre-wrap">
-                      {viewingQuestion.content}
+                      {viewingQuestion.content || '（未填写具体题目）'}
                     </p>
                   </section>
+
+                  {/* 错误原因 */}
+                  {viewingQuestion.errorReason && (
+                    <section>
+                      <h4 className="text-[10px] font-bold text-slate-400 uppercase mb-2 flex items-center gap-2">
+                         <div className="w-1 h-3 bg-rose-500 rounded-full" /> 错误原因
+                      </h4>
+                      <span className="inline-block px-3 py-1.5 bg-rose-50 text-rose-600 rounded-lg text-sm font-bold border border-rose-100">
+                        {viewingQuestion.errorReason}
+                      </span>
+                    </section>
+                  )}
 
                   {(viewingQuestion.tags?.length || 0) > 0 && (
                     <section>
                       <h4 className="text-[10px] font-bold text-slate-400 uppercase mb-2 flex items-center gap-2">
-                         <Tag size={10} className="text-rose-500" /> 知识点
+                         <Tag size={10} className="text-indigo-500" /> 知识点
                       </h4>
                       <div className="flex flex-wrap gap-2">
                         {viewingQuestion.tags?.map(tag => (
@@ -585,35 +540,37 @@ export default function WrongQuestionBank({ data, onUpdate }: { data: AppData; o
                   />
                 </div>
 
-                 <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase">添加配图（可多选）</label>
-                    <div className="grid grid-cols-3 gap-3">
-                       <label className="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 rounded-2xl h-24 cursor-pointer hover:border-indigo-400 transition-colors bg-slate-50">
-                         <Camera className="text-slate-300" size={24} />
-                         <span className="text-[10px] text-slate-400 font-bold mt-1">上传照片</span>
-                         <input type="file" accept="image/*" multiple className="hidden" onChange={handleImageChange} />
-                       </label>
-                       {(newQuestion.imageUrls || []).map((url, idx) => (
-                         <div key={idx} className="relative group h-24">
-                           <img src={url} className="w-full h-full object-cover rounded-2xl border border-slate-100" />
-                           <button 
-                             onClick={() => setNewQuestion(prev => ({ 
-                               ...prev, 
-                               imageUrls: (prev.imageUrls || []).filter((_, i) => i !== idx) 
-                             }))}
-                             className="absolute -top-2 -right-2 bg-rose-500 text-white rounded-full p-1 shadow-lg"
-                           >
-                             <X size={12} />
-                           </button>
-                         </div>
-                       ))}
-                    </div>
-                 </div>
+                {/* 错误原因快捷选择 */}
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase">错误原因（快速选择）</label>
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {ERROR_REASONS.map(reason => {
+                      const isSelected = newQuestion.errorReason === reason;
+                      return (
+                        <button
+                          key={reason}
+                          onClick={() => setNewQuestion(prev => ({
+                            ...prev,
+                            errorReason: isSelected ? '' : reason
+                          }))}
+                          className={cn(
+                            "px-2.5 py-1.5 rounded-lg text-[9px] font-bold transition-all border",
+                            isSelected
+                              ? "bg-rose-500 text-white border-rose-500 shadow-sm"
+                              : "bg-white text-slate-500 border-slate-100 hover:bg-rose-50 hover:border-rose-200"
+                          )}
+                        >
+                          {reason}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
               <div className="p-6 bg-slate-50/50 border-t border-slate-100 italic">
                 <button 
                   onClick={saveQuestion}
-                  disabled={!newQuestion.content}
+                  disabled={!newQuestion.content && !newQuestion.errorReason}
                   className="w-full bg-indigo-600 text-white py-3 rounded-2xl font-bold shadow-xl shadow-indigo-100 disabled:opacity-50 disabled:shadow-none transition-all flex items-center justify-center gap-2"
                 >
                   <Check size={18} /> {editingId ? '保存修改' : '保存错题卡'}
@@ -623,34 +580,7 @@ export default function WrongQuestionBank({ data, onUpdate }: { data: AppData; o
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Full Screen Image Preview Lightbox */}
-      <AnimatePresence>
-        {activePreviewImage && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/95 p-4"
-            onClick={() => setActivePreviewImage(null)}
-          >
-            <button 
-              className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors"
-              onClick={() => setActivePreviewImage(null)}
-            >
-              <X size={24} />
-            </button>
-            <motion.img 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              src={activePreviewImage} 
-              className="max-w-full max-h-full object-contain rounded-lg"
-              onClick={(e) => e.stopPropagation()}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
+
   );
 }

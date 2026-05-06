@@ -81,6 +81,12 @@ function buildUserProfilePrompt(data: {
   // 笔记统计
   const noteCount = (data as any).examNotes?.length || 0;
   
+  // 错误原因统计
+  const errorReasons = wrongQuestions.filter((q: any) => q.errorReason).map((q: any) => q.errorReason);
+  const reasonStats: Record<string, number> = {};
+  errorReasons.forEach((r: string) => { reasonStats[r] = (reasonStats[r] || 0) + 1; });
+  const topReasons = Object.entries(reasonStats).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  
   // 学习天数
   const studyDays = new Set(sessions.map((s: any) => new Date(s.createdAt).toDateString())).size;
   
@@ -94,6 +100,9 @@ function buildUserProfilePrompt(data: {
 ${moduleStats.length > 0 ? moduleStats.map(m => 
   `• ${m.name}：${m.total}题（掌握${m.rate}%）${m.topTags.length > 0 ? ` | 高频错点：${m.topTags.map(t => `${t[0]}(${t[1]}次)`).join('、')}` : ''}`
 ).join('\n') : '- 各模块暂无错题'}
+
+🔍 错误原因分析：
+${topReasons.length > 0 ? topReasons.map(r => `• ${r[0]}：${r[1]}次`).join('\n') : '- 暂无错误原因记录'}
 
 📝 模考记录：
 ${recentExams.length > 0 ? recentExams.map((r: any, i: number) => 
