@@ -32,22 +32,7 @@ export const storage = {
       config: {
         essayTypes: ['金句', '文章结构', '首尾段'],
         essayTags: ['政治', '社会', '生态', '文化', '经济'],
-        noteTags: ['公式', '技巧', '反例', '易错点', '口诀'],
-        reasonTags: {
-          '言语理解': ['语境提示漏看', '词义辨析模糊', '偷换概念', '忽视作者态度'],
-          '判断推理': ['图形特征没找准', '限定条件漏看', '逻辑推导断层', '定义要点不全'],
-          '数量关系': ['公式记错', '计算失误', '题目陷阱没发现', '思路错误'],
-          '资料分析': ['找数找错', '计算粗心', '公式应用错误', '单位换算错误'],
-          '常识判断': ['知识盲区', '考向偏移', '关键词漏读', '过于主观'],
-          '政治': ['考点遗忘', '时政了解不够', '概念对比混淆', '细节陷阱'],
-          '申论': ['材料找不齐', '逻辑不通顺', '字数超限', '卷面不整洁']
-        },
-        hierarchicalReasons: {
-          '言语理解': [
-            { id: '1', name: '逻辑填空', children: [{ id: '1-1', name: '成语辨析', children: [] }, { id: '1-2', name: '实词搭配', children: [] }] },
-            { id: '2', name: '片段阅读', children: [{ id: '2-1', name: '主旨概括', children: [] }, { id: '2-2', name: '意图判断', children: [] }] }
-          ]
-        }
+        noteTags: ['公式', '技巧', '反例', '易错点', '口诀']
       }
     };
 
@@ -65,14 +50,6 @@ export const storage = {
     // Merge if config is missing in existing data
     if (!data.config) {
       data.config = defaultData.config;
-    } else {
-      // Migrate reasonTags if it's still an array
-      if (Array.isArray((data.config as any).reasonTags)) {
-        data.config.reasonTags = defaultData.config!.reasonTags;
-      }
-      if (!data.config.hierarchicalReasons) {
-        data.config.hierarchicalReasons = defaultData.config!.hierarchicalReasons;
-      }
     }
     return data;
   },

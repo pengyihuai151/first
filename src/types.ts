@@ -60,7 +60,6 @@ export interface WrongQuestion {
   imageUrl?: string; // base64 or blob URL stored in IDB
   imageUrls?: string[];
   tags?: string[];
-  reasonTags?: string[];
   mastered?: boolean;
   reviewCount?: number;
   createdAt: number;
@@ -77,18 +76,10 @@ export interface ExamNote {
   tags?: string[];
 }
 
-export interface HierarchicalTag {
-  id: string;
-  name: string;
-  children: HierarchicalTag[];
-}
-
 export interface AppConfig {
   essayTypes: string[];
   essayTags: string[];
   noteTags: string[];
-  reasonTags: Record<string, string[]>;
-  hierarchicalReasons?: Record<string, HierarchicalTag[]>;
 }
 
 export interface ExamModuleScore {

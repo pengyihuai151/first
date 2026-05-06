@@ -221,14 +221,10 @@ export default function ReviewSession({ data, onClose, onUpdate }: ReviewSession
                
                <div className="bg-amber-50 rounded-3xl p-6 border border-amber-100">
                   <h3 className="text-[10px] font-black text-amber-800 uppercase mb-2 flex items-center gap-2">
-                    <AlertTriangle size={12} /> 错误诱因
+                    <AlertTriangle size={12} /> 个人复盘/思路
                   </h3>
-                  <div className="flex flex-wrap gap-2">
-                    {currentQ.reasonTags?.map(t => (
-                      <span key={t} className="text-[10px] font-bold bg-white text-amber-700 px-2.5 py-1 rounded-lg border border-amber-200">
-                        {t}
-                      </span>
-                    )) || <span className="text-xs text-amber-600/60 italic">未标记具体原因</span>}
+                  <div className="text-sm text-amber-800 whitespace-pre-wrap leading-relaxed">
+                    {currentQ.analysis || <span className="italic text-amber-600/60">暂无复盘记录</span>}
                   </div>
                </div>
             </motion.div>

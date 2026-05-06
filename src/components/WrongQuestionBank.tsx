@@ -1,24 +1,21 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { AppData, StudyModule, MAIN_MODULES, MODULE_SUB_TOPICS, WrongQuestion, HierarchicalTag } from '../types';
+import { AppData, StudyModule, MAIN_MODULES, MODULE_SUB_TOPICS, WrongQuestion } from '../types';
 import { storage } from '../lib/storage';
 import { Plus, Search, Filter, Camera, X, Trash2, Edit2, Check, BookOpen, Tag, RotateCcw, FileDown } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
-import HierarchicalReasonSelector from './HierarchicalReasonSelector';
 export default function WrongQuestionBank({ data, onUpdate }: { data: AppData; onUpdate: () => void }) {
   const config = data.config || {
     essayTypes: ['金句', '文章结构', '首尾段'],
     essayTags: ['政治', '社会', '生态', '文化', '经济'],
-    noteTags: ['公式', '技巧', '反例', '易错点', '口诀'],
-    reasonTags: {}
+    noteTags: ['公式', '技巧', '反例', '易错点', '口诀']
   };
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewingQuestion, setViewingQuestion] = useState<WrongQuestion | null>(null);
   const [filter, setFilter] = useState<StudyModule | '全部'>('全部');
   const [tagFilter, setTagFilter] = useState<string | '全部'>('全部');
-  const [reasonFilter, setReasonFilter] = useState<string | '全部'>('全部');
   const [search, setSearch] = useState('');
   const [masteredFilter, setMasteredFilter] = useState<'全部' | '未掌握' | '已掌握'>('未掌握');
   
@@ -26,24 +23,19 @@ export default function WrongQuestionBank({ data, onUpdate }: { data: AppData; o
   const activeRef = useRef<HTMLButtonElement>(null);
   const tagScrollRef = useRef<HTMLDivElement>(null);
   const activeTagRef = useRef<HTMLButtonElement>(null);
-  const reasonScrollRef = useRef<HTMLDivElement>(null);
-  const activeReasonRef = useRef<HTMLButtonElement>(null);
 
   const [lastUsedSettings, setLastUsedSettings] = useState<{
     moduleId: StudyModule;
     tags: string[];
-    reasonTags: string[];
     imageUrls?: string[];
   }>({
     moduleId: MAIN_MODULES[0] as StudyModule,
     tags: [],
-    reasonTags: [],
     imageUrls: []
   });
 
   useEffect(() => {
     setTagFilter('全部');
-    setReasonFilter('全部');
   }, [filter]);
 
   useEffect(() => {
@@ -64,46 +56,17 @@ export default function WrongQuestionBank({ data, onUpdate }: { data: AppData; o
     }
   }, [filter]);
 
-  useEffect(() => {
-    if (activeReasonRef.current && reasonScrollRef.current) {
-      const container = reasonScrollRef.current;
-      const item = activeReasonRef.current;
-      const scrollLeft = item.offsetLeft - container.offsetWidth / 2 + item.offsetWidth / 2;
-      container.scrollTo({ left: scrollLeft, behavior: 'smooth' });
-    }
-  }, [reasonFilter]);
-
   const [newQuestion, setNewQuestion] = useState<Partial<WrongQuestion>>({
     moduleId: lastUsedSettings.moduleId,
     content: '',
     analysis: '',
     imageUrl: undefined,
     imageUrls: lastUsedSettings.imageUrls || [],
-    tags: lastUsedSettings.tags,
-    reasonTags: lastUsedSettings.reasonTags
+    tags: lastUsedSettings.tags
   });
 
   const [activePreviewImage, setActivePreviewImage] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
-
-  // Helper to get first-level tag from hierarchical path
-  const getFirstLevelTag = (tagPath: string): string => {
-    const parts = tagPath.split('-');
-    return parts.length > 1 ? parts[0] : tagPath;
-  };
-
-  // Get hierarchical reason options for current filter module
-  const getHierarchicalReasons = (moduleId: string | StudyModule): HierarchicalTag[] => {
-    return config.hierarchicalReasons?.[moduleId as string] || [];
-  };
-
-  // Get all reason tags (flattened) for current filter module
-  const getAllReasonTags = (moduleId: string | StudyModule): string[] => {
-    const hierarchical = getHierarchicalReasons(moduleId);
-    return hierarchical.flatMap((t: HierarchicalTag) => 
-      [t.name, ...t.children.map((c: HierarchicalTag) => c.name)]
-    );
-  };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -141,8 +104,7 @@ export default function WrongQuestionBank({ data, onUpdate }: { data: AppData; o
             analysis: newQuestion.analysis || '',
             imageUrl: newQuestion.imageUrls?.[0] || newQuestion.imageUrl,
             imageUrls: newQuestion.imageUrls || [],
-            tags: newQuestion.tags || [],
-            reasonTags: newQuestion.reasonTags || []
+            tags: newQuestion.tags || []
           });
         }
       } else {
@@ -154,7 +116,6 @@ export default function WrongQuestionBank({ data, onUpdate }: { data: AppData; o
           imageUrl: newQuestion.imageUrls?.[0] || newQuestion.imageUrl,
           imageUrls: newQuestion.imageUrls || [],
           tags: newQuestion.tags || [],
-          reasonTags: newQuestion.reasonTags || [],
           createdAt: Date.now()
         });
 
@@ -162,7 +123,6 @@ export default function WrongQuestionBank({ data, onUpdate }: { data: AppData; o
         setLastUsedSettings({
           moduleId: newQuestion.moduleId as StudyModule,
           tags: newQuestion.tags || [],
-          reasonTags: newQuestion.reasonTags || [],
           imageUrls: newQuestion.imageUrls || []
         });
       }
@@ -172,8 +132,7 @@ export default function WrongQuestionBank({ data, onUpdate }: { data: AppData; o
       // Reset logic: if we just added, next one should inherit the tags we just saved
       const nextSettings = editingId ? lastUsedSettings : {
         moduleId: newQuestion.moduleId as StudyModule,
-        tags: newQuestion.tags || [],
-        reasonTags: newQuestion.reasonTags || []
+        tags: newQuestion.tags || []
       };
 
       setNewQuestion({ 
@@ -182,8 +141,7 @@ export default function WrongQuestionBank({ data, onUpdate }: { data: AppData; o
         analysis: '', 
         imageUrl: undefined, 
         imageUrls: (editingId ? [] : nextSettings.imageUrls) || [],
-        tags: nextSettings.tags, 
-        reasonTags: nextSettings.reasonTags 
+        tags: nextSettings.tags
       });
       onUpdate();
     } catch (error) {
@@ -198,8 +156,7 @@ export default function WrongQuestionBank({ data, onUpdate }: { data: AppData; o
       analysis: q.analysis,
       imageUrl: q.imageUrl,
       imageUrls: q.imageUrls || (q.imageUrl ? [q.imageUrl] : []),
-      tags: q.tags || [],
-      reasonTags: q.reasonTags || []
+      tags: q.tags || []
     });
     setEditingId(q.id);
     setIsAdding(true);
@@ -216,20 +173,6 @@ export default function WrongQuestionBank({ data, onUpdate }: { data: AppData; o
     .filter(q => filter === '全部' || q.moduleId === filter)
     .filter(q => masteredFilter === '全部' || (masteredFilter === '已掌握' ? q.mastered : !q.mastered))
     .filter(q => tagFilter === '全部' || tagFilter === '全部知识点' || q.tags?.includes(tagFilter))
-    .filter(q => {
-      if (reasonFilter === '全部') return true;
-      // Check if question's reason matches the selected filter (supports hierarchical)
-      const allTags = getAllReasonTags(q.moduleId);
-      if (allTags.includes(reasonFilter)) {
-        // Filter by first-level category if selected tag is a child
-        const firstLevel = getFirstLevelTag(reasonFilter);
-        return q.reasonTags?.some(rt => {
-          const rtFirstLevel = getFirstLevelTag(rt);
-          return rtFirstLevel === firstLevel || rt === firstLevel;
-        }) || false;
-      }
-      return true;
-    })
     .filter(q => q.content.includes(search) || (q.analysis && q.analysis.includes(search)))
     .sort((a, b) => b.createdAt - a.createdAt);
 
@@ -332,49 +275,6 @@ export default function WrongQuestionBank({ data, onUpdate }: { data: AppData; o
               ))}
             </div>
           )}
-
-          {/* Reason Tag Filter - Hierarchical */}
-          {filter !== '全部' && (() => {
-            const hierarchicalReasons = getHierarchicalReasons(filter as string);
-            const flatTags = hierarchicalReasons.flatMap((t: HierarchicalTag) => 
-              [t.name, ...t.children.map((c: HierarchicalTag) => c.name)]
-            );
-            
-            if (flatTags.length === 0) return null;
-            
-            return (
-              <div ref={reasonScrollRef} className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-                <button
-                  key="全部"
-                  ref={reasonFilter === '全部' ? activeReasonRef : null}
-                  onClick={() => setReasonFilter('全部')}
-                  className={cn(
-                    "px-3 py-1.5 rounded-xl text-[10px] font-bold whitespace-nowrap transition-all border shrink-0",
-                    reasonFilter === '全部' 
-                      ? "bg-rose-500 text-white border-rose-500 shadow-sm" 
-                      : "bg-white text-slate-400 border-slate-100"
-                  )}
-                >
-                  全部原因
-                </button>
-                {hierarchicalReasons.map(t => (
-                  <button
-                    key={t.name}
-                    ref={reasonFilter === t.name ? activeReasonRef : null}
-                    onClick={() => setReasonFilter(t.name)}
-                    className={cn(
-                      "px-3 py-1.5 rounded-xl text-[10px] font-bold whitespace-nowrap transition-all border shrink-0",
-                      reasonFilter === t.name
-                        ? "bg-rose-500 text-white border-rose-500 shadow-sm" 
-                        : "bg-white text-slate-400 border-slate-100"
-                    )}
-                  >
-                    {t.name}
-                  </button>
-                ))}
-              </div>
-            );
-          })()}
         </div>
       </div>
 
@@ -444,11 +344,6 @@ export default function WrongQuestionBank({ data, onUpdate }: { data: AppData; o
                       <div className="flex flex-wrap gap-1.5 pt-1">
                         {q.tags?.map(tag => (
                           <span key={tag} className="px-2 py-0.5 bg-indigo-50 text-indigo-500 rounded-md text-[9px] font-bold">
-                            # {tag}
-                          </span>
-                        ))}
-                        {q.reasonTags?.map(tag => (
-                          <span key={tag} className="px-2 py-0.5 bg-rose-50 text-rose-500 rounded-md text-[9px] font-bold">
                             # {tag}
                           </span>
                         ))}
@@ -533,19 +428,14 @@ export default function WrongQuestionBank({ data, onUpdate }: { data: AppData; o
                     </p>
                   </section>
 
-                  {((viewingQuestion.tags?.length || 0) > 0 || (viewingQuestion.reasonTags?.length || 0) > 0) && (
+                  {(viewingQuestion.tags?.length || 0) > 0 && (
                     <section>
                       <h4 className="text-[10px] font-bold text-slate-400 uppercase mb-2 flex items-center gap-2">
-                         <Tag size={10} className="text-rose-500" /> 知识点与报错原因
+                         <Tag size={10} className="text-rose-500" /> 知识点
                       </h4>
                       <div className="flex flex-wrap gap-2">
                         {viewingQuestion.tags?.map(tag => (
                           <span key={tag} className="px-3 py-1 bg-indigo-50 text-indigo-500 rounded-lg text-[11px] font-bold border border-indigo-100">
-                            # {tag}
-                          </span>
-                        ))}
-                        {viewingQuestion.reasonTags?.map(tag => (
-                          <span key={tag} className="px-3 py-1 bg-rose-50 text-rose-500 rounded-lg text-[11px] font-bold border border-rose-100">
                             # {tag}
                           </span>
                         ))}
@@ -682,45 +572,6 @@ export default function WrongQuestionBank({ data, onUpdate }: { data: AppData; o
                       );
                     })}
                   </div>
-                </div>
-
-                <div className="space-y-3">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1">
-                     <Tag size={10} /> 错误诱因 (分级选择)
-                  </label>
-                  <HierarchicalReasonSelector 
-                    options={config.hierarchicalReasons?.[newQuestion.moduleId as string] || []}
-                    selectedTags={newQuestion.reasonTags || []}
-                    onChange={(tags) => setNewQuestion(prev => ({ ...prev, reasonTags: tags }))}
-                  />
-                  {(!config.hierarchicalReasons?.[newQuestion.moduleId as string] || config.hierarchicalReasons?.[newQuestion.moduleId as string]?.length === 0) && (
-                    <div className="flex flex-wrap gap-2 pt-1 border-t border-slate-50 mt-2">
-                       <label className="text-[9px] font-bold text-slate-300 w-full mb-1">或选择基础标签：</label>
-                       {(config.reasonTags[newQuestion.moduleId as string] || []).map(tag => {
-                         const isSelected = newQuestion.reasonTags?.includes(tag);
-                         return (
-                           <button
-                             key={tag}
-                             onClick={() => {
-                               const current = newQuestion.reasonTags || [];
-                               const next = isSelected 
-                                 ? current.filter(t => t !== tag)
-                                 : [...current, tag];
-                               setNewQuestion(prev => ({ ...prev, reasonTags: next }));
-                             }}
-                             className={cn(
-                               "px-2.5 py-1 rounded-lg text-[9px] font-bold transition-all border",
-                               isSelected 
-                                 ? "bg-rose-50 text-rose-500 border-rose-100 shadow-sm" 
-                                 : "bg-white text-slate-400 border-slate-100 hover:bg-slate-50"
-                             )}
-                           >
-                             {tag}
-                           </button>
-                         );
-                       })}
-                    </div>
-                  )}
                 </div>
 
                 <div className="space-y-2">

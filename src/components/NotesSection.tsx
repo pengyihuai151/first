@@ -12,8 +12,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
   const config = data.config || {
     essayTypes: ['金句', '文章结构', '首尾段'],
     essayTags: ['政治', '社会', '生态', '文化', '经济'],
-    noteTags: ['公式', '技巧', '反例', '易错点', '口诀'],
-    reasonTags: []
+    noteTags: ['公式', '技巧', '反例', '易错点', '口诀']
   };
 
   const [category, setCategory] = useState<'行测' | '申论'>('行测');
