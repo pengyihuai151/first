@@ -131,10 +131,14 @@ export default function AIAssistant({ data, compact = false, onClose }: AIAssist
           </div>
 
           <a
+            onClick={(e) => {
+              e.preventDefault();
+              // window.open 的 _system 会在系统浏览器中打开（Electron 和浏览器通用）
+              window.open('https://cloud.siliconflow.cn', '_system');
+            }}
             href="https://cloud.siliconflow.cn"
-            target="_blank"
             rel="noopener noreferrer"
-            className="block text-center bg-white/20 hover:bg-white/30 transition-colors rounded-xl py-2 text-sm font-medium"
+            className="block text-center bg-white/20 hover:bg-white/30 transition-colors rounded-xl py-2 text-sm font-medium cursor-pointer"
           >
             获取免费 API Key →
           </a>
