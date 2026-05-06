@@ -504,7 +504,8 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: '100%', opacity: 0 }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="bg-white w-full max-w-sm sm:max-w-lg rounded-t-3xl sm:rounded-3xl relative z-10 flex flex-col max-h-[85vh] shadow-2xl"
+              className="bg-white w-full max-w-sm sm:max-w-lg rounded-t-3xl sm:rounded-3xl relative z-10 flex flex-col shadow-2xl"
+              style={{ maxHeight: 'calc(100dvh - 48px)' }}
             >
               {/* 头部 */}
               <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center shrink-0">
@@ -550,10 +551,10 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                 </div>
 
                 {/* 正文 */}
-                <div className="bg-slate-50 rounded-2xl p-5">
-                  <pre className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap font-sans">
+                <div className="bg-slate-50 rounded-2xl p-5 min-h-[120px]">
+                  <div className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap break-words overflow-wrap-anywhere font-sans">
                     {selectedNote.content}
-                  </pre>
+                  </div>
                 </div>
 
                 {/* 元信息 */}

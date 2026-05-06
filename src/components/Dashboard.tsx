@@ -1,8 +1,8 @@
 import React from 'react';
-import { AppData, MAIN_MODULES, StudyModule } from '../types';
+import { AppData, MAIN_MODULES, StudyModule, ExamNote } from '../types';
 import { cn, formatTimeFriendly } from '../lib/utils';
-import { motion } from 'motion/react';
-import { Trophy, Clock, AlertTriangle, Calendar, RotateCw, ChevronRight, BarChart3, BookOpen, CheckCircle2, Flame, Eye } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Trophy, Clock, AlertTriangle, Calendar, RotateCw, ChevronRight, BarChart3, BookOpen, CheckCircle2, Flame, Eye, X, Edit2, Trash2 } from 'lucide-react';
 import { startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
 import { storage } from '../lib/storage';
 
@@ -16,6 +16,7 @@ export default function Dashboard({ data, onUpdate, onNavigate }: { data: AppDat
   const quotes = data.settings.quotes || [];
   const dailyIndex = Math.floor(new Date(todayStr).getTime() / 86400000) % (quotes.length || 1);
   const [tempIndex, setTempIndex] = React.useState<number | null>(null);
+  const [selectedNote, setSelectedNote] = React.useState<ExamNote | null>(null);
   const displayIndex = tempIndex !== null ? tempIndex : dailyIndex;
   const currentQuote = quotes[displayIndex] || "积跬步，以至千里。";
 
@@ -208,6 +209,7 @@ export default function Dashboard({ data, onUpdate, onNavigate }: { data: AppDat
         };
 
         return (
+          <>
           <section className="bg-gradient-to-br from-violet-50 via-indigo-50 to-purple-50 rounded-3xl border border-indigo-100/60 p-5 space-y-3.5 overflow-hidden relative">
             <div className="absolute -top-6 -right-6 w-24 h-24 bg-indigo-200/20 rounded-full blur-xl" />
             <div className="relative">
@@ -224,7 +226,7 @@ export default function Dashboard({ data, onUpdate, onNavigate }: { data: AppDat
 
               {unreadNotes.length > 0 ? (
                 <>
-                  <p className="text-[11px] text-indigo-400/80 mb-3">今日推荐 · 阅读后点击「已读」完成打卡</p>
+                  <p className="text-[11px] text-indigo-400/80 mb-3">今日推荐 · 点击阅读，完成后「已读」打卡</p>
                   <div className="space-y-2.5">
                     {unreadNotes.map((note, idx) => (
                       <motion.div
@@ -232,27 +234,27 @@ export default function Dashboard({ data, onUpdate, onNavigate }: { data: AppDat
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: idx * 0.08 }}
-                        className="bg-white/80 backdrop-blur-sm rounded-2xl p-3.5 flex items-start gap-3"
+                        onClick={() => setSelectedNote(note)}
+                        className="bg-white/80 backdrop-blur-sm rounded-2xl p-3.5 flex items-center gap-3 cursor-pointer active:bg-white transition-colors"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center shrink-0 font-bold text-xs mt-0.5">
+                        <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center shrink-0 font-bold text-xs">
                           {idx + 1}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5 mb-0.5">
-                            <span className="text-xs font-bold text-slate-700 truncate">{note.title}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5 mb-1.5">
+                          <span className="text-xs font-bold text-slate-700 truncate block">{note.title}</span>
+                          <div className="flex items-center gap-1.5 mt-1">
                             {note.essayType && (
                               <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-medium">{note.essayType}</span>
                             )}
                             {note.essayTag && (
                               <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 font-medium">#{note.essayTag}</span>
                             )}
+                            <Eye size={10} className="text-indigo-300 shrink-0" />
+                            <span className="text-[9px] text-indigo-300 shrink-0">{Math.max(note.content?.length || 0, 0)}字</span>
                           </div>
-                          <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed whitespace-pre-wrap">{note.content}</p>
                         </div>
                         <button
-                          onClick={() => handleCheckIn(note.id)}
+                          onClick={(e) => { e.stopPropagation(); handleCheckIn(note.id); }}
                           className="shrink-0 self-center w-8 h-8 rounded-xl bg-indigo-500 text-white flex items-center justify-center active:bg-indigo-600 active:scale-90 transition-all shadow-md shadow-indigo-200"
                           title="标记已读"
                         >
@@ -285,6 +287,82 @@ export default function Dashboard({ data, onUpdate, onNavigate }: { data: AppDat
               )}
             </div>
           </section>
+
+          {/* 笔记详情弹层 */}
+          <AnimatePresence>
+            {selectedNote && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+              >
+                <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setSelectedNote(null)} />
+                <motion.div
+                  initial={{ y: '100%', opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: '100%', opacity: 0 }}
+                  transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+                  className="bg-white w-full max-w-sm sm:max-w-lg rounded-t-3xl sm:rounded-3xl relative z-10 flex flex-col shadow-2xl"
+                  style={{ maxHeight: 'calc(100dvh - 48px)' }}
+                >
+                  <div className="px-5 py-4 border-b border-slate-100 flex justify-between items-center shrink-0">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <BookOpen size={16} className="shrink-0 text-amber-500" />
+                      <h3 className="font-bold text-slate-800 truncate">{selectedNote.title}</h3>
+                    </div>
+                    <button onClick={() => setSelectedNote(null)} className="text-slate-400 hover:text-slate-600 shrink-0 ml-2 p-1">
+                      <X size={20} />
+                    </button>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3 custom-scrollbar">
+                    <div className="flex flex-wrap gap-1.5">
+                      <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-100 text-amber-700">{selectedNote.moduleId}</span>
+                      {selectedNote.essayType && (
+                        <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-100 text-slate-500">{selectedNote.essayType}</span>
+                      )}
+                      {selectedNote.essayTag && (
+                        <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-50 text-amber-600">#{selectedNote.essayTag}</span>
+                      )}
+                    </div>
+
+                    <div className="bg-slate-50 rounded-2xl p-4 min-h-[100px]">
+                      <div className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap break-words font-sans">
+                        {selectedNote.content}
+                      </div>
+                    </div>
+
+                    <div className="text-[10px] text-slate-300 font-medium space-y-1 pt-2 border-t border-slate-100 pb-safe">
+                      <div>更新时间：{new Date(selectedNote.updatedAt).toLocaleString()}</div>
+                      {selectedNote.content && (<div>字数约：{selectedNote.content.length}</div>)}
+                    </div>
+                  </div>
+
+                  <div className="px-5 py-3 border-t border-slate-100 flex gap-3 shrink-0 pb-safe">
+                    <button
+                      onClick={() => handleCheckIn(selectedNote.id)}
+                      disabled={todayReadIds.includes(selectedNote.id)}
+                      className={cn(
+                        "flex-1 py-3 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-md",
+                        todayReadIds.includes(selectedNote.id)
+                          ? "bg-emerald-100 text-emerald-500 shadow-emerald-100"
+                          : "bg-indigo-500 text-white active:bg-indigo-600 active:scale-97 shadow-indigo-200"
+                      )}
+                    >
+                      <CheckCircle2 size={16} />
+                      {todayReadIds.includes(selectedNote.id) ? '已打卡' : '标记已读'}
+                    </button>
+                    <button
+                      onClick={() => onNavigate('notes')}
+                      className="py-3 px-4 rounded-2xl border border-slate-200 text-slate-600 text-sm font-bold active:bg-slate-50 transition-colors"
+                    >笔记</button>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          </>
         );
       })()}
 
