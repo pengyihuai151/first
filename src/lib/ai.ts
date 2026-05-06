@@ -225,19 +225,20 @@ async function callAIStream(
   onChunk: (text: string) => void,
   maxTokens = 500
 ): Promise<{ text: string; error?: boolean }> {
-  if (!API_KEY) {
+  const config = getConfig();
+  if (!config.apiKey) {
     return { text: '请先配置 AI API Key', error: true };
   }
 
   try {
-    const response = await fetch(`${BASE_URL}/chat/completions`, {
+    const response = await fetch(`${config.baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_KEY}`
+        'Authorization': `Bearer ${config.apiKey}`
       },
       body: JSON.stringify({
-        model: MODEL,
+        model: config.model,
         messages,
         max_tokens: maxTokens,
         temperature: 0.5,
@@ -340,13 +341,14 @@ export async function quickAsk(question: string) {
 
 // 检查配置
 export function isAIEnabled(): boolean {
-  return !!API_KEY;
+  return !!getConfig().apiKey;
 }
 
 export function getAIConfig() {
+  const config = getConfig();
   return {
-    enabled: isAIEnabled(),
-    model: MODEL,
-    baseUrl: BASE_URL
+    enabled: !!config.apiKey,
+    model: config.model,
+    baseUrl: config.baseUrl
   };
 }
