@@ -30,8 +30,9 @@ function buildUserProfilePrompt(data: {
   examRecords: any[];
   sessions: any[];
   settings: any;
+  examNotes?: any[];
 }) {
-  const { wrongQuestions = [], examRecords = [], sessions = [], settings } = data;
+  const { wrongQuestions = [], examRecords = [], sessions = [], settings, examNotes = [] } = data;
   
   // 错题统计
   const totalWrong = wrongQuestions.length;

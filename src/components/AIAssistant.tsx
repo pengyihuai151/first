@@ -53,33 +53,48 @@ export default function AIAssistant({ data, compact = false, onClose }: AIAssist
     setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
 
     try {
-      // 首次对话或使用快捷问题，传入完整数据
-      const isFirstOrQuick = messages.length === 0 || question;
+      // 准备数据
       const aiData = {
         wrongQuestions: data.wrongQuestions || [],
         examRecords: data.examRecords || [],
         sessions: data.sessions || [],
-        settings: data.settings
+        settings: data.settings,
+        examNotes: (data as any).examNotes || []
       };
       
-      if (isFirstOrQuick) {
+      // 有快捷问题或首次对话时传数据
+      if (question) {
+        // 快捷问题：始终传数据
         const result = await streamAnalysis(aiData, text, (chunk) => {
           setMessages(prev => {
             const newMessages = [...prev];
-            // 实时清理叠词
             newMessages[newMessages.length - 1].content += chunk;
             return newMessages;
           });
         });
         
-        // 流式结束后，整体清理
+        setMessages(prev => {
+          const newMessages = [...prev];
+          newMessages[newMessages.length - 1].content = cleanText(newMessages[newMessages.length - 1].content);
+          return newMessages;
+        });
+      } else if (messages.length === 0) {
+        // 首次对话：传数据
+        const result = await streamAnalysis(aiData, text, (chunk) => {
+          setMessages(prev => {
+            const newMessages = [...prev];
+            newMessages[newMessages.length - 1].content += chunk;
+            return newMessages;
+          });
+        });
+        
         setMessages(prev => {
           const newMessages = [...prev];
           newMessages[newMessages.length - 1].content = cleanText(newMessages[newMessages.length - 1].content);
           return newMessages;
         });
       } else {
-        // 后续对话
+        // 后续对话：不传数据
         const result = await quickAsk(text);
         setMessages(prev => {
           const newMessages = [...prev];
