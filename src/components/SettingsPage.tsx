@@ -141,9 +141,10 @@ export default function SettingsPage({ data, onUpdate, onNavigate }: { data: App
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const confirmed = confirm('恢复数据将完全覆盖当前所有数据，确定要继续吗？\n\n建议先点击上方"备份数据"保存当前数据！');
-      if (!confirmed) {
-        e.target.value = ''; // 清空 input
+      // 先让用户选择模式
+      const mode = prompt('请输入导入模式（1=覆盖，2=合并不覆盖已有，3=合并并覆盖已有）\n\n提示：建议先备份数据！', '2');
+      if (mode === null) { // 用户取消
+        e.target.value = '';
         return;
       }
       
@@ -151,10 +152,34 @@ export default function SettingsPage({ data, onUpdate, onNavigate }: { data: App
       reader.onload = async (event) => {
         try {
           const content = event.target?.result as string;
-          await storage.importData(content);
-          onUpdate();
-          alert('数据导入成功');
-        } catch {
+          const importedData: AppData = JSON.parse(content);
+          
+          let finalData: AppData;
+          
+          switch (mode.trim()) {
+            case '1': // 完全覆盖
+              await storage.importData(content);
+              onUpdate();
+              alert('数据已完全替换');
+              break;
+              
+            case '2': // 合并（保留已有）
+              await mergeData(importedData, false);
+              onUpdate();
+              alert('数据已合并（保留原有数据）');
+              break;
+              
+            case '3': // 合并（覆盖已有）
+              await mergeData(importedData, true);
+              onUpdate();
+              alert('数据已合并并更新');
+              break;
+              
+            default:
+              alert('无效选项，请重新操作');
+          }
+        } catch (err) {
+          console.error(err);
           alert('导入失败，不兼容的文件');
         } finally {
           e.target.value = ''; // 清空 input，防止重复导入
@@ -162,6 +187,61 @@ export default function SettingsPage({ data, onUpdate, onNavigate }: { data: App
       };
       reader.readAsText(file);
     }
+  };
+
+  /**
+   * 合并数据
+   * @param imported 导入的数据
+   * @param overwrite 是否覆盖已有数据（true=新数据优先，false=旧数据优先）
+   */
+  const mergeData = async (imported: AppData, overwrite: boolean) => {
+    const current = await storage.getData();
+    
+    // 合并学习记录 - 按 ID 去重
+    const sessionMap = new Map<string, any>();
+    (overwrite ? [...current.sessions, ...imported.sessions] : [...imported.sessions, ...current.sessions])
+      .forEach(s => sessionMap.set(s.id, s));
+    
+    // 合并错题 - 按 ID 去重
+    const wrongMap = new Map<string, any>();
+    (overwrite ? [...current.wrongQuestions, ...imported.wrongQuestions] : [...imported.wrongQuestions, ...current.wrongQuestions])
+      .forEach(w => wrongMap.set(w.id, w));
+    
+    // 合并考试记录 - 按 ID 去重
+    const examMap = new Map<string, any>();
+    (overwrite ? [...current.examRecords, ...imported.examRecords] : [...imported.examRecords, ...current.examRecords])
+      .forEach(e => examMap.set(e.id, e));
+    
+    // 合并笔记 - 按 ID 去重
+    const notesMap = new Map<string, any>(
+      [...(current.notes || []), ...(imported.notes || [])].map(n => [n.id, n])
+    );
+    
+    // 合并配置 settings（取更完整的）
+    const mergedSettings = {
+      ...current.settings,
+      ...(overwrite ? imported.settings : {}),
+      quotes: overwrite 
+        ? (imported.settings.quotes || current.settings.quotes)
+        : (current.settings.quotes || []),
+      examDate: overwrite 
+        ? (imported.settings.examDate || current.settings.examDate)
+        : current.settings.examDate,
+      dailyTarget: overwrite 
+        ? (imported.settings.dailyTarget || current.settings.dailyTarget)
+        : current.settings.dailyTarget,
+    };
+
+    const result = {
+      sessions: Array.from(sessionMap.values()),
+      wrongQuestions: Array.from(wrongMap.values()),
+      examRecords: Array.from(examMap.values()),
+      notes: Array.from(notesMap.values()),
+      settings: mergedSettings,
+      config: current.config || imported.config
+    };
+
+    await storage.saveData(result);
   };
 
   const handleBackup = () => {
