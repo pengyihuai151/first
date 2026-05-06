@@ -178,16 +178,19 @@ export default function Dashboard({ data, onUpdate, onNavigate }: { data: AppDat
         const [shuffleKey, setShuffleKey] = React.useState(0);
         const todayReadIds = data.readingCheckIns?.[todayStr] || [];
 
-        // 展示列表：未读优先，支持随机打乱
+        // 展示列表：默认最新3条，点击换一批则随机3条（基于shuffleKey种子稳定）
         const shuffled = React.useMemo(() => {
           const list = [...essayNotes].sort((a, b) => b.updatedAt - a.updatedAt);
-          if (shuffleKey === 0) return list; // 默认按时间序
-          // Fisher-Yates 洗牌后取前3条
-          for (let i = list.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [list[i], list[j]] = [list[j], list[i]];
+          if (shuffleKey === 0) return list.slice(0, 3);
+          // 基于shuffleKey的伪随机打乱（同key每次结果一致）
+          const arr = [...list];
+          let seed = shuffleKey * 9973;
+          const rand = () => { seed = (seed * 1664525 + 1013904223) & 0x7fffffff; return (seed / 0x7fffffff); };
+          for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(rand() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
           }
-          return list.slice(0, 3);
+          return arr.slice(0, 3);
         }, [essayNotes, shuffleKey]);
 
         // 计算连续打卡天数
