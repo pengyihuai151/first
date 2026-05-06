@@ -6,6 +6,7 @@ import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { cn, formatDuration } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
+import QuotesManager from './QuotesManager';
 
 export default function SettingsPage({ data, onUpdate, onNavigate }: { data: AppData; onUpdate: () => void; onNavigate: (tab: any) => void }) {
   const config = data.config || {
@@ -52,6 +53,7 @@ export default function SettingsPage({ data, onUpdate, onNavigate }: { data: App
   const [isExporting, setIsExporting] = useState<boolean | string>(false);
   const [importModeModal, setImportModeModal] = useState<{ open: boolean; file: File | null }>({ open: false, file: null });
   const [alertModal, setAlertModal] = useState<{ open: boolean; message: string; onClose?: () => void }>({ open: false, message: '' });
+  const [showQuotesManager, setShowQuotesManager] = useState(false);
 
   const setExamDate = async (date: string) => {
     await storage.saveData({
@@ -616,7 +618,7 @@ export default function SettingsPage({ data, onUpdate, onNavigate }: { data: App
       {/* Quotes Management Link */}
       <section className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm">
         <button 
-          onClick={() => onNavigate('quotes')}
+          onClick={() => setShowQuotesManager(true)}
           className="w-full flex items-center justify-between group"
         >
           <div className="flex items-center gap-3">
@@ -884,6 +886,41 @@ export default function SettingsPage({ data, onUpdate, onNavigate }: { data: App
                 >
                   确定
                 </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* 语录管理弹窗 */}
+      <AnimatePresence>
+        {showQuotesManager && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setShowQuotesManager(false)} />
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white w-full max-w-sm rounded-3xl shadow-2xl relative z-10 overflow-hidden max-h-[80dvh] flex flex-col"
+            >
+              <div className="px-5 py-4 border-b border-slate-100 flex justify-between items-center shrink-0">
+                <div className="flex items-center gap-2 text-slate-700">
+                  <Quote size={18} />
+                  <h3 className="font-bold">语录池管理</h3>
+                </div>
+                <button onClick={() => setShowQuotesManager(false)} className="text-slate-400 hover:text-slate-600 p-1">
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto">
+                <QuotesManager
+                  data={data}
+                  onUpdate={() => {
+                    onUpdate();
+                    setShowQuotesManager(false);
+                  }}
+                  onBack={() => setShowQuotesManager(false)}
+                />
               </div>
             </motion.div>
           </div>
