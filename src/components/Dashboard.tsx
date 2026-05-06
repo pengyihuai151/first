@@ -182,12 +182,12 @@ export default function Dashboard({ data, onUpdate, onNavigate }: { data: AppDat
         const shuffled = React.useMemo(() => {
           const list = [...essayNotes].sort((a, b) => b.updatedAt - a.updatedAt);
           if (shuffleKey === 0) return list; // 默认按时间序
-          // Fisher-Yates 洗牌
+          // Fisher-Yates 洗牌后取前3条
           for (let i = list.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [list[i], list[j]] = [list[j], list[i]];
           }
-          return list;
+          return list.slice(0, 3);
         }, [essayNotes, shuffleKey]);
 
         // 计算连续打卡天数
@@ -233,7 +233,7 @@ export default function Dashboard({ data, onUpdate, onNavigate }: { data: AppDat
                 )}
               </div>
 
-              {shuffled.length > 0 ? (
+              {essayNotes.length > 0 ? (
                 <>
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-[11px] text-indigo-400/80">点击阅读，完成后「已读」打卡</p>
