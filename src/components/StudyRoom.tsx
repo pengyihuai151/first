@@ -37,19 +37,9 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
   useEffect(() => {
     const savedState = localStorage.getItem('studyTimerState');
     if (savedState) {
-      const { savedTime, savedModule, savedAt } = JSON.parse(savedState);
-      // 计算经过的时间
-      const elapsed = Date.now() - savedAt;
-      const totalTime = savedTime + elapsed;
-      
-      // 如果超过 4 小时，认为过期，清理
-      if (elapsed > 4 * 60 * 60 * 1000) {
-        localStorage.removeItem('studyTimerState');
-        return;
-      }
-      
-      timeRef.current = totalTime;
-      setTime(totalTime);
+      const { savedTime, savedModule } = JSON.parse(savedState);
+      timeRef.current = savedTime;
+      setTime(savedTime);
       setActiveModule(savedModule);
       setShowResume(true);
     }
@@ -91,11 +81,10 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
     };
   }, [isRunning, isPaused, data.settings.longStudyReminderEnabled, data.settings.longStudyReminderMinutes, data.sessions]);
 
-  // 页面隐藏时保存状态
+  // 组件卸载时保存状态（切换 Tab 时触发）
   useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.hidden && time > 1000) {
-        // 保存到 localStorage
+    return () => {
+      if (isRunning && time > 1000) {
         localStorage.setItem('studyTimerState', JSON.stringify({
           savedTime: time,
           savedModule: activeModule,
@@ -103,10 +92,7 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
         }));
       }
     };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [time, activeModule]);
+  }, [isRunning, time, activeModule]);
 
   const handleResume = () => {
     setShowResume(false);
@@ -176,7 +162,7 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
     if (time > 1000) {
       localStorage.setItem('studyTimerState', JSON.stringify({
         savedTime: time,
-        savedModule: module,
+        savedModule: activeModule,
         savedAt: Date.now()
       }));
     }
