@@ -1060,7 +1060,7 @@ export default function SettingsPage({ data, onUpdate, onNavigate }: { data: App
                 setEditingExam(null);
               }}
             />
-            <div className="absolute inset-0 flex items-end sm:items-center justify-center p-4 pb-6">
+            <div className="absolute inset-0 flex items-end sm:items-center justify-center p-4 pb-24">
               <motion.div
                 initial={{ y: '100%', opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
