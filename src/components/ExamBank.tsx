@@ -229,7 +229,7 @@ export default function ExamBank({
               <RecordCard key={record.id} record={record}
                 onDelete={() => deleteRecord(record.id)}
                 onEdit={() => { setEditingId(record.id); setNewExam(record); setIsAdding(true); }}
-                onViewWrong={() => {} /* TODO: 跳转错题 */ }
+                onViewWrong={() => { onNavigate?.('wrong', record.id); }}
               />
             ))
           : (
