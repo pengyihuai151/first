@@ -610,7 +610,14 @@ function ExamLiveMode({ onFinish, onClose }: { onFinish: (res: any) => void; onC
             <div className="grid grid-cols-3 gap-2">
                 {MAIN_MODULES.map(m => {
                   const hasSub = hasSubModules(m);
-                  const isActive = currentModule === m;
+                  let isActive: boolean;
+                  if (hasSub) {
+                    // 有子模块的大模块：active = 当前模块是这个大模块（不管有没有子模块）
+                    isActive = currentModule === m;
+                  } else {
+                    // 无子模块的大模块：active = 当前模块是它且没有子模块在计时
+                    isActive = currentModule === m && !currentSub;
+                  }
 
                   // 计算大模块的总时长
                   let totalTime: number;
@@ -627,10 +634,10 @@ function ExamLiveMode({ onFinish, onClose }: { onFinish: (res: any) => void; onC
                     <button key={m}
                         onClick={() => {
                           if (hasSub) {
-                            // 有子模块的大模块：锁定，必须选子模块
+                            // 有子模块的大模块：只弹出子模块选择器，不切换 activeTarget
                             setCurrentModule(m as StudyModule);
                             setShowSubSelector(true);
-                            setCurrentSub(null);
+                            // 不清空 currentSub，保持当前正在计时的子模块继续
                           } else {
                             // 无子模块的大模块：直接计时
                             setCurrentModule(m as StudyModule);
