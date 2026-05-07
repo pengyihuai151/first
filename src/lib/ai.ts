@@ -85,12 +85,12 @@ function buildUserProfilePrompt(data: {
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
   const todayTime = sessions
-    .filter((s: any) => s.createdAt >= todayStart)
+    .filter((s: any) => s.startTime >= todayStart)
     .reduce((acc: number, s: any) => acc + s.duration, 0);
   
   const weekStart = todayStart - 7 * 24 * 60 * 60 * 1000;
   const weekTime = sessions
-    .filter((s: any) => s.createdAt >= weekStart)
+    .filter((s: any) => s.startTime >= weekStart)
     .reduce((acc: number, s: any) => acc + s.duration, 0);
   
   const totalTime = sessions.reduce((acc: number, s: any) => acc + s.duration, 0);
@@ -105,7 +105,7 @@ function buildUserProfilePrompt(data: {
   const topReasons = Object.entries(reasonStats).sort((a, b) => b[1] - a[1]).slice(0, 5);
   
   // 学习天数
-  const studyDays = new Set(sessions.map((s: any) => new Date(s.createdAt).toDateString())).size;
+  const studyDays = new Set(sessions.map((s: any) => new Date(s.startTime).toDateString())).size;
   
   return `【学习数据】
 
@@ -169,7 +169,7 @@ ${recentExams.length > 0 ? recentExams.map((r: any, i: number) => {
     (ms.subScores || []).forEach((ss: any) => {
       const subPct = ss.totalCount > 0 ? parseFloat(((ss.correctCount / ss.totalCount) * 100).toFixed(1)) : 0;
       const subTime = ss.duration ? Math.round(ss.duration / 60000) : 0;
-      subDetails.push(`    - ${ss.subModuleId}：${ss.correctCount}/${ss.totalCount}（${subPct}%），用时${subTime}分钟`);
+      subDetails.push(`    - ${ss.subTopic}：${ss.correctCount}/${ss.totalCount}（${subPct}%），用时${subTime}分钟`);
     });
   });
   
@@ -188,8 +188,8 @@ ${(() => {
   const oneWeekAgo = now - 7 * 24 * 60 * 60 * 1000;
   const twoWeeksAgo = now - 14 * 24 * 60 * 60 * 1000;
   
-  const lastWeekSessions = sessions.filter((s: any) => s.date > oneWeekAgo);
-  const prevWeekSessions = sessions.filter((s: any) => s.date > twoWeeksAgo && s.date <= oneWeekAgo);
+  const lastWeekSessions = sessions.filter((s: any) => s.startTime > oneWeekAgo);
+  const prevWeekSessions = sessions.filter((s: any) => s.startTime > twoWeeksAgo && s.startTime <= oneWeekAgo);
   
   const lastWeekTime = lastWeekSessions.reduce((acc: number, s: any) => acc + s.duration, 0);
   const prevWeekTime = prevWeekSessions.reduce((acc: number, s: any) => acc + s.duration, 0);
