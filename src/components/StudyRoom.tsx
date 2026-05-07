@@ -52,10 +52,10 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
         timeRef.current = newTime;
         setTime(newTime);
         
-        // 久学提醒检测
+        // 久学提醒检测：仅当前计时时间
         if (data.settings.studyReminderEnabled && !hasRemindedRef.current) {
           const reminderMs = (data.settings.studyReminderMinutes || 45) * 60 * 1000;
-          if (newTime >= reminderMs) {
+          if (timeRef.current >= reminderMs) {
             setShowReminder(true);
             hasRemindedRef.current = true;
           }
@@ -221,21 +221,6 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
             {isRunning ? '正在计时...' : '准备就绪'}
           </span>
         </div>
-
-        {/* 重置提醒按钮 */}
-        {isRunning && hasRemindedRef.current && (
-          <button
-            onClick={() => {
-              hasRemindedRef.current = false;
-              setTime(0);
-              timeRef.current = 0;
-              startTimeRef.current = Date.now();
-            }}
-            className="px-4 py-2 bg-amber-50 text-amber-700 rounded-xl text-xs font-bold border border-amber-100 flex items-center gap-1"
-          >
-            <Bell size={12} /> 重置提醒计时器
-          </button>
-        )}
 
         <div className="flex gap-4">
           {!isRunning ? (
