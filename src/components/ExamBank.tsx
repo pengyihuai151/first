@@ -778,6 +778,7 @@ function RecordCard({
   const accuracy = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
   const totalTime = record.moduleScores.reduce((sum, ms) => sum + ms.duration, 0);
   const [expanded, setExpanded] = useState(false);
+  const [expandedSubModules, setExpandedSubModules] = useState<Record<string, boolean>>({});
 
   return (
     <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden transition-all">
@@ -816,10 +817,10 @@ function RecordCard({
               {record.moduleScores.map(ms => {
                 const modAcc = ms.totalCount > 0 ? Math.round((ms.correctCount / ms.totalCount) * 100) : 0;
                 const subs = getSubTopics(ms.moduleId);
-                const [showSubs, setShowSubs] = useState(false);
+                const showSubs = expandedSubModules[ms.moduleId] || false;
                 return (
                   <div key={ms.moduleId}>
-                    <div className="flex items-center justify-between bg-white px-3 py-2.5 rounded-2xl border border-slate-100/50 cursor-pointer" onClick={() => setShowSubs(!showSubs)}>
+                    <div className="flex items-center justify-between bg-white px-3 py-2.5 rounded-2xl border border-slate-100/50 cursor-pointer" onClick={() => setExpandedSubModules(prev => ({ ...prev, [ms.moduleId]: !prev[ms.moduleId] }))}>
                       <div>
                         <div className="text-[10px] font-bold text-slate-700">{ms.moduleId}</div>
                         <div className="text-[9px] text-slate-400 mt-0.5">耗时: {formatTimeWithSeconds(ms.duration)} | 正确: {ms.correctCount}/{ms.totalCount}</div>
