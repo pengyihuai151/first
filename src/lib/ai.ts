@@ -156,7 +156,23 @@ ${recentExams.length > 0 ? recentExams.map((r: any, i: number) => {
   const totalCount = (r.moduleScores || []).reduce((s: number, ms: any) => s + (ms.totalCount || 0), 0);
   const pct = totalCount > 0 ? Math.round(totalCorrect / totalCount * 100) : 0;
   const refl = r.reflection ? `\n  反思：${r.reflection}` : '';
-  return `• 第${recentExams.length - i}次：${totalCorrect}/${totalCount}（${pct}%）${refl}`;
+  
+  // 子模块详情
+  const subDetails: string[] = [];
+  (r.moduleScores || []).forEach((ms: any) => {
+    const modPct = ms.totalCount > 0 ? Math.round(ms.correctCount / ms.totalCount * 100) : 0;
+    const modTime = ms.duration ? Math.round(ms.duration / 60000) : 0;
+    subDetails.push(`  ${ms.moduleId}：${ms.correctCount}/${ms.totalCount}（${modPct}%），用时${modTime}分钟`);
+    
+    // 子模块详情
+    (ms.subScores || []).forEach((ss: any) => {
+      const subPct = ss.totalCount > 0 ? Math.round(ss.correctCount / ss.totalCount * 100) : 0;
+      const subTime = ss.duration ? Math.round(ss.duration / 60000) : 0;
+      subDetails.push(`    - ${ss.subModuleId}：${ss.correctCount}/${ss.totalCount}（${subPct}%），用时${subTime}分钟`);
+    });
+  });
+  
+  return `• 第${recentExams.length - i}次：${totalCorrect}/${totalCount}（${pct}%）${refl}${subDetails.length > 0 ? '\n' + subDetails.join('\n') : ''}`;
 }).join('\n') : '- 暂无模考记录'}
 
 ⏱️ 学习时长：
