@@ -227,9 +227,7 @@ ${(() => {
 ${upcomingExams.length > 1 ? `- 共 ${upcomingExams.length} 场目标考试` : ''}`;
 })()}
 
-📚 笔记数量：${noteCount} 篇
-
-🎯 每日目标：${settings?.dailyTarget || 30} 分钟`;
+📚 笔记数量：${noteCount} 篇`;
 }
 
 // 过滤重复词
