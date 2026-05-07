@@ -59,12 +59,13 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
         setTime(newTime);
         
         // 久学提醒检测：累计今天已保存 + 当前计时
-        if (data.settings.longStudyReminderEnabled && !hasRemindedRef.current) {
+        if (data.settings.studyReminderEnabled && !hasRemindedRef.current) {
           const todaySaved = getTodaySavedDuration();
-          const reminderMs = (data.settings.longStudyReminderMinutes || 45) * 60 * 1000;
+          const reminderMs = (data.settings.studyReminderMinutes || 45) * 60 * 1000;
           if (todaySaved + timeRef.current >= reminderMs) {
             setShowReminder(true);
             hasRemindedRef.current = true;
+            setIsPaused(true); // 弹出提醒时自动暂停
           }
         }
       }, 100);
@@ -79,7 +80,7 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [isRunning, isPaused, data.settings.longStudyReminderEnabled, data.settings.longStudyReminderMinutes, data.sessions]);
+  }, [isRunning, isPaused, data.settings.studyReminderEnabled, data.settings.studyReminderMinutes, data.sessions]);
 
   // 组件卸载时保存状态（切换 Tab 时触发）
   useEffect(() => {
