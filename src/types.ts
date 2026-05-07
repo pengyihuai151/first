@@ -5,6 +5,7 @@ export enum StudyModule {
   QUANT = '数量关系',
   COMMON_SENSE = '常识判断',
   POLITICS = '政治',
+  ESSAY = '申论',
 }
 
 /**
