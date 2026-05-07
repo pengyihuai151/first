@@ -1,8 +1,8 @@
 import React from 'react';
-import { AppData, MAIN_MODULES, StudyModule, ExamNote } from '../types';
+import { AppData, MAIN_MODULES, StudyModule, ExamNote, TargetExam } from '../types';
 import { cn, formatTimeFriendly } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
-import { Trophy, Clock, AlertTriangle, Calendar, RotateCw, ChevronRight, BarChart3, BookOpen, CheckCircle2, Flame, Eye, X, Edit2, Trash2, Zap } from 'lucide-react';
+import { Trophy, Clock, AlertTriangle, Calendar, RotateCw, ChevronRight, BarChart3, BookOpen, CheckCircle2, Flame, Eye, X, Edit2, Trash2, Zap, ChevronDown } from 'lucide-react';
 import { startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
 import { storage } from '../lib/storage';
 
@@ -12,6 +12,10 @@ export default function Dashboard({ data, onUpdate, onNavigate }: { data: AppDat
 
   const [isEditingQuote, setIsEditingQuote] = React.useState(false);
   const [editQuoteValue, setEditQuoteValue] = React.useState('');
+  const [showExamSelector, setShowExamSelector] = React.useState(false);
+  const [selectedExamId, setSelectedExamId] = React.useState<string | null>(() => {
+    return localStorage.getItem('dashboard_selected_exam_id');
+  });
 
   const quotes = data.settings.quotes || [];
   const dailyIndex = Math.floor(new Date(todayStr).getTime() / 86400000) % (quotes.length || 1);
@@ -82,20 +86,36 @@ export default function Dashboard({ data, onUpdate, onNavigate }: { data: AppDat
 
   const [timeLeft, setTimeLeft] = React.useState<{ days: number; hours: number; minutes: number; seconds: number } | null>(null);
 
-  // 获取最近的一场目标考试
-  const nearestExam = React.useMemo(() => {
+  // 获取未来的目标考试列表
+  const futureExams = React.useMemo(() => {
     const exams = data.targetExams || [];
     const now = Date.now();
-    const futureExams = exams
+    return exams
       .filter(e => new Date(e.date).getTime() >= now)
       .sort((a, b) => a.date.localeCompare(b.date));
-    return futureExams.length > 0 ? futureExams[0] : null;
   }, [data.targetExams]);
 
+  // 获取用户选中的考试，如果没选就默认最近的
+  const selectedExam = React.useMemo(() => {
+    if (futureExams.length === 0) return null;
+    if (selectedExamId) {
+      const found = futureExams.find(e => e.id === selectedExamId);
+      if (found) return found;
+    }
+    return futureExams[0];
+  }, [futureExams, selectedExamId]);
+
+  // 保存用户选择的考试到 localStorage
+  const handleSelectExam = (exam: TargetExam) => {
+    setSelectedExamId(exam.id);
+    localStorage.setItem('dashboard_selected_exam_id', exam.id);
+    setShowExamSelector(false);
+  };
+
   React.useEffect(() => {
-    if (!nearestExam) { setTimeLeft(null); return; }
+    if (!selectedExam) { setTimeLeft(null); return; }
     const calculateTimeLeft = () => {
-      const distance = new Date(nearestExam.date).getTime() - Date.now();
+      const distance = new Date(selectedExam.date).getTime() - Date.now();
       if (distance < 0) { setTimeLeft(null); return false; }
       setTimeLeft({
         days: Math.floor(distance / (1000 * 60 * 60 * 24)),
@@ -108,7 +128,7 @@ export default function Dashboard({ data, onUpdate, onNavigate }: { data: AppDat
     calculateTimeLeft();
     const timer = setInterval(() => { if (!calculateTimeLeft()) clearInterval(timer); }, 1000);
     return () => clearInterval(timer);
-  }, [nearestExam]);
+  }, [selectedExam]);
 
   const unMasteredWrong = data.wrongQuestions.filter(q => !q.mastered).length;
 
@@ -144,12 +164,47 @@ export default function Dashboard({ data, onUpdate, onNavigate }: { data: AppDat
       </div>
 
       {/* 倒计时 */}
-      {nearestExam && (
+      {selectedExam && (
         <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 overflow-hidden relative">
           <div className="absolute top-0 right-0 p-3 opacity-5"><Calendar size={64} /></div>
-          <h3 className="text-xs font-bold text-slate-400 uppercase mb-4 flex items-center gap-2">
-            <Calendar size={14} className="text-indigo-500" /> {nearestExam.name} 倒计时
-          </h3>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xs font-bold text-slate-400 uppercase flex items-center gap-2">
+              <Calendar size={14} className="text-indigo-500" /> 倒计时
+            </h3>
+            {futureExams.length > 1 && (
+              <div className="relative">
+                <button 
+                  onClick={() => setShowExamSelector(!showExamSelector)}
+                  className="text-[10px] text-indigo-600 font-medium flex items-center gap-1 bg-indigo-50 px-2 py-1 rounded-full hover:bg-indigo-100 transition-colors"
+                >
+                  {selectedExam.name} <ChevronDown size={10} className={showExamSelector ? 'rotate-180' : ''} />
+                </button>
+                <AnimatePresence>
+                  {showExamSelector && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: -5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -5 }}
+                      className="absolute right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg py-1 z-50 min-w-[140px]"
+                    >
+                      {futureExams.map(exam => (
+                        <button
+                          key={exam.id}
+                          onClick={() => handleSelectExam(exam)}
+                          className={`w-full text-left px-3 py-1.5 text-[11px] hover:bg-slate-50 transition-colors ${exam.id === selectedExam.id ? 'text-indigo-600 bg-indigo-50' : 'text-slate-700'}`}
+                        >
+                          {exam.name}
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
+          </div>
+          {!showExamSelector && futureExams.length === 1 && (
+            <div className="text-xs text-indigo-600 font-medium mb-3">{selectedExam.name}</div>
+          )}
           {timeLeft ? (
             <div className="flex justify-between items-center gap-2">
               <TimeUnit value={timeLeft.days} label="天" color="text-indigo-600" />
