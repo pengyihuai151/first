@@ -539,6 +539,7 @@ export default function Dashboard({ data, onUpdate, onNavigate }: { data: AppDat
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 divide-y divide-slate-50">
           {[...MAIN_MODULES, StudyModule.ESSAY].map((module) => {
             const moduleMs = data.sessions.filter(s => s.moduleId === module).reduce((acc, s) => acc + s.duration, 0);
+            const todayModuleMs = todaySessions.filter(s => s.moduleId === module).reduce((acc, s) => acc + s.duration, 0);
             const moduleWrongCount = data.wrongQuestions.filter(q => q.moduleId === module).length;
             const progress = totalAllMs > 0 ? (moduleMs / totalAllMs) * 100 : 0;
 
@@ -549,6 +550,9 @@ export default function Dashboard({ data, onUpdate, onNavigate }: { data: AppDat
                     <span className="text-sm font-medium text-slate-700">{module}</span>
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">累计 {formatTimeFriendly(moduleMs)}</span>
+                      {todayModuleMs > 0 && (
+                        <span className="text-[10px] bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded">今日 {formatTimeFriendly(todayModuleMs)}</span>
+                      )}
                       <span className="text-[10px] bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded flex items-center gap-0.5">
                         <AlertTriangle size={10} /> 错题 {moduleWrongCount}
                       </span>
