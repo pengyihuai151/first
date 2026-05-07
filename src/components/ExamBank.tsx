@@ -129,16 +129,27 @@ export default function ExamBank({
   const updateSubScore = (moduleId: StudyModule, subTopic: string, field: keyof ExamSubScore, value: number) => {
     setNewExam(prev => ({
       ...prev,
-      moduleScores: prev.moduleScores?.map(ms =>
-        ms.moduleId === moduleId
-          ? {
-              ...ms,
-              subScores: (ms.subScores || []).map(sub =>
-                sub.subTopic === subTopic ? { ...sub, [field]: value } : sub
-              )
-            }
-          : ms
-      )
+      moduleScores: prev.moduleScores?.map(ms => {
+        if (ms.moduleId !== moduleId) return ms;
+
+        // 更新子模块
+        const newSubScores = (ms.subScores || []).map(sub =>
+          sub.subTopic === subTopic ? { ...sub, [field]: value } : sub
+        );
+
+        // 计算一级模块的新值
+        const newCorrectCount = newSubScores.reduce((s, sub) => s + sub.correctCount, 0);
+        const newTotalCount = newSubScores.reduce((s, sub) => s + sub.totalCount, 0);
+        const newDuration = newSubScores.reduce((s, sub) => s + sub.duration, 0);
+
+        return {
+          ...ms,
+          subScores: newSubScores,
+          correctCount: newCorrectCount,
+          totalCount: newTotalCount,
+          duration: newDuration
+        };
+      })
     }));
   };
 
