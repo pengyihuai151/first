@@ -490,7 +490,7 @@ export default function Dashboard({ data, onUpdate, onNavigate }: { data: AppDat
 
         const totalCorrect = lastExam.moduleScores.reduce((sum, ms) => sum + ms.correctCount, 0);
         const totalQuestions = lastExam.moduleScores.reduce((sum, ms) => sum + ms.totalCount, 0);
-        const accuracy = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
+        const accuracy = totalQuestions > 0 ? parseFloat(((totalCorrect / totalQuestions) * 100).toFixed(1)) : 0;
 
         return (
           <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 space-y-3">

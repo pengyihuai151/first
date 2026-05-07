@@ -39,10 +39,10 @@ export default function AnalysisPage({ data, onUpdate, onNavigate }: { data: App
     return {
       moduleId: m,
       examCount: scores.length,
-      avgAccuracy: Math.round(avgAcc * 100),
-      trend: Math.round(trend * 100),
+      avgAccuracy: parseFloat((avgAcc * 100).toFixed(1)),
+      trend: parseFloat((trend * 100).toFixed(1)),
       lastAcc: scores.length > 0
-        ? Math.round(scores[scores.length - 1].correctCount / scores[scores.length - 1].totalCount * 100)
+        ? parseFloat((scores[scores.length - 1].correctCount / scores[scores.length - 1].totalCount * 100).toFixed(1))
         : null,
       avgDuration: scores.length > 0
         ? Math.round(scores.reduce((acc, s) => acc + s.duration, 0) / scores.length / 60000)
@@ -64,7 +64,7 @@ export default function AnalysisPage({ data, onUpdate, onNavigate }: { data: App
     return {
       moduleId: m,
       examCount: scores.length,
-      avgAccuracy: Math.round(avgAcc * 100)
+      avgAccuracy: parseFloat((avgAcc * 100).toFixed(1))
     };
   });
 
@@ -95,7 +95,7 @@ export default function AnalysisPage({ data, onUpdate, onNavigate }: { data: App
       moduleId: m,
       total: questions.length,
       mastered,
-      rate: questions.length > 0 ? Math.round(mastered / questions.length * 100) : 0,
+      rate: questions.length > 0 ? parseFloat((mastered / questions.length * 100).toFixed(1)) : 0,
       topTags,
       topReasons
     };

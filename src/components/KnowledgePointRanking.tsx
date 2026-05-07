@@ -82,7 +82,7 @@ export default function KnowledgePointRanking({ data, onBack }: KnowledgePointRa
     })).sort((a, b) => b.total - a.total);
 
     if (modCounts[0]?.total > 0) {
-      result.push(`重点突破「${modCounts[0].mod}」，该模块累计 ${modCounts[0].total} 道错题，占总错题 ${(modCounts[0].total / Math.max(wrongQuestions.length, 1) * 100).toFixed(0)}%`);
+      result.push(`重点突破「${modCounts[0].mod}」，该模块累计 ${modCounts[0].total} 道错题，占总错题 ${(modCounts[0].total / Math.max(wrongQuestions.length, 1) * 100).toFixed(1)}%`);
     }
 
     // 2. 找出最高频的知识点
@@ -136,7 +136,7 @@ export default function KnowledgePointRanking({ data, onBack }: KnowledgePointRa
       return {
         module: mod,
         totalWrong: points.reduce((s, p) => s + p.count, 0),
-        topPoints: points.slice(0, 5).map(p => ({ name: p.point, count: p.count, rate: Math.round(p.masteredCount / p.count * 100) }))
+        topPoints: points.slice(0, 5).map(p => ({ name: p.point, count: p.count, rate: parseFloat((p.masteredCount / p.count * 100).toFixed(1)) }))
       };
     });
     return { modules, top10Global: top10Points.map(p => ({ name: p.point, module: p.moduleId, count: p.count })) };
@@ -229,7 +229,7 @@ export default function KnowledgePointRanking({ data, onBack }: KnowledgePointRa
                 {top10Points.map((item, idx) => {
                   const maxCount = top10Points[0].count;
                   const barPct = Math.round(item.count / maxCount * 100);
-                  const masteryRate = item.count > 0 ? Math.round(item.masteredCount / item.count * 100) : 0;
+                  const masteryRate = item.count > 0 ? parseFloat((item.masteredCount / item.count * 100).toFixed(1)) : 0;
 
                   return (
                     <motion.div
@@ -304,7 +304,7 @@ export default function KnowledgePointRanking({ data, onBack }: KnowledgePointRa
 
                   <div className="divide-y divide-slate-50">
                     {points.map((item, idx) => {
-                      const masteryRate = item.count > 0 ? Math.round(item.masteredCount / item.count * 100) : 0;
+                      const masteryRate = item.count > 0 ? parseFloat((item.masteredCount / item.count * 100).toFixed(1)) : 0;
                       const topReasons = Object.entries(item.errorReasons).sort((a, b) => b[1] - a[1]).slice(0, 2);
 
                       return (

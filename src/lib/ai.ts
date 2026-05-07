@@ -62,7 +62,7 @@ function buildUserProfilePrompt(data: {
       name: mod,
       total: modQuestions.length,
       mastered,
-      rate: modQuestions.length > 0 ? Math.round(mastered / modQuestions.length * 100) : 0,
+      rate: modQuestions.length > 0 ? parseFloat((mastered / modQuestions.length * 100).toFixed(1)) : 0,
       topTags
     };
   }).filter(m => m.total > 0);
@@ -79,7 +79,7 @@ function buildUserProfilePrompt(data: {
       }
     });
   });
-  const avgScore = totalQuestions > 0 ? Math.round(totalCorrect / totalQuestions * 100) : null;
+  const avgScore = totalQuestions > 0 ? parseFloat((totalCorrect / totalQuestions * 100).toFixed(1)) : null;
   
   // 学习时长
   const now = new Date();
@@ -155,19 +155,19 @@ ${(() => {
 ${recentExams.length > 0 ? recentExams.map((r: any, i: number) => {
   const totalCorrect = (r.moduleScores || []).reduce((s: number, ms: any) => s + (ms.correctCount || 0), 0);
   const totalCount = (r.moduleScores || []).reduce((s: number, ms: any) => s + (ms.totalCount || 0), 0);
-  const pct = totalCount > 0 ? Math.round(totalCorrect / totalCount * 100) : 0;
+  const pct = totalCount > 0 ? parseFloat(((totalCorrect / totalCount) * 100).toFixed(1)) : 0;
   const refl = r.reflection ? `\n  反思：${r.reflection}` : '';
   
   // 子模块详情
   const subDetails: string[] = [];
   (r.moduleScores || []).forEach((ms: any) => {
-    const modPct = ms.totalCount > 0 ? Math.round(ms.correctCount / ms.totalCount * 100) : 0;
+    const modPct = ms.totalCount > 0 ? parseFloat(((ms.correctCount / ms.totalCount) * 100).toFixed(1)) : 0;
     const modTime = ms.duration ? Math.round(ms.duration / 60000) : 0;
     subDetails.push(`  ${ms.moduleId}：${ms.correctCount}/${ms.totalCount}（${modPct}%），用时${modTime}分钟`);
     
     // 子模块详情
     (ms.subScores || []).forEach((ss: any) => {
-      const subPct = ss.totalCount > 0 ? Math.round(ss.correctCount / ss.totalCount * 100) : 0;
+      const subPct = ss.totalCount > 0 ? parseFloat(((ss.correctCount / ss.totalCount) * 100).toFixed(1)) : 0;
       const subTime = ss.duration ? Math.round(ss.duration / 60000) : 0;
       subDetails.push(`    - ${ss.subModuleId}：${ss.correctCount}/${ss.totalCount}（${subPct}%），用时${subTime}分钟`);
     });

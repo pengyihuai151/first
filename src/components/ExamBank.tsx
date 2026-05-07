@@ -796,7 +796,7 @@ function RecordCard({
 }) {
   const totalCorrect = record.moduleScores.reduce((sum, ms) => sum + ms.correctCount, 0);
   const totalQuestions = record.moduleScores.reduce((sum, ms) => sum + ms.totalCount, 0);
-  const accuracy = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
+  const accuracy = totalQuestions > 0 ? parseFloat(((totalCorrect / totalQuestions) * 100).toFixed(1)) : 0;
   const totalTime = record.moduleScores.reduce((sum, ms) => sum + ms.duration, 0);
   const [expanded, setExpanded] = useState(false);
   const [expandedSubModules, setExpandedSubModules] = useState<Record<string, boolean>>({});
@@ -834,7 +834,7 @@ function RecordCard({
 
           {/* 各模块列表（带子模块展开） */}
           {record.moduleScores.map((ms, index) => {
-            const modAcc = ms.totalCount > 0 ? Math.round((ms.correctCount / ms.totalCount) * 100) : 0;
+            const modAcc = ms.totalCount > 0 ? parseFloat(((ms.correctCount / ms.totalCount) * 100).toFixed(1)) : 0;
             const subs = getSubTopics(ms.moduleId);
             const showSubs = expandedSubModules[ms.moduleId] || false;
             return (
@@ -856,7 +856,7 @@ function RecordCard({
                 {showSubs && ms.subScores && ms.subScores.length > 0 && (
                   <div className="pl-4 pr-2 py-2 space-y-1.5">
                     {ms.subScores.map(sub => {
-                      const subAcc = sub.totalCount > 0 ? Math.round((sub.correctCount / sub.totalCount) * 100) : 0;
+                      const subAcc = sub.totalCount > 0 ? parseFloat(((sub.correctCount / sub.totalCount) * 100).toFixed(1)) : 0;
                       return (
                         <div key={sub.subTopic} className="flex items-center justify-between bg-white/80 px-3 py-1.5 rounded-xl border border-slate-100/30">
                           <span className="text-[10px] text-slate-600">{sub.subTopic}</span>
