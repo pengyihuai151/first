@@ -811,13 +811,6 @@ function RecordCard({
               日期：{new Date(record.date).toLocaleDateString()}
             </div>
           </div>
-
-          {/* 录入错题按钮 */}
-          {onNavigate && (
-            <button onClick={() => onNavigate(record.id, 'examId')}>
-              录入这场考试的错题
-            </button>
-          )}
         </div>
       )}
     </div>
