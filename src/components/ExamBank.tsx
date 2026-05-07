@@ -811,6 +811,22 @@ function RecordCard({
               日期：{new Date(record.date).toLocaleDateString()}
             </div>
           </div>
+
+          {/* 各模块列表 */}
+          {record.moduleScores.map((ms, index) => {
+            const modAcc = ms.totalCount > 0 ? Math.round((ms.correctCount / ms.totalCount) * 100) : 0;
+            return (
+              <div key={index} className="bg-white px-3 py-2.5 rounded-2xl border border-slate-100/50">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-[10px] font-bold text-slate-700">{ms.moduleId}</div>
+                    <div className="text-[9px] text-slate-400 mt-0.5">耗时: {formatTimeWithSeconds(ms.duration)} | 正确: {ms.correctCount}/{ms.totalCount}</div>
+                  </div>
+                  <div className={cn("text-xs font-bold", modAcc >= 80 ? "text-emerald-500" : modAcc >= 60 ? "text-amber-500" : "text-rose-500")}>{modAcc}%</div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
