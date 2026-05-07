@@ -812,18 +812,44 @@ function RecordCard({
             </div>
           </div>
 
-          {/* 各模块列表 */}
+          {/* 各模块列表（带子模块展开） */}
           {record.moduleScores.map((ms, index) => {
             const modAcc = ms.totalCount > 0 ? Math.round((ms.correctCount / ms.totalCount) * 100) : 0;
+            const subs = getSubTopics(ms.moduleId);
+            const showSubs = expandedSubModules[ms.moduleId] || false;
             return (
-              <div key={index} className="bg-white px-3 py-2.5 rounded-2xl border border-slate-100/50">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-[10px] font-bold text-slate-700">{ms.moduleId}</div>
-                    <div className="text-[9px] text-slate-400 mt-0.5">耗时: {formatTimeWithSeconds(ms.duration)} | 正确: {ms.correctCount}/{ms.totalCount}</div>
+              <div key={index}>
+                <div className="bg-white px-3 py-2.5 rounded-2xl border border-slate-100/50 cursor-pointer" onClick={() => subs.length > 0 && setExpandedSubModules(prev => ({ ...prev, [ms.moduleId]: !prev[ms.moduleId] }))}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-[10px] font-bold text-slate-700">{ms.moduleId}</div>
+                      <div className="text-[9px] text-slate-400 mt-0.5">耗时: {formatTimeWithSeconds(ms.duration)} | 正确: {ms.correctCount}/{ms.totalCount}</div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className={cn("text-xs font-bold", modAcc >= 80 ? "text-emerald-500" : modAcc >= 60 ? "text-amber-500" : "text-rose-500")}>{modAcc}%</div>
+                      {subs.length > 0 && <ChevronDown size={12} className={cn("text-slate-300 transition-transform", showSubs && "rotate-180")} />}
+                    </div>
                   </div>
-                  <div className={cn("text-xs font-bold", modAcc >= 80 ? "text-emerald-500" : modAcc >= 60 ? "text-amber-500" : "text-rose-500")}>{modAcc}%</div>
                 </div>
+
+                {/* 子模块详情 */}
+                {showSubs && ms.subScores && ms.subScores.length > 0 && (
+                  <div className="pl-4 pr-2 py-2 space-y-1.5">
+                    {ms.subScores.map(sub => {
+                      const subAcc = sub.totalCount > 0 ? Math.round((sub.correctCount / sub.totalCount) * 100) : 0;
+                      return (
+                        <div key={sub.subTopic} className="flex items-center justify-between bg-white/80 px-3 py-1.5 rounded-xl border border-slate-100/30">
+                          <span className="text-[10px] text-slate-600">{sub.subTopic}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[9px] text-slate-400">{formatTimeWithSeconds(sub.duration)}</span>
+                            <span className={cn("text-[10px] font-bold", subAcc >= 80 ? "text-emerald-500" : subAcc >= 60 ? "text-amber-500" : "text-rose-500")}>{subAcc}%</span>
+                            <span className="text-[9px] text-slate-400">{sub.correctCount}/{sub.totalCount}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             );
           })}
