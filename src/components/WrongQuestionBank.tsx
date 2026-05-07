@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AppData, StudyModule, MAIN_MODULES, MODULE_SUB_TOPICS, WrongQuestion } from '../types';
 import { storage } from '../lib/storage';
-import { Plus, Search, Filter, X, Trash2, Edit2, Check, BookOpen, Tag, RotateCcw } from 'lucide-react';
+import { Plus, Search, Filter, X, Trash2, Edit2, Check, BookOpen, Tag, RotateCcw, ArrowLeft } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -13,7 +13,17 @@ const ERROR_REASONS = [
   '陷阱踩坑', '知识点遗忘'
 ];
 
-export default function WrongQuestionBank({ data, onUpdate }: { data: AppData; onUpdate: () => void }) {
+export default function WrongQuestionBank({
+  data,
+  onUpdate,
+  examId,
+  onBack
+}: {
+  data: AppData;
+  onUpdate: () => void;
+  examId?: string;
+  onBack?: () => void;
+}) {
   const config = data.config || {
     essayTypes: ['金句', '文章结构', '首尾段'],
     essayTags: ['政治', '社会', '生态', '文化', '经济'],
@@ -97,6 +107,7 @@ export default function WrongQuestionBank({ data, onUpdate }: { data: AppData; o
           analysis: newQuestion.analysis || '',
           tags: newQuestion.tags || [],
           errorReason: newQuestion.errorReason || '',
+          examId: examId || null,
           createdAt: Date.now()
         });
         
@@ -142,6 +153,7 @@ export default function WrongQuestionBank({ data, onUpdate }: { data: AppData; o
   };
 
   const filteredQuestions = data.wrongQuestions
+    .filter(q => !examId || q.examId === examId)
     .filter(q => filter === '全部' || q.moduleId === filter)
     .filter(q => masteredFilter === '全部' || (masteredFilter === '已掌握' ? q.mastered : !q.mastered))
     .filter(q => tagFilter === '全部' || tagFilter === '全部知识点' || q.tags?.includes(tagFilter))
@@ -153,9 +165,16 @@ export default function WrongQuestionBank({ data, onUpdate }: { data: AppData; o
       {/* Sticky Header Section */}
       <div className="sticky top-0 z-40 bg-slate-50 pt-2 -mx-4 px-4 pb-4 space-y-4">
         <header className="flex justify-between items-end">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-800">错题复盘</h1>
-            <p className="text-sm text-slate-500">温故而知新，攻克薄弱环节。</p>
+          <div className="flex items-center gap-3">
+            {examId && onBack && (
+              <button onClick={onBack} className="p-1 hover:bg-slate-200 rounded-lg transition-colors">
+                <ArrowLeft size={20} />
+              </button>
+            )}
+            <div>
+              <h1 className="text-2xl font-bold text-slate-800">{examId ? '本场错题' : '错题录入'}</h1>
+              <p className="text-sm text-slate-500">{examId ? '记录这场考试的错题' : '快速录入，精准复盘。'}</p>
+            </div>
           </div>
           <button 
             onClick={() => {
