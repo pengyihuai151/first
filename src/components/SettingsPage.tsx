@@ -802,15 +802,15 @@ export default function SettingsPage({ data, onUpdate, onNavigate }: { data: App
               </div>
               <input
                 type="range"
-                min="15"
+                min="1"
                 max="120"
-                step="5"
-                value={data.settings.studyReminderMinutes || 45}
+                step="1"
+                value={data.settings.studyReminderMinutes || 1}
                 onChange={(e) => updateSettings({ studyReminderMinutes: parseInt(e.target.value) })}
                 className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-500"
               />
               <div className="flex justify-between text-[10px] text-slate-400">
-                <span>15 分钟</span>
+                <span>1 分钟</span>
                 <span>120 分钟</span>
               </div>
             </div>
