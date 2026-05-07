@@ -805,65 +805,19 @@ function RecordCard({
         {expanded && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden bg-slate-50/50 border-t border-slate-50">
             <div className="p-4 space-y-3">
+              {/* 测试用：简单显示一段文字 */}
+              <div className="bg-white p-4 rounded-2xl border border-slate-100">
+                <div className="text-sm font-bold text-slate-800">考试详情</div>
+                <div className="text-xs text-slate-500 mt-1">考试名称：{record.title}</div>
+                <div className="text-xs text-slate-500">模块数：{record.moduleScores.length}</div>
+              </div>
+
               {/* 反思区域 */}
               {record.reflection && (
                 <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-3">
                   <div className="text-[10px] font-bold text-yellow-700 mb-1">📝 考试反思</div>
                   <div className="text-xs text-yellow-900 whitespace-pre-wrap leading-relaxed">{record.reflection}</div>
                 </div>
-              )}
-
-              {/* 各模块详情（可展开子模块） */}
-              {record.moduleScores.map(ms => {
-                const modAcc = ms.totalCount > 0 ? Math.round((ms.correctCount / ms.totalCount) * 100) : 0;
-                const subs = getSubTopics(ms.moduleId);
-                const showSubs = expandedSubModules[ms.moduleId] || false;
-                return (
-                  <div key={ms.moduleId}>
-                    <div className="flex items-center justify-between bg-white px-3 py-2.5 rounded-2xl border border-slate-100/50 cursor-pointer" onClick={() => setExpandedSubModules(prev => ({ ...prev, [ms.moduleId]: !prev[ms.moduleId] }))}>
-                      <div>
-                        <div className="text-[10px] font-bold text-slate-700">{ms.moduleId}</div>
-                        <div className="text-[9px] text-slate-400 mt-0.5">耗时: {formatTimeWithSeconds(ms.duration)} | 正确: {ms.correctCount}/{ms.totalCount}</div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className={cn("text-xs font-bold", modAcc >= 80 ? "text-emerald-500" : modAcc >= 60 ? "text-amber-500" : "text-rose-500")}>{modAcc}%</div>
-                        {subs.length > 0 && <ChevronDown size={12} className={cn("text-slate-300 transition-transform", showSubs && "rotate-180")} />}
-                      </div>
-                    </div>
-
-                    {/* 子模块详情 */}
-                    <AnimatePresence>
-                      {showSubs && ms.subScores && ms.subScores.length > 0 && (
-                        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden pl-4 pr-2 py-2 space-y-1.5">
-                          {ms.subScores.map(sub => {
-                            const subAcc = sub.totalCount > 0 ? Math.round((sub.correctCount / sub.totalCount) * 100) : 0;
-                            return (
-                              <div key={sub.subTopic} className="flex items-center justify-between bg-white/80 px-3 py-1.5 rounded-xl border border-slate-100/30">
-                                <span className="text-[10px] text-slate-600">{sub.subTopic}</span>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-[9px] text-slate-400">{formatTimeWithSeconds(sub.duration)}</span>
-                                  <span className={cn("text-[10px] font-bold", subAcc >= 80 ? "text-emerald-500" : subAcc >= 60 ? "text-amber-500" : "text-rose-500")}>{subAcc}%</span>
-                                  <span className="text-[9px] text-slate-400">{sub.correctCount}/{sub.totalCount}</span>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                );
-              })}
-
-              {/* 录入错题按钮 */}
-              {onNavigate && (
-                <button
-                  onClick={() => onNavigate(record.id, 'examId')}
-                  className="w-full flex items-center justify-center gap-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-xs font-bold py-2.5 rounded-xl border border-indigo-200 transition-colors active:scale-[0.98]"
-                >
-                  <BookOpen size={14} />
-                  录入这场考试的错题
-                </button>
               )}
             </div>
           </motion.div>
