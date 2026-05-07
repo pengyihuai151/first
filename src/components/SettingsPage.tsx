@@ -109,6 +109,14 @@ export default function SettingsPage({ data, onUpdate, onNavigate }: { data: App
     onUpdate();
   };
 
+  const updateSettings = async (newSettings: Partial<AppData['settings']>) => {
+    await storage.saveData({
+      ...data,
+      settings: { ...data.settings, ...newSettings }
+    });
+    onUpdate();
+  };
+
   const exportPDF = async (type: 'xingce' | 'shenlun' = 'xingce') => {
     if (type === 'xingce' && !exportOptions.stats && !exportOptions.wrong && !exportOptions.notes) {
       setAlertModal({ open: true, message: '请至少选择一个导出项' });
