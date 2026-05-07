@@ -38,6 +38,8 @@ export default function ExamBank({
   const [editingId, setEditingId] = useState<string | null>(null);
   // 管理每个模块的展开状态
   const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>({});
+  // 错误提示
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const [newExam, setNewExam] = useState<Partial<ExamRecord>>({
     title: '',
@@ -71,7 +73,7 @@ export default function ExamBank({
 
   const saveExam = async () => {
     if (!newExam.title) {
-      alert('请输入考试名称');
+      setErrorMsg('请输入考试名称');
       return;
     }
 
@@ -428,6 +430,11 @@ export default function ExamBank({
             </div>
           </motion.div>
         </div>
+      )}</AnimatePresence>
+
+      {/* 错误提示 */}
+      <AnimatePresence>{errorMsg && (
+        <ErrorToast message={errorMsg} onClose={() => setErrorMsg(null)} />
       )}</AnimatePresence>
     </div>
   );
@@ -886,6 +893,22 @@ function RecordCard({
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+// 错误提示弹层
+function ErrorToast({ message, onClose }: { message: string; onClose: () => void }) {
+  useEffect(() => {
+    const timer = setTimeout(onClose, 2000);
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center pointer-events-none">
+      <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-2xl shadow-xl max-w-xs text-center font-bold">
+        {message}
+      </div>
     </div>
   );
 }
