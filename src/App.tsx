@@ -59,7 +59,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 pb-24 font-sans selection:bg-indigo-100">
-      <main className="max-w-md mx-auto px-4 pt-6">
+      <main className="max-w-md mx-auto px-4 pt-12">
         <AnimatePresence mode="wait">
           <motion.div
             key={`${activeTab}-${selectedExamId || ''}`}
