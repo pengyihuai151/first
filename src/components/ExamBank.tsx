@@ -802,12 +802,12 @@ function RecordCard({
       </div>
 
       {expanded && (
-        <div style={{ background: '#f8fafc', padding: '16px', borderTop: '1px solid #f1f5f9' }}>
-          <div style={{ background: 'white', padding: '16px', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
-            <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#1e293b' }}>
+        <div className="bg-slate-50/50 border-t border-slate-50 p-4 space-y-3">
+          <div className="bg-white p-4 rounded-2xl border border-slate-100">
+            <div className="text-sm font-bold text-slate-800">
               展开内容测试
             </div>
-            <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
+            <div className="text-xs text-slate-500 mt-1">
               考试标题：{record.title}
             </div>
           </div>
