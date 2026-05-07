@@ -368,7 +368,12 @@ export default function ExamBank({
   );
 }
 
-// ==================== 模考计时器（支持子模块） ====================
+// ==================== 模考计时器（支持子模块独立计时） ====================
+// 每个模块/子模块有独立计时器，切换时只启动当前目标
+
+interface TimerState {
+  [key: string]: number; // 每个模块/子模块的累积时间（毫秒）
+}
 
 function ExamLiveMode({ onFinish, onClose }: { onFinish: (res: any) => void; onClose: () => void }) {
   const [examTitle, setExamTitle] = useState('新模拟记录');
@@ -377,84 +382,133 @@ function ExamLiveMode({ onFinish, onClose }: { onFinish: (res: any) => void; onC
   const [currentModule, setCurrentModule] = useState<StudyModule>(MAIN_MODULES[0]);
   const [currentSub, setCurrentSub] = useState<string | null>(null);
 
+  // 总已用时间（毫秒）
   const [elapsed, setElapsed] = useState(0);
-  const [moduleDurations, setModuleDurations] = useState<Record<string, number>>(
-    MAIN_MODULES.reduce((acc, m) => ({ ...acc, [m]: 0 }), {})
-  );
 
+  // 每个模块/子模块的独立计时
+  const [timers, setTimers] = useState<TimerState>(() => {
+    const initial: TimerState = {};
+    MAIN_MODULES.forEach(m => {
+      initial[m] = 0;
+      getSubTopics(m).forEach(sub => { initial[sub] = 0; });
+    });
+    return initial;
+  });
+
+  // 当前正在计时的目标key
+  const activeTargetRef = useRef<string>(MAIN_MODULES[0]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const lastTickRef = useRef<number>(0);
 
-  // 获取当前活跃的计时目标（子模块优先）
-  const getActiveTarget = () => {
+  // 获取当前活跃目标的key
+  const getActiveKey = () => {
     if (currentSub) return currentSub;
     return currentModule;
   };
 
+  // 切换目标时：停止旧目标、开始新目标
   useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.hidden && isStarted && timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      } else if (!document.hidden && isStarted && !timerRef.current) {
-        lastTickRef.current = Date.now();
-        timerRef.current = setInterval(() => {
-          const now = Date.now();
-          const delta = now - lastTickRef.current;
-          lastTickRef.current = now;
-          setElapsed(prev => prev + delta);
-          const active = getActiveTarget();
-          setModuleDurations(prev => ({
-            ...prev,
-            [active]: (prev[active] || 0) + delta
-          }));
-        }, 100);
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [isStarted, currentModule, currentSub]);
+    if (!isStarted) return;
+    const newTarget = getActiveKey();
+    if (activeTargetRef.current !== newTarget) {
+      activeTargetRef.current = newTarget;
+      lastTickRef.current = Date.now();
+    }
+  }, [currentModule, currentSub, isStarted]);
 
-  const startExam = () => {
-    setIsStarted(true);
+  // 核心计时器：每100ms给当前活跃目标+1tick
+  useEffect(() => {
+    if (!isStarted) return;
+
     lastTickRef.current = Date.now();
     timerRef.current = setInterval(() => {
       const now = Date.now();
       const delta = now - lastTickRef.current;
       lastTickRef.current = now;
+
+      const target = activeTargetRef.current;
       setElapsed(prev => prev + delta);
-      const active = getActiveTarget();
-      setModuleDurations(prev => ({
+      setTimers(prev => ({
         ...prev,
-        [active]: (prev[active] || 0) + delta
+        [target]: (prev[target] || 0) + delta,
+      }));
+    }, 100);
+
+    // 页面隐藏时停止计时器，显示时恢复
+    const handleVisibilityChange = () => {
+      if (document.hidden && timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      } else if (!document.hidden && !timerRef.current && isStarted) {
+        lastTickRef.current = Date.now();
+        timerRef.current = setInterval(() => {
+          const now = Date.now();
+          const delta = now - lastTickRef.current;
+          lastTickRef.current = now;
+          const target = activeTargetRef.current;
+          setElapsed(prev => prev + delta);
+          setTimers(prev => ({
+            ...prev,
+            [target]: (prev[target] || 0) + delta,
+          }));
+        }, 100);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [isStarted]);
+
+  const startExam = () => {
+    setIsStarted(true);
+    activeTargetRef.current = MAIN_MODULES[0];
+    lastTickRef.current = Date.now();
+
+    timerRef.current = setInterval(() => {
+      const now = Date.now();
+      const delta = now - lastTickRef.current;
+      lastTickRef.current = now;
+      setElapsed(prev => prev + delta);
+      const target = activeTargetRef.current;
+      setTimers(prev => ({
+        ...prev,
+        [target]: (prev[target] || 0) + delta,
       }));
     }, 100);
   };
 
-  useEffect(() => {
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, []);
-
   const finishExam = () => {
     if (timerRef.current) clearInterval(timerRef.current);
-    // 正确收集：大模块时长 + 子模块时长（如果有）
+
+    // 构建层级成绩数据
     const scoresWithSubs = MAIN_MODULES.map(m => {
       const hasSub = hasSubModules(m);
       const subs = getSubTopics(m);
-      const moduleDuration = moduleDurations[m] || 0;
-      
-      // 如果有子模块计时，用子模块的；否则用大模块的
+
+      // 大模块总时长 = 子模块之和 或 直接的大模块时长
+      let moduleDuration = timers[m] || 0;
       const subDurations: Record<string, number> = {};
-      if (hasSub) {
+
+      if (hasSub && subs.length > 0) {
+        let subTotal = 0;
         subs.forEach(sub => {
-          subDurations[sub] = moduleDurations[sub] || 0;
+          const subTime = timers[sub] || 0;
+          subDurations[sub] = subTime;
+          subTotal += subTime;
         });
+        // 如果子模块有时间，用子模块总和；否则用大模块自身的时间
+        moduleDuration = subTotal > 0 ? subTotal : moduleDuration;
       }
 
       return {
         moduleId: m,
-        duration: moduleDuration,
-        subDurations: hasSub ? subDurations : undefined
+        duration: Math.round(moduleDuration / 1000), // 转为秒
+        correctCount: 0,
+        totalCount: 0,
+        subDurations: hasSub ? subDurations : undefined,
       };
     });
 
@@ -462,8 +516,16 @@ function ExamLiveMode({ onFinish, onClose }: { onFinish: (res: any) => void; onC
   };
 
   const remainingMs = Math.max(0, totalMinutes * 60000 - elapsed);
-
   const currentSubTopics = hasSubModules(currentModule) ? getSubTopics(currentModule) : [];
+
+  // 格式化时间显示
+  const fmt = (ms: number) => {
+    const s = Math.round(ms / 1000);
+    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  };
+
+  // 当前显示的时长（优先子模块）
+  const displayDuration = currentSub ? (timers[currentSub] || 0) : (timers[currentModule] || 0);
 
   if (!isStarted) {
     return (
@@ -517,31 +579,47 @@ function ExamLiveMode({ onFinish, onClose }: { onFinish: (res: any) => void; onC
       </div>
 
       <div className="flex-1 px-4 flex flex-col justify-center">
-         <div className="bg-slate-800/50 rounded-[40px] p-8 border border-slate-700/30 space-y-8 backdrop-blur-md">
-            <div className="text-center">
+         <div className="bg-slate-800/50 rounded-[40px] p-8 border border-slate-700/30 space-y-6 backdrop-blur-md">
+            {/* 当前正在进行的模块 */}
+            <div className="text-center space-y-1">
                <div className="text-xs font-bold text-indigo-400 mb-1">当前正在进行</div>
-               <div className="text-3xl font-black">{currentModule}{currentSub ? ` · ${currentSub}` : ''}</div>
+               <div className="text-2xl font-black">
+                 {currentModule}{currentSub ? ` · ${currentSub}` : ''}
+               </div>
+               {/* 当前目标的时间 */}
+               <div className="text-5xl font-black tabular-nums tracking-tighter text-indigo-100 mt-2">
+                  {fmt(displayDuration)}
+               </div>
             </div>
 
-            <div className="flex items-center justify-center text-6xl font-black tabular-nums tracking-tighter text-indigo-100">
-               {Math.floor((moduleDurations[currentModule] || 0) / 60000)}:
-               {String(Math.floor(((moduleDurations[currentModule] || 0) % 60000) / 1000)).padStart(2, '0')}
-            </div>
-
-            {/* 大模块选择 */}
+            {/* 大模块选择卡片 */}
             <div className="grid grid-cols-3 gap-2">
                 {MAIN_MODULES.map(m => {
                   const hasSub = hasSubModules(m);
                   const isActive = currentModule === m && !currentSub;
+
+                  // 计算大模块的总时长（如果有子模块就汇总）
+                  let totalTime = timers[m] || 0;
+                  if (hasSub) {
+                    const subs = getSubTopics(m);
+                    const subTotal = subs.reduce((sum, sub) => sum + (timers[sub] || 0), 0);
+                    totalTime = subTotal > 0 ? subTotal : totalTime;
+                  }
+
                   return (
                     <button key={m}
-                      onClick={() => { setCurrentModule(m as StudyModule); setCurrentSub(hasSub ? null : null); }}
+                      onClick={() => {
+                        setCurrentModule(m as StudyModule);
+                        setCurrentSub(hasSub ? null : null); // 有子模块时先清空子模块
+                        activeTargetRef.current = m; // 立即切换计时目标
+                        lastTickRef.current = Date.now(); // 重置tick防止跳变
+                      }}
                       className={cn("border p-3 rounded-2xl flex flex-col items-center gap-1 active:scale-95 transition-all",
                         isActive ? "bg-indigo-500 border-indigo-400 shadow-lg shadow-indigo-500/20" : "bg-slate-900/50 border-slate-700/50"
                       )}>
                       <span className={cn("text-[9px] font-bold", isActive ? "text-white" : "text-slate-500")}>{m}</span>
                       <span className={cn("text-xs font-bold", isActive ? "text-white" : "text-slate-300")}>
-                        {Math.floor((moduleDurations[m] || 0) / 60000)} min
+                        {fmt(totalTime)}
                       </span>
                       {hasSub && <span className="text-[8px] text-slate-500">▼</span>}
                     </button>
@@ -549,21 +627,33 @@ function ExamLiveMode({ onFinish, onClose }: { onFinish: (res: any) => void; onC
                 })}
             </div>
 
-            {/* 子模块选择（如果有） */}
+            {/* 子模块选择（点击大模块后弹出） */}
             {currentSubTopics.length > 0 && (
               <div className="flex flex-wrap gap-2 justify-center pt-2">
                 {currentSubTopics.map(sub => (
                   <button key={sub}
-                    onClick={() => setCurrentSub(sub)}
+                    onClick={() => {
+                      setCurrentSub(sub);
+                      activeTargetRef.current = sub; // 切换到子模块计时
+                      lastTickRef.current = Date.now(); // 重置tick防止跳变
+                    }}
                     className={cn(
-                      "px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all",
+                      "px-4 py-2 rounded-xl text-[11px] font-bold transition-all min-w-[80px]",
                       currentSub === sub
                         ? "bg-indigo-400 text-white"
                         : "bg-slate-900/70 text-slate-400 border border-slate-700/50"
-                    )}>{sub}</button>
+                    )}>
+                    <div>{sub}</div>
+                    <div className="text-[10px] mt-0.5 opacity-70">{fmt(timers[sub] || 0)}</div>
+                  </button>
                 ))}
               </div>
             )}
+
+            {/* 说明文字 */}
+            <div className="text-center text-[10px] text-slate-500 font-medium">
+              点击模块切换计时 · 子模块各自独立计时 · 总时间=各子模块之和
+            </div>
          </div>
       </div>
 
@@ -572,13 +662,12 @@ function ExamLiveMode({ onFinish, onClose }: { onFinish: (res: any) => void; onC
            className="w-full bg-rose-500 text-white py-5 rounded-[28px] font-bold text-lg flex items-center justify-center gap-3 shadow-2xl shadow-rose-500/20 active:scale-95 transition-all">
            <StopCircle size={24} /> 结束并交卷
          </button>
-         <div className="flex items-center justify-center gap-2 text-slate-500 text-[10px] font-bold uppercase tracking-widest">
-            点击上方模块卡片切换计时，有子模块的可选细分
-         </div>
       </div>
     </div>
   );
 }
+
+// ==================== 考试录入主页面 ====================
 
 // ==================== 记录卡片 ====================
 
