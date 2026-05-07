@@ -290,10 +290,10 @@ export default function ExamBank({
                       {/* 大模块汇总输入 */}
                       <div className="grid grid-cols-3 gap-3">
                         <div className="space-y-1">
-                          <label className="text-[10px] text-slate-400 font-bold block ml-1">耗时(分)</label>
+                          <label className="text-[10px] text-slate-400 font-bold block ml-1">耗时(秒)</label>
                           <input type="number"
-                            value={score ? Math.round(score.duration / 60000) : 0}
-                            onChange={(e) => updateModuleScore(m as StudyModule, 'duration', Number(e.target.value) * 60000)}
+                            value={score ? Math.round(score.duration / 1000) : 0}
+                            onChange={(e) => updateModuleScore(m as StudyModule, 'duration', Number(e.target.value) * 1000)}
                             className="w-full bg-white border border-slate-100 rounded-xl px-2 py-1.5 text-xs text-center outline-none focus:ring-1 focus:ring-indigo-100" />
                         </div>
                         <div className="space-y-1">
@@ -322,10 +322,10 @@ export default function ExamBank({
                                 <div key={sub} className="grid grid-cols-3 gap-2 px-2 py-2 bg-white/80 rounded-xl">
                                   <span className="col-span-3 text-[10px] font-medium text-slate-600 mb-1">{sub}</span>
                                   <div className="space-y-0.5">
-                                    <label className="text-[9px] text-slate-300 font-bold block">耗时(分)</label>
+                                    <label className="text-[9px] text-slate-300 font-bold block">耗时(秒)</label>
                                     <input type="number"
-                                      value={subSc ? Math.round(subSc.duration / 60000) : 0}
-                                      onChange={(e) => updateSubScore(m as StudyModule, sub, 'duration', Number(e.target.value) * 60000)}
+                                      value={subSc ? Math.round(subSc.duration / 1000) : 0}
+                                      onChange={(e) => updateSubScore(m as StudyModule, sub, 'duration', Number(e.target.value) * 1000)}
                                       className="w-full bg-slate-50 border border-slate-100 rounded-lg px-1.5 py-1 text-[10px] text-center outline-none" />
                                   </div>
                                   <div className="space-y-0.5">
@@ -530,7 +530,9 @@ function ExamLiveMode({ onFinish, onClose }: { onFinish: (res: any) => void; onC
         duration: Math.round(moduleDuration / 1000), // 转为秒
         correctCount: 0,
         totalCount: 0,
-        subDurations: hasSub ? subDurations : undefined,
+        subDurations: hasSub ? Object.fromEntries(
+          Object.entries(subDurations).map(([k, v]) => [k, Math.round(v / 1000)]) // 子模块也转为秒
+        ) : undefined,
       };
     });
 
