@@ -237,7 +237,7 @@ export default function ExamBank({
 
       {/* Add/Edit Modal */}
       <AnimatePresence>{isAdding && (
-        <div className="fixed inset-0 z-[100] flex flex-col justify-end">
+        <div className="fixed inset-0 z-[120] flex flex-col justify-end">
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={() => { setIsAdding(false); setEditingId(null); }}
             className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
@@ -368,14 +368,17 @@ export default function ExamBank({
   );
 }
 
-// ==================== 模考计时器（支持子模块独立计时） ====================
-// 每个模块/子模块有独立计时器，切换时只启动当前目标
+// ==================== 模考计时器（重写版 - 子模块独立计时 + 两种录入模式） ====================
+// 每个 target 有独立 timers[key]，切换只启动当前
+// inputMode: auto/onlyMain/mustSub
 
 interface TimerState {
   [key: string]: number; // 每个模块/子模块的累积时间（毫秒）
 }
 
 function ExamLiveMode({ onFinish, onClose }: { onFinish: (res: any) => void; onClose: () => void }) {
+  // 计时模式：'simple'=只录一级, 'detail'=录二级子模块
+  const [timerMode, setTimerMode] = useState<'simple' | 'detail'>('detail');
   const [examTitle, setExamTitle] = useState('新模拟记录');
   const [totalMinutes, setTotalMinutes] = useState(120);
   const [isStarted, setIsStarted] = useState(false);
@@ -598,22 +601,34 @@ function ExamLiveMode({ onFinish, onClose }: { onFinish: (res: any) => void; onC
                   const hasSub = hasSubModules(m);
                   const isActive = currentModule === m && !currentSub;
 
-                  // 计算大模块的总时长（如果有子模块就汇总）
-                  let totalTime = timers[m] || 0;
+                  // 计算大模块的总时长 = 自身时间 + 所有子模块时间
+                  const selfTime = timers[m] || 0;
+                  let totalTime = selfTime;
                   if (hasSub) {
                     const subs = getSubTopics(m);
-                    const subTotal = subs.reduce((sum, sub) => sum + (timers[sub] || 0), 0);
-                    totalTime = subTotal > 0 ? subTotal : totalTime;
+                    totalTime += subs.reduce((sum, sub) => sum + (timers[sub] || 0), 0);
                   }
 
                   return (
                     <button key={m}
-                      onClick={() => {
-                        setCurrentModule(m as StudyModule);
-                        setCurrentSub(hasSub ? null : null); // 有子模块时先清空子模块
-                        activeTargetRef.current = m; // 立即切换计时目标
-                        lastTickRef.current = Date.now(); // 重置tick防止跳变
-                      }}
+                        onClick={() => {
+                          if (timerMode === 'simple') {
+                            // 简单模式：直接切换大模块计时（不弹子模块）
+                            setCurrentModule(m as StudyModule);
+                            setCurrentSub(null);
+                            lastTickRef.current = Date.now();
+                          } else {
+                            // 详细模式：有子模块时弹出子模块选择
+                            if (hasSub) {
+                              setShowSubs(true);
+                              return; 
+                            } else {
+                              setCurrentModule(m as StudyModule);
+                              activeTargetRef.current = m;
+                              lastTickRef.current = Date.now();
+                            }
+                          }
+                        }}
                       className={cn("border p-3 rounded-2xl flex flex-col items-center gap-1 active:scale-95 transition-all",
                         isActive ? "bg-indigo-500 border-indigo-400 shadow-lg shadow-indigo-500/20" : "bg-slate-900/50 border-slate-700/50"
                       )}>
@@ -650,9 +665,24 @@ function ExamLiveMode({ onFinish, onClose }: { onFinish: (res: any) => void; onC
               </div>
             )}
 
-            {/* 说明文字 */}
-            <div className="text-center text-[10px] text-slate-500 font-medium">
-              点击模块切换计时 · 子模块各自独立计时 · 总时间=各子模块之和
+            {/* 说明文字 + 模式切换 */}
+            <div className="text-center space-y-2">
+              <div className="flex items-center justify-center gap-2">
+                <span className="text-[10px] text-slate-500 font-medium">计时模式：</span>
+                <button onClick={() => setTimerMode(timerMode === 'simple' ? 'detail' : 'simple')}
+                  className={`text-[10px] px-3 py-1 rounded-full font-bold transition-all ${
+                    timerMode === 'simple'
+                      ? 'bg-indigo-100 text-indigo-600'
+                      : 'bg-emerald-100 text-emerald-600'
+                  }`}>
+                  {timerMode === 'simple' ? '📦 只录一级模块' : '📋 细分到二级'}
+                </button>
+              </div>
+              <p className="text-[10px] text-slate-500 font-medium">
+                {timerMode === 'simple'
+                  ? '点击大模块直接计时 · 不细分子模块'
+                  : '点击模块选子模块计时 · 总时间=各层之和'}
+              </p>
             </div>
          </div>
       </div>
