@@ -133,6 +133,7 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
   };
 
   const handleStop = async () => {
+    setShowReminder(false);
     setIsRunning(false);
     setIsPaused(false);
     localStorage.removeItem('studyTimerState');
@@ -384,14 +385,7 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
                   知道了
                 </button>
                 <button
-                  onClick={() => {
-                    setShowReminder(false);
-                    setIsRunning(false);
-                    setIsPaused(false);
-                    reminderStartTimeRef.current = 0;
-                    setTime(0);
-                    timeRef.current = 0;
-                  }}
+                  onClick={handleStop}
                   className="flex-1 py-3 bg-amber-500 text-white rounded-xl font-bold text-sm active:scale-95 transition-all"
                 >
                   结束计时
