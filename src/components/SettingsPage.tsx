@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { AppData, MAIN_MODULES, StudyModule, AppConfig } from '../types';
+import { AppData, MAIN_MODULES, StudyModule, AppConfig, TargetExam } from '../types';
 import { storage } from '../lib/storage';
-import { FileDown, Database, Trash2, Calendar, AlertCircle, Info, ChevronRight, Check, Quote, BookOpen, Tag, X, Target, Brain, GitBranch, ClipboardList, FileText } from 'lucide-react';
+import { FileDown, Database, Trash2, Calendar, AlertCircle, Info, ChevronRight, Check, Quote, BookOpen, Tag, X, Target, Brain, GitBranch, ClipboardList, FileText, Plus, Edit2 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { cn, formatDuration } from '../lib/utils';
@@ -59,6 +59,47 @@ export default function SettingsPage({ data, onUpdate, onNavigate }: { data: App
   const [importModeModal, setImportModeModal] = useState<{ open: boolean; file: File | null }>({ open: false, file: null });
   const [alertModal, setAlertModal] = useState<{ open: boolean; message: string; onClose?: () => void }>({ open: false, message: '' });
   const [showQuotesManager, setShowQuotesManager] = useState(false);
+  const [showExamManager, setShowExamManager] = useState(false);
+  const [editingExam, setEditingExam] = useState<TargetExam | null>(null);
+  const [newExamName, setNewExamName] = useState('');
+  const [newExamDate, setNewExamDate] = useState('');
+
+  const targetExams = data.targetExams || [];
+
+  const handleAddExam = async () => {
+    if (!newExamName.trim() || !newExamDate) return;
+    const newExam: TargetExam = {
+      id: editingExam ? editingExam.id : crypto.randomUUID(),
+      name: newExamName.trim(),
+      date: newExamDate,
+    };
+    let updatedExams: TargetExam[];
+    if (editingExam) {
+      updatedExams = targetExams.map(e => e.id === editingExam.id ? newExam : e);
+    } else {
+      updatedExams = [...targetExams, newExam];
+    }
+    updatedExams.sort((a, b) => a.date.localeCompare(b.date));
+    await storage.saveData({ ...data, targetExams: updatedExams });
+    onUpdate();
+    setShowExamManager(false);
+    setEditingExam(null);
+    setNewExamName('');
+    setNewExamDate('');
+  };
+
+  const handleDeleteExam = async (examId: string) => {
+    const updatedExams = targetExams.filter(e => e.id !== examId);
+    await storage.saveData({ ...data, targetExams: updatedExams });
+    onUpdate();
+  };
+
+  const handleEditExam = (exam: TargetExam) => {
+    setEditingExam(exam);
+    setNewExamName(exam.name);
+    setNewExamDate(exam.date);
+    setShowExamManager(true);
+  };
 
   const setExamDate = async (date: string) => {
     await storage.saveData({
@@ -599,18 +640,52 @@ export default function SettingsPage({ data, onUpdate, onNavigate }: { data: App
         <p className="text-sm text-slate-500">管理备份、导出及基本设置。</p>
       </header>
 
-      {/* Exam Date */}
+      {/* 目标考试管理 */}
       <section className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm space-y-4">
-        <h3 className="text-xs font-bold text-slate-400 uppercase flex items-center gap-2">
-          <Calendar size={14} /> 考试倒计时设置
-        </h3>
-        <div className="flex gap-3">
-          <input 
-            type="date"
-            value={data.settings.examDate || ''}
-            onChange={(e) => setExamDate(e.target.value)}
-            className="flex-1 bg-slate-50 border-none rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500/20"
-          />
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-bold text-slate-400 uppercase flex items-center gap-2">
+            <Calendar size={14} /> 目标考试管理
+          </h3>
+          <button
+            onClick={() => {
+              setEditingExam(null);
+              setNewExamName('');
+              setNewExamDate('');
+              setShowExamManager(true);
+            }}
+            className="flex items-center gap-1 bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-xl text-[11px] font-bold active:scale-95 transition-all"
+          >
+            <Plus size={14} /> 添加考试
+          </button>
+        </div>
+
+        <div className="space-y-2">
+          {targetExams.length === 0 ? (
+            <p className="text-sm text-slate-400 text-center py-4">暂无目标考试</p>
+          ) : (
+            targetExams.map(exam => (
+              <div key={exam.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                <div>
+                  <div className="text-sm font-bold text-slate-800">{exam.name}</div>
+                  <div className="text-[11px] text-slate-500">{exam.date}</div>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => handleEditExam(exam)}
+                    className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-white rounded-lg transition-colors"
+                  >
+                    <Edit2 size={14} />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteExam(exam.id)}
+                    className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-white rounded-lg transition-colors"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </section>
 
@@ -982,6 +1057,79 @@ export default function SettingsPage({ data, onUpdate, onNavigate }: { data: App
                 />
               </div>
             </motion.div>
+          </div>
+        )}
+
+        {showExamManager && (
+          <div className="fixed inset-0 z-50">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+              onClick={() => {
+                setShowExamManager(false);
+                setEditingExam(null);
+              }}
+            />
+            <div className="absolute inset-0 flex items-end sm:items-center justify-center p-4 pb-6">
+              <motion.div
+                initial={{ y: '100%', opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: '100%', opacity: 0 }}
+                transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+                className="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden"
+              >
+                <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                  <h3 className="font-bold text-slate-800">
+                    {editingExam ? '编辑考试' : '添加考试'}
+                  </h3>
+                  <button
+                    onClick={() => {
+                      setShowExamManager(false);
+                      setEditingExam(null);
+                    }}
+                    className="text-slate-400 hover:text-slate-600"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+
+                <div className="p-5 space-y-4">
+                  <div>
+                    <label className="text-sm font-semibold text-slate-700 mb-2 block">考试名称</label>
+                    <input
+                      autoFocus
+                      type="text"
+                      placeholder="比如：2025年国考"
+                      value={newExamName}
+                      onChange={(e) => setNewExamName(e.target.value)}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-semibold text-slate-700 mb-2 block">考试日期</label>
+                    <input
+                      type="date"
+                      value={newExamDate}
+                      onChange={(e) => setNewExamDate(e.target.value)}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="p-5 pt-0">
+                  <button
+                    onClick={handleAddExam}
+                    disabled={!newExamName.trim() || !newExamDate}
+                    className="w-full py-3 bg-indigo-600 text-white rounded-2xl font-bold text-sm active:scale-[0.98] transition-all disabled:opacity-50 disabled:active:scale-100"
+                  >
+                    {editingExam ? '保存修改' : '添加考试'}
+                  </button>
+                </div>
+              </motion.div>
+            </div>
           </div>
         )}
       </AnimatePresence>

@@ -82,10 +82,20 @@ export default function Dashboard({ data, onUpdate, onNavigate }: { data: AppDat
 
   const [timeLeft, setTimeLeft] = React.useState<{ days: number; hours: number; minutes: number; seconds: number } | null>(null);
 
+  // 获取最近的一场目标考试
+  const nearestExam = React.useMemo(() => {
+    const exams = data.targetExams || [];
+    const now = Date.now();
+    const futureExams = exams
+      .filter(e => new Date(e.date).getTime() >= now)
+      .sort((a, b) => a.date.localeCompare(b.date));
+    return futureExams.length > 0 ? futureExams[0] : null;
+  }, [data.targetExams]);
+
   React.useEffect(() => {
-    if (!data.settings.examDate) { setTimeLeft(null); return; }
+    if (!nearestExam) { setTimeLeft(null); return; }
     const calculateTimeLeft = () => {
-      const distance = new Date(data.settings.examDate!).getTime() - Date.now();
+      const distance = new Date(nearestExam.date).getTime() - Date.now();
       if (distance < 0) { setTimeLeft(null); return false; }
       setTimeLeft({
         days: Math.floor(distance / (1000 * 60 * 60 * 24)),
@@ -98,7 +108,7 @@ export default function Dashboard({ data, onUpdate, onNavigate }: { data: AppDat
     calculateTimeLeft();
     const timer = setInterval(() => { if (!calculateTimeLeft()) clearInterval(timer); }, 1000);
     return () => clearInterval(timer);
-  }, [data.settings.examDate]);
+  }, [nearestExam]);
 
   const unMasteredWrong = data.wrongQuestions.filter(q => !q.mastered).length;
 
@@ -134,11 +144,11 @@ export default function Dashboard({ data, onUpdate, onNavigate }: { data: AppDat
       </div>
 
       {/* 倒计时 */}
-      {data.settings.examDate && (
+      {nearestExam && (
         <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 overflow-hidden relative">
           <div className="absolute top-0 right-0 p-3 opacity-5"><Calendar size={64} /></div>
           <h3 className="text-xs font-bold text-slate-400 uppercase mb-4 flex items-center gap-2">
-            <Calendar size={14} className="text-indigo-500" /> 目标考试倒计时
+            <Calendar size={14} className="text-indigo-500" /> {nearestExam.name} 倒计时
           </h3>
           {timeLeft ? (
             <div className="flex justify-between items-center gap-2">
