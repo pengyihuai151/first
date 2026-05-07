@@ -801,39 +801,37 @@ function RecordCard({
         </div>
       </div>
 
-      <AnimatePresence>
-        {expanded && (
-          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden bg-slate-50/50 border-t border-slate-50">
-            <div className="p-4 space-y-3">
-              {/* 测试内容 */}
-              <div className="bg-white p-4 rounded-2xl border border-slate-100">
-                <div className="text-sm font-bold text-slate-800">考试：{record.title}</div>
-                <div className="text-xs text-slate-500 mt-1">日期：{new Date(record.date).toLocaleDateString()}</div>
-                <div className="text-xs text-slate-500">模块数量：{record.moduleScores ? record.moduleScores.length : 0}</div>
-              </div>
-
-              {/* 反思区域 */}
-              {record.reflection && (
-                <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-3">
-                  <div className="text-[10px] font-bold text-yellow-700 mb-1">📝 考试反思</div>
-                  <div className="text-xs text-yellow-900 whitespace-pre-wrap leading-relaxed">{record.reflection}</div>
-                </div>
-              )}
-
-              {/* 录入错题按钮 */}
-              {onNavigate && (
-                <button
-                  onClick={() => onNavigate(record.id, 'examId')}
-                  className="w-full flex items-center justify-center gap-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-xs font-bold py-2.5 rounded-xl border border-indigo-200 transition-colors active:scale-[0.98]"
-                >
-                  <BookOpen size={14} />
-                  录入这场考试的错题
-                </button>
-              )}
+      {expanded && (
+        <div className="bg-slate-50/50 border-t border-slate-50">
+          <div className="p-4 space-y-3">
+            {/* 测试内容 */}
+            <div className="bg-white p-4 rounded-2xl border border-slate-100">
+              <div className="text-sm font-bold text-slate-800">考试：{record.title}</div>
+              <div className="text-xs text-slate-500 mt-1">日期：{new Date(record.date).toLocaleDateString()}</div>
+              <div className="text-xs text-slate-500">模块数量：{record.moduleScores ? record.moduleScores.length : 0}</div>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+
+            {/* 反思区域 */}
+            {record.reflection && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-3">
+                <div className="text-[10px] font-bold text-yellow-700 mb-1">📝 考试反思</div>
+                <div className="text-xs text-yellow-900 whitespace-pre-wrap leading-relaxed">{record.reflection}</div>
+              </div>
+            )}
+
+            {/* 录入错题按钮 */}
+            {onNavigate && (
+              <button
+                onClick={() => onNavigate(record.id, 'examId')}
+                className="w-full flex items-center justify-center gap-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-xs font-bold py-2.5 rounded-xl border border-indigo-200 transition-colors active:scale-[0.98]"
+              >
+                <BookOpen size={14} />
+                录入这场考试的错题
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
