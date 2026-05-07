@@ -805,7 +805,7 @@ export default function SettingsPage({ data, onUpdate, onNavigate }: { data: App
                 min="1"
                 max="120"
                 step="1"
-                value={data.settings.studyReminderMinutes || 1}
+                value={data.settings.studyReminderMinutes || 60}
                 onChange={(e) => updateSettings({ studyReminderMinutes: parseInt(e.target.value) })}
                 className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-500"
               />

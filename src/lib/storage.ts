@@ -21,7 +21,7 @@ export const storage = {
           "种一棵树最好的时间是十年前，其次是现在。"
         ],
         studyReminderEnabled: false,
-        studyReminderMinutes: 1,
+        studyReminderMinutes: 60,
       },
       config: {
         essayTypes: ['金句', '文章结构', '首尾段'],

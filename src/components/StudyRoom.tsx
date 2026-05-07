@@ -61,7 +61,7 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
         // 久学提醒检测：累计今天已保存 + 当前计时
         if (data.settings.studyReminderEnabled && !hasRemindedRef.current) {
           const todaySaved = getTodaySavedDuration();
-          const reminderMs = (data.settings.studyReminderMinutes || 1) * 60 * 1000;
+          const reminderMs = (data.settings.studyReminderMinutes || 60) * 60 * 1000;
           if (todaySaved + timeRef.current >= reminderMs) {
             setShowReminder(true);
             hasRemindedRef.current = true;
