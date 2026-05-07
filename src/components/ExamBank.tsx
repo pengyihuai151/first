@@ -288,23 +288,41 @@ export default function ExamBank({
                       </div>
 
                       {/* 大模块汇总输入 */}
-                      <div className="grid grid-cols-3 gap-3">
-                        <div className="space-y-1">
-                          <label className="text-[10px] text-slate-400 font-bold block ml-1">耗时(秒)</label>
+                      <div className="grid grid-cols-4 gap-2">
+                        <div className="space-y-1 col-span-1">
+                          <label className="text-[10px] text-slate-400 font-bold block">m</label>
                           <input type="number"
-                            value={score ? Math.round(score.duration / 1000) : 0}
-                            onChange={(e) => updateModuleScore(m as StudyModule, 'duration', Number(e.target.value) * 1000)}
+                            value={score ? Math.floor(score.duration / 60000) : 0}
+                            onChange={(e) => {
+                              const totalSec = score ? Math.round(score.duration / 1000) : 0;
+                              const oldMin = Math.floor(totalSec / 60);
+                              const oldSec = totalSec % 60;
+                              const newMin = Math.max(0, Number(e.target.value));
+                              updateModuleScore(m as StudyModule, 'duration', (newMin * 60 + oldSec) * 1000);
+                            }}
                             className="w-full bg-white border border-slate-100 rounded-xl px-2 py-1.5 text-xs text-center outline-none focus:ring-1 focus:ring-indigo-100" />
                         </div>
-                        <div className="space-y-1">
-                          <label className="text-[10px] text-slate-400 font-bold block ml-1">正确题数</label>
+                        <div className="space-y-1 col-span-1">
+                          <label className="text-[10px] text-slate-400 font-bold block">s</label>
+                          <input type="number"
+                            value={score ? Math.round(score.duration / 1000) % 60 : 0}
+                            onChange={(e) => {
+                              const totalSec = score ? Math.round(score.duration / 1000) : 0;
+                              const oldMin = Math.floor(totalSec / 60);
+                              const newSec = Math.max(0, Math.min(59, Number(e.target.value)));
+                              updateModuleScore(m as StudyModule, 'duration', (oldMin * 60 + newSec) * 1000);
+                            }}
+                            className="w-full bg-white border border-slate-100 rounded-xl px-2 py-1.5 text-xs text-center outline-none focus:ring-1 focus:ring-indigo-100" />
+                        </div>
+                        <div className="space-y-1 col-span-1">
+                          <label className="text-[10px] text-slate-400 font-bold block ml-1">正确</label>
                           <input type="number"
                             value={score ? score.correctCount : 0}
                             onChange={(e) => updateModuleScore(m as StudyModule, 'correctCount', Number(e.target.value))}
                             className="w-full bg-white border border-slate-100 rounded-xl px-2 py-1.5 text-xs text-center outline-none focus:ring-1 focus:ring-indigo-100" />
                         </div>
-                        <div className="space-y-1">
-                          <label className="text-[10px] text-slate-400 font-bold block ml-1">总题数</label>
+                        <div className="space-y-1 col-span-1">
+                          <label className="text-[10px] text-slate-400 font-bold block ml-1">总题</label>
                           <input type="number"
                             value={score ? score.totalCount : 0}
                             onChange={(e) => updateModuleScore(m as StudyModule, 'totalCount', Number(e.target.value))}
@@ -319,28 +337,46 @@ export default function ExamBank({
                             {subs.map(sub => {
                               const subSc = score?.subScores?.find(s => s.subTopic === sub);
                               return (
-                                <div key={sub} className="grid grid-cols-3 gap-2 px-2 py-2 bg-white/80 rounded-xl">
-                                  <span className="col-span-3 text-[10px] font-medium text-slate-600 mb-1">{sub}</span>
+                                <div key={sub} className="grid grid-cols-4 gap-1 px-2 py-2 bg-white/80 rounded-xl">
+                                  <span className="col-span-4 text-[10px] font-medium text-slate-600 mb-1">{sub}</span>
                                   <div className="space-y-0.5">
-                                    <label className="text-[9px] text-slate-300 font-bold block">耗时(秒)</label>
+                                    <label className="text-[9px] text-slate-300 font-bold block">m</label>
                                     <input type="number"
-                                      value={subSc ? Math.round(subSc.duration / 1000) : 0}
-                                      onChange={(e) => updateSubScore(m as StudyModule, sub, 'duration', Number(e.target.value) * 1000)}
-                                      className="w-full bg-slate-50 border border-slate-100 rounded-lg px-1.5 py-1 text-[10px] text-center outline-none" />
+                                      value={subSc ? Math.floor(subSc.duration / 60000) : 0}
+                                      onChange={(e) => {
+                                        const totalSec = subSc ? Math.round(subSc.duration / 1000) : 0;
+                                        const oldMin = Math.floor(totalSec / 60);
+                                        const oldSec = totalSec % 60;
+                                        const newMin = Math.max(0, Number(e.target.value));
+                                        updateSubScore(m as StudyModule, sub, 'duration', (newMin * 60 + oldSec) * 1000);
+                                      }}
+                                      className="w-full bg-slate-50 border border-slate-100 rounded-lg px-1 py-1 text-[10px] text-center outline-none" />
+                                  </div>
+                                  <div className="space-y-0.5">
+                                    <label className="text-[9px] text-slate-300 font-bold block">s</label>
+                                    <input type="number"
+                                      value={subSc ? Math.round(subSc.duration / 1000) % 60 : 0}
+                                      onChange={(e) => {
+                                        const totalSec = subSc ? Math.round(subSc.duration / 1000) : 0;
+                                        const oldMin = Math.floor(totalSec / 60);
+                                        const newSec = Math.max(0, Math.min(59, Number(e.target.value)));
+                                        updateSubScore(m as StudyModule, sub, 'duration', (oldMin * 60 + newSec) * 1000);
+                                      }}
+                                      className="w-full bg-slate-50 border border-slate-100 rounded-lg px-1 py-1 text-[10px] text-center outline-none" />
                                   </div>
                                   <div className="space-y-0.5">
                                     <label className="text-[9px] text-slate-300 font-bold block">正确</label>
                                     <input type="number"
                                       value={subSc ? subSc.correctCount : 0}
                                       onChange={(e) => updateSubScore(m as StudyModule, sub, 'correctCount', Number(e.target.value))}
-                                      className="w-full bg-slate-50 border border-slate-100 rounded-lg px-1.5 py-1 text-[10px] text-center outline-none" />
+                                      className="w-full bg-slate-50 border border-slate-100 rounded-lg px-1 py-1 text-[10px] text-center outline-none" />
                                   </div>
                                   <div className="space-y-0.5">
                                     <label className="text-[9px] text-slate-300 font-bold block">总题</label>
                                     <input type="number"
                                       value={subSc ? subSc.totalCount : 0}
                                       onChange={(e) => updateSubScore(m as StudyModule, sub, 'totalCount', Number(e.target.value))}
-                                      className="w-full bg-slate-50 border border-slate-100 rounded-lg px-1.5 py-1 text-[10px] text-center outline-none" />
+                                      className="w-full bg-slate-50 border border-slate-100 rounded-lg px-1 py-1 text-[10px] text-center outline-none" />
                                   </div>
                                 </div>
                               );
