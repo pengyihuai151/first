@@ -48,10 +48,58 @@ export const storage = {
       data.settings.moduleTargets = defaultData.settings.moduleTargets;
     }
     
-    // Merge if config is missing in existing data
     if (!data.config) {
       data.config = defaultData.config;
     }
+
+    // 迁移：旧错题详细知识点 → 新子模块
+    const tagMigrationMap: Record<string, string> = {
+      // 言语理解 → 逻辑填空
+      '逻辑填空-成语辨析': '逻辑填空',
+      '逻辑填空-实词搭配': '逻辑填空',
+      '逻辑填空-语境对应': '逻辑填空',
+      // 言语理解 → 篇章阅读
+      '片段阅读-主旨概括': '篇章阅读',
+      '片段阅读-意图判断': '篇章阅读',
+      '片段阅读-细节理解': '篇章阅读',
+      '片段阅读-标题填入': '篇章阅读',
+      '语句表达-语句排序': '篇章阅读',
+      '语句表达-语句填空': '篇章阅读',
+      '语句表达-下文推断': '篇章阅读',
+      // 判断推理 → 图形推理
+      '图形推理-位置规律': '图形推理',
+      '图形推理-样式规律': '图形推理',
+      '图形推理-数量规律': '图形推理',
+      '图形推理-属性规律': '图形推理',
+      '图形推理-空间重构': '图形推理',
+      '图形推理-黑白块': '图形推理',
+      // 判断推理 → 定义判断
+      '定义判断-单/多定义': '定义判断',
+      '定义判断-关键词锁定': '定义判断',
+      // 判断推理 → 类比推理
+      '类比推理-语义关系': '类比推理',
+      '类比推理-逻辑关系': '类比推理',
+      '类比推理-语法关系': '类比推理',
+      // 判断推理 → 逻辑推理
+      '逻辑判断-翻译推理': '逻辑推理',
+      '逻辑判断-削弱加强': '逻辑推理',
+      '逻辑判断-组合排列': '逻辑推理',
+      '逻辑判断-日常结论': '逻辑推理',
+    };
+
+    data.wrongQuestions = data.wrongQuestions.map(q => {
+      if (!q.tags || q.tags.length === 0) return q;
+      
+      const newTags = q.tags.map(tag => {
+        return tagMigrationMap[tag] || tag;
+      });
+      
+      // 去重
+      const uniqueTags = [...new Set(newTags)];
+      
+      return { ...q, tags: uniqueTags };
+    });
+
     return data;
   },
 

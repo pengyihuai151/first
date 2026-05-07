@@ -179,6 +179,11 @@ export default function AnalysisPage({ data, onUpdate, onNavigate }: { data: App
         </button>
       </header>
 
+      {/* AI 智能建议 */}
+      <section>
+        <AIAssistantInline data={data} onNavigate={onNavigate} />
+      </section>
+
       {/* 综合得分概览 */}
       <div className="grid grid-cols-3 gap-3">
         <div className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm text-center">
@@ -474,11 +479,6 @@ export default function AnalysisPage({ data, onUpdate, onNavigate }: { data: App
             )}
           </div>
         ))}
-      </section>
-
-      {/* AI 智能建议 */}
-      <section>
-        <AIAssistantInline data={data} onNavigate={onNavigate} />
       </section>
     </div>
   );
