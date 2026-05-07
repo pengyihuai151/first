@@ -805,6 +805,13 @@ function RecordCard({
         {expanded && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden bg-slate-50/50 border-t border-slate-50">
             <div className="p-4 space-y-3">
+              {/* 测试内容 */}
+              <div className="bg-white p-4 rounded-2xl border border-slate-100">
+                <div className="text-sm font-bold text-slate-800">考试：{record.title}</div>
+                <div className="text-xs text-slate-500 mt-1">日期：{new Date(record.date).toLocaleDateString()}</div>
+                <div className="text-xs text-slate-500">模块数量：{record.moduleScores ? record.moduleScores.length : 0}</div>
+              </div>
+
               {/* 反思区域 */}
               {record.reflection && (
                 <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-3">
@@ -812,13 +819,6 @@ function RecordCard({
                   <div className="text-xs text-yellow-900 whitespace-pre-wrap leading-relaxed">{record.reflection}</div>
                 </div>
               )}
-
-              {/* 各模块详情（极简版） */}
-              {record.moduleScores.map((ms, index) => (
-                <div key={index} className="bg-white px-3 py-2.5 rounded-2xl border border-slate-100/50">
-                  <div className="text-[10px] font-bold text-slate-700">模块 {index + 1}</div>
-                </div>
-              ))}
 
               {/* 录入错题按钮 */}
               {onNavigate && (
