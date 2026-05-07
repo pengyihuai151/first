@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { AppData, MAIN_MODULES, StudyModule, AppConfig, TargetExam } from '../types';
 import { storage } from '../lib/storage';
-import { FileDown, Database, Trash2, Calendar, AlertCircle, Info, ChevronRight, Check, Quote, BookOpen, Tag, X, Target, Brain, GitBranch, ClipboardList, FileText, Plus, Edit2 } from 'lucide-react';
+import { FileDown, Database, Trash2, Calendar, AlertCircle, Info, ChevronRight, Check, Quote, BookOpen, Tag, X, Target, Brain, GitBranch, FileText, Plus, Edit2 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { cn, formatDuration } from '../lib/utils';
@@ -315,18 +315,6 @@ export default function SettingsPage({ data, onUpdate, onNavigate }: { data: App
       <div className="space-y-3">
         <h3 className="text-xs font-bold text-slate-400 uppercase px-1">快捷入口</h3>
         <div className="grid grid-cols-2 gap-3">
-          <button
-            onClick={() => onNavigate('exam')}
-            className="bg-white p-4 rounded-2xl border border-slate-100 flex flex-col gap-3 hover:border-indigo-200 transition-colors active:scale-95"
-          >
-            <div className="bg-indigo-50 w-fit p-2 rounded-xl text-indigo-500">
-              <ClipboardList size={20} />
-            </div>
-            <div className="text-left">
-              <div className="text-sm font-bold">考试录入</div>
-              <div className="text-[10px] text-slate-400">录入模考成绩</div>
-            </div>
-          </button>
           <button
             onClick={() => onNavigate('notes')}
             className="bg-white p-4 rounded-2xl border border-slate-100 flex flex-col gap-3 hover:border-amber-200 transition-colors active:scale-95"

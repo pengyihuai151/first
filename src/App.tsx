@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, Clock, BarChart3, Settings } from 'lucide-react';
+import { LayoutDashboard, Clock, FileText, BarChart3, Settings } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AppData } from './types';
 import { storage } from './lib/storage';
@@ -73,11 +73,12 @@ export default function App() {
         </AnimatePresence>
       </main>
 
-      {/* 主导航：4个Tab */}
+      {/* 主导航：5个Tab */}
       {!selectedExamId && (
         <nav className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-lg border-t border-slate-200 px-4 py-1.5 pb-6 md:pb-3 flex justify-between items-center z-50">
           <NavButton active={activeTab === 'home'} onClick={() => setActiveTab('home')} icon={<LayoutDashboard size={18} />} label="总览" />
           <NavButton active={activeTab === 'study'} onClick={() => setActiveTab('study')} icon={<Clock size={18} />} label="计划" />
+          <NavButton active={activeTab === 'exam'} onClick={() => setActiveTab('exam')} icon={<FileText size={18} />} label="考试" />
           <NavButton active={activeTab === 'analysis'} onClick={() => setActiveTab('analysis')} icon={<BarChart3 size={18} />} label="分析" />
           <NavButton active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} icon={<Settings size={18} />} label="设置" />
         </nav>
