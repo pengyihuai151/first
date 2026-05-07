@@ -2,18 +2,20 @@ import React, { useState, useEffect, useRef } from 'react';
 import { AppData, StudyModule, MAIN_MODULES } from '../types';
 import { storage } from '../lib/storage';
 import { formatDuration, cn } from '../lib/utils';
-import { Play, Square, Timer, History, Trash2 } from 'lucide-react';
+import { Play, Square, Timer, History, Trash2, Bell, X } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 
 export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate: () => void }) {
   const [activeModule, setActiveModule] = useState<StudyModule>(MAIN_MODULES[0]);
   const [isRunning, setIsRunning] = useState(false);
   const [time, setTime] = useState(0);
   const [showResume, setShowResume] = useState(false); // 显示继续计时提示
+  const [showReminder, setShowReminder] = useState(false); // 显示久学提醒
   const startTimeRef = useRef<number | null>(null);
   const intervalRef = useRef<any>(null);
   const timeRef = useRef(0);
+  const hasRemindedRef = useRef(false); // 是否已经提醒过
 
   // 同步 time 到 ref
   useEffect(() => {
@@ -49,6 +51,15 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
         const newTime = Date.now() - (startTimeRef.current || 0);
         timeRef.current = newTime;
         setTime(newTime);
+        
+        // 久学提醒检测
+        if (data.settings.studyReminderEnabled && !hasRemindedRef.current) {
+          const reminderMs = (data.settings.studyReminderMinutes || 45) * 60 * 1000;
+          if (newTime >= reminderMs) {
+            setShowReminder(true);
+            hasRemindedRef.current = true;
+          }
+        }
       }, 100);
     } else {
       if (intervalRef.current) clearInterval(intervalRef.current);
@@ -56,7 +67,7 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [isRunning]);
+  }, [isRunning, data.settings.studyReminderEnabled, data.settings.studyReminderMinutes]);
 
   // 页面隐藏时保存状态
   useEffect(() => {
@@ -89,12 +100,14 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
 
   const handleStart = () => {
     localStorage.removeItem('studyTimerState');
+    hasRemindedRef.current = false;
     setIsRunning(true);
   };
   
   const handleStop = async () => {
     setIsRunning(false);
     localStorage.removeItem('studyTimerState');
+    hasRemindedRef.current = false;
     
     const now = new Date();
     const localDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -209,6 +222,21 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
           </span>
         </div>
 
+        {/* 重置提醒按钮 */}
+        {isRunning && hasRemindedRef.current && (
+          <button
+            onClick={() => {
+              hasRemindedRef.current = false;
+              setTime(0);
+              timeRef.current = 0;
+              startTimeRef.current = Date.now();
+            }}
+            className="px-4 py-2 bg-amber-50 text-amber-700 rounded-xl text-xs font-bold border border-amber-100 flex items-center gap-1"
+          >
+            <Bell size={12} /> 重置提醒计时器
+          </button>
+        )}
+
         <div className="flex gap-4">
           {!isRunning ? (
             <button
@@ -263,6 +291,67 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
           )}
         </div>
       </section>
+
+      {/* 久学提醒弹窗 */}
+      <AnimatePresence>
+        {showReminder && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+            onClick={() => setShowReminder(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl"
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center">
+                  <Bell size={24} className="text-amber-600" />
+                </div>
+                <button
+                  onClick={() => setShowReminder(false)}
+                  className="p-2 hover:bg-slate-100 rounded-xl transition-colors"
+                >
+                  <X size={20} className="text-slate-400" />
+                </button>
+              </div>
+              
+              <div className="mb-6">
+                <h3 className="text-xl font-bold text-slate-800 mb-2">该休息了！</h3>
+                <p className="text-slate-600 text-sm leading-relaxed">
+                  你已经连续学习了 {formatDuration(time)}。建议休息一下，保护眼睛，活动活动身体。
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowReminder(false)}
+                  className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-xl font-bold text-sm active:scale-95 transition-all"
+                >
+                  知道了
+                </button>
+                <button
+                  onClick={() => {
+                    setShowReminder(false);
+                    setIsRunning(false);
+                    hasRemindedRef.current = false;
+                    setTime(0);
+                    timeRef.current = 0;
+                  }}
+                  className="flex-1 py-3 bg-amber-500 text-white rounded-xl font-bold text-sm active:scale-95 transition-all"
+                >
+                  结束计时
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

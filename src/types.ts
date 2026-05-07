@@ -126,6 +126,8 @@ export interface AppData {
     examDate: string | null;
     quotes: string[];
     moduleTargets?: Record<string, number>;
+    studyReminderEnabled?: boolean; // 久学提醒开关
+    studyReminderMinutes?: number; // 久学提醒时长（分钟）
   };
   config?: AppConfig;
   /** 阅读打卡记录：日期 -> 已读笔记ID列表 */

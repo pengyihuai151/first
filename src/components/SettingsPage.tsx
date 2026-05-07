@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { AppData, MAIN_MODULES, StudyModule, AppConfig, TargetExam } from '../types';
 import { storage } from '../lib/storage';
-import { FileDown, Database, Trash2, Calendar, AlertCircle, Info, ChevronRight, Check, Quote, BookOpen, Tag, X, Target, Brain, GitBranch, FileText, Plus, Edit2 } from 'lucide-react';
+import { FileDown, Database, Trash2, Calendar, AlertCircle, Info, ChevronRight, Check, Quote, BookOpen, Tag, X, Target, Brain, GitBranch, FileText, Plus, Edit2, Bell } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { cn, formatDuration } from '../lib/utils';
@@ -756,6 +756,58 @@ export default function SettingsPage({ data, onUpdate, onNavigate }: { data: App
             <ChevronRight size={20} />
           </div>
         </button>
+      </section>
+
+      {/* 久学提醒 */}
+      <section className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm space-y-4">
+        <h3 className="text-xs font-bold text-slate-400 uppercase flex items-center gap-2">
+          <Bell size={14} /> 久学提醒
+        </h3>
+        
+        <div className="space-y-4">
+          {/* 开关 */}
+          <div className="flex items-center justify-between">
+            <div className="text-left">
+              <p className="text-sm font-bold text-slate-800">开启提醒</p>
+              <p className="text-[10px] text-slate-400">连续学习达到时长后提醒休息</p>
+            </div>
+            <button
+              onClick={() => updateSettings({ studyReminderEnabled: !data.settings.studyReminderEnabled })}
+              className={cn(
+                "w-14 h-8 rounded-full transition-colors relative",
+                data.settings.studyReminderEnabled ? "bg-indigo-500" : "bg-slate-200"
+              )}
+            >
+              <div className={cn(
+                "absolute top-1 w-6 h-6 bg-white rounded-full shadow-sm transition-all",
+                data.settings.studyReminderEnabled ? "left-7" : "left-1"
+              )} />
+            </button>
+          </div>
+
+          {/* 提醒时长 */}
+          {data.settings.studyReminderEnabled && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-bold text-slate-700">提醒时长</label>
+                <span className="text-sm font-bold text-indigo-600">{data.settings.studyReminderMinutes || 45} 分钟</span>
+              </div>
+              <input
+                type="range"
+                min="15"
+                max="120"
+                step="5"
+                value={data.settings.studyReminderMinutes || 45}
+                onChange={(e) => updateSettings({ studyReminderMinutes: parseInt(e.target.value) })}
+                className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+              />
+              <div className="flex justify-between text-[10px] text-slate-400">
+                <span>15 分钟</span>
+                <span>120 分钟</span>
+              </div>
+            </div>
+          )}
+        </div>
       </section>
 
       {/* Tag Management */}

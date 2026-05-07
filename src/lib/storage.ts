@@ -27,7 +27,9 @@ export const storage = {
           '数量关系': 0.5,
           '政治': 0.5,
           '常识判断': 0, // No specific limit
-        }
+        },
+        studyReminderEnabled: false,
+        studyReminderMinutes: 45,
       },
       config: {
         essayTypes: ['金句', '文章结构', '首尾段'],
