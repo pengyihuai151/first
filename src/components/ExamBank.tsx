@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Trophy, Plus, Trash2, Calendar, Clock, Target, ChevronRight, X, Play, StopCircle, Timer, Edit2, ChevronDown, BookOpen } from 'lucide-react';
+import { Trophy, Plus, Trash2, Calendar, Clock, Target, ChevronRight, X, Play, StopCircle, Timer, Edit2, ChevronDown, BookOpen, Pause } from 'lucide-react';
 import { AppData, MAIN_MODULES, StudyModule, ExamRecord, ExamModuleScore, ExamSubScore, StudySession } from '../types';
 import { hasSubModules, getSubTopics } from '../types';
 import { storage } from '../lib/storage';
@@ -493,8 +493,18 @@ function ExamLiveMode({ onFinish, onClose }: { onFinish: (res: any) => void; onC
 
   // 核心计时器：每100ms给当前活跃目标+1tick
   useEffect(() => {
-    if (!isStarted || isPaused) return;
+    if (!isStarted) return;
 
+    if (isPaused) {
+      // 暂停时清除计时器
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      return;
+    }
+
+    // 开始或恢复计时时，重置 lastTick
     lastTickRef.current = Date.now();
     timerRef.current = setInterval(() => {
       const now = Date.now();
@@ -552,20 +562,6 @@ function ExamLiveMode({ onFinish, onClose }: { onFinish: (res: any) => void; onC
       setCurrentSub(null);
       activeTargetRef.current = firstModule;
     }
-    
-    lastTickRef.current = Date.now();
-
-    timerRef.current = setInterval(() => {
-      const now = Date.now();
-      const delta = now - lastTickRef.current;
-      lastTickRef.current = now;
-      setElapsed(prev => prev + delta);
-      const target = activeTargetRef.current;
-      setTimers(prev => ({
-        ...prev,
-        [target]: (prev[target] || 0) + delta,
-      }));
-    }, 100);
   };
 
   const handlePause = () => {
@@ -578,18 +574,6 @@ function ExamLiveMode({ onFinish, onClose }: { onFinish: (res: any) => void; onC
 
   const handleContinue = () => {
     setIsPaused(false);
-    lastTickRef.current = Date.now();
-    timerRef.current = setInterval(() => {
-      const now = Date.now();
-      const delta = now - lastTickRef.current;
-      lastTickRef.current = now;
-      setElapsed(prev => prev + delta);
-      const target = activeTargetRef.current;
-      setTimers(prev => ({
-        ...prev,
-        [target]: (prev[target] || 0) + delta,
-      }));
-    }, 100);
   };
 
   const finishExam = () => {
