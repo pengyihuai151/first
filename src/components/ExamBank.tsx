@@ -49,7 +49,17 @@ export default function ExamBank({
   // 汇总子模块到父级
   function aggregateScores(scores: ExamModuleScore[]): ExamModuleScore[] {
     return scores.map(ms => {
+      // 如果没有 subScores，直接返回
       if (!ms.subScores || ms.subScores.length === 0) return ms;
+      
+      // 检查 subScores 里有没有数据（正确数 > 0 或 总题数 > 0 或 时间 > 0
+      const hasSubData = ms.subScores.some(sub =>
+        sub.correctCount > 0 || sub.totalCount > 0 || sub.duration > 0);
+      
+      // 如果 subScores 没有数据，直接返回一级模块的值
+      if (!hasSubData) return ms;
+      
+      // 如果 subScores 有数据，用子模块汇总覆盖一级
       return {
         ...ms,
         correctCount: ms.subScores.reduce((s, sub) => s + sub.correctCount, 0),
