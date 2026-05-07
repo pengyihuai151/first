@@ -2,19 +2,22 @@ import React, { useState, useEffect, useRef } from 'react';
 import { AppData, StudyModule, MAIN_MODULES } from '../types';
 import { storage } from '../lib/storage';
 import { formatDuration, cn } from '../lib/utils';
-import { Play, Square, Timer, History, Trash2, Bell, X } from 'lucide-react';
+import { Play, Square, Timer, History, Trash2, Bell, X, Pause } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate: () => void }) {
   const [activeModule, setActiveModule] = useState<StudyModule>(MAIN_MODULES[0]);
   const [isRunning, setIsRunning] = useState(false);
+  const [isPaused, setIsPaused] = useState(false); // 暂停状态
   const [time, setTime] = useState(0);
   const [showResume, setShowResume] = useState(false); // 显示继续计时提示
   const [showReminder, setShowReminder] = useState(false); // 显示久学提醒
   const startTimeRef = useRef<number | null>(null);
   const intervalRef = useRef<any>(null);
   const timeRef = useRef(0);
+  const pauseTimeRef = useRef<number>(0); // 暂停时的时间点
+  const totalPausedDurationRef = useRef<number>(0); // 累计暂停时长
   const hasRemindedRef = useRef(false); // 是否已经提醒过
 
   // 同步 time 到 ref
@@ -53,10 +56,15 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
   }, []);
 
   useEffect(() => {
-    if (isRunning) {
-      startTimeRef.current = Date.now() - timeRef.current;
+    if (isRunning && !isPaused) {
+      // 开始或继续计时
+      const effectiveStartTime = pauseTimeRef.current 
+        ? Date.now() - (timeRef.current - totalPausedDurationRef.current)
+        : Date.now() - timeRef.current;
+      startTimeRef.current = effectiveStartTime;
+      
       intervalRef.current = setInterval(() => {
-        const newTime = Date.now() - (startTimeRef.current || 0);
+        const newTime = Date.now() - (startTimeRef.current || 0) + totalPausedDurationRef.current;
         timeRef.current = newTime;
         setTime(newTime);
         
@@ -70,13 +78,18 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
           }
         }
       }, 100);
+    } else if (isRunning && isPaused) {
+      // 暂停
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      pauseTimeRef.current = Date.now();
     } else {
+      // 停止
       if (intervalRef.current) clearInterval(intervalRef.current);
     }
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [isRunning, data.settings.longStudyReminderEnabled, data.settings.longStudyReminderMinutes, data.sessions]);
+  }, [isRunning, isPaused, data.settings.longStudyReminderEnabled, data.settings.longStudyReminderMinutes, data.sessions]);
 
   // 页面隐藏时保存状态
   useEffect(() => {
@@ -98,6 +111,9 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
   const handleResume = () => {
     setShowResume(false);
     setIsRunning(true);
+    setIsPaused(false);
+    pauseTimeRef.current = 0;
+    totalPausedDurationRef.current = 0;
   };
 
   const handleDiscard = () => {
@@ -111,12 +127,31 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
     localStorage.removeItem('studyTimerState');
     hasRemindedRef.current = false;
     setIsRunning(true);
+    setIsPaused(false);
+    pauseTimeRef.current = 0;
+    totalPausedDurationRef.current = 0;
   };
   
+  const handlePause = () => {
+    setIsPaused(true);
+    pauseTimeRef.current = Date.now();
+  };
+
+  const handleContinue = () => {
+    if (pauseTimeRef.current) {
+      totalPausedDurationRef.current += Date.now() - pauseTimeRef.current;
+    }
+    setIsPaused(false);
+    pauseTimeRef.current = 0;
+  };
+
   const handleStop = async () => {
     setIsRunning(false);
+    setIsPaused(false);
     localStorage.removeItem('studyTimerState');
     hasRemindedRef.current = false;
+    pauseTimeRef.current = 0;
+    totalPausedDurationRef.current = 0;
     
     const now = new Date();
     const localDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -125,7 +160,7 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
       const session = {
         id: uuidv4(),
         moduleId: activeModule,
-        startTime: startTimeRef.current || Date.now(),
+        startTime: Date.now() - time,
         duration: time,
         date: localDate
       };
@@ -147,6 +182,7 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
     }
     setActiveModule(module);
     setIsRunning(false);
+    setIsPaused(false);
   };
 
   const deleteSession = async (id: string) => {
@@ -198,7 +234,7 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
       {/* Timer Section */}
       <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 flex flex-col items-center gap-8 relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-1 bg-slate-50">
-            {isRunning && (
+            {isRunning && !isPaused && (
                  <motion.div 
                     initial={{ x: '-100%' }}
                     animate={{ x: '100%' }}
@@ -232,7 +268,7 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
             {formatDuration(time)}
           </span>
           <span className="text-xs text-slate-400 font-medium uppercase tracking-widest">
-            {isRunning ? '正在计时...' : '准备就绪'}
+            {isPaused ? '已暂停' : isRunning ? '正在计时...' : '准备就绪'}
           </span>
         </div>
 
@@ -244,13 +280,36 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
             >
               <Play size={28} fill="currentColor" />
             </button>
+          ) : isPaused ? (
+            <>
+              <button
+                onClick={handleContinue}
+                className="w-16 h-16 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-xl shadow-indigo-100 hover:scale-105 active:scale-95 transition-transform"
+              >
+                <Play size={28} fill="currentColor" />
+              </button>
+              <button
+                onClick={handleStop}
+                className="w-16 h-16 rounded-full bg-rose-500 text-white flex items-center justify-center shadow-xl shadow-rose-100 hover:scale-105 active:scale-95 transition-transform"
+              >
+                <Square size={28} fill="currentColor" />
+              </button>
+            </>
           ) : (
-            <button
-              onClick={handleStop}
-              className="w-16 h-16 rounded-full bg-rose-500 text-white flex items-center justify-center shadow-xl shadow-rose-100 hover:scale-105 active:scale-95 transition-transform"
-            >
-              <Square size={28} fill="currentColor" />
-            </button>
+            <>
+              <button
+                onClick={handlePause}
+                className="w-16 h-16 rounded-full bg-amber-500 text-white flex items-center justify-center shadow-xl shadow-amber-100 hover:scale-105 active:scale-95 transition-transform"
+              >
+                <Pause size={28} fill="currentColor" />
+              </button>
+              <button
+                onClick={handleStop}
+                className="w-16 h-16 rounded-full bg-rose-500 text-white flex items-center justify-center shadow-xl shadow-rose-100 hover:scale-105 active:scale-95 transition-transform"
+              >
+                <Square size={28} fill="currentColor" />
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -338,6 +397,7 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
                   onClick={() => {
                     setShowReminder(false);
                     setIsRunning(false);
+                    setIsPaused(false);
                     hasRemindedRef.current = false;
                     setTime(0);
                     timeRef.current = 0;
