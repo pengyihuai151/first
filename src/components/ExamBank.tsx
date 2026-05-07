@@ -36,6 +36,8 @@ export default function ExamBank({
   const [isAdding, setIsAdding] = useState(false);
   const [isLiveMode, setIsLiveMode] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  // 管理每个模块的展开状态
+  const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>({});
 
   const [newExam, setNewExam] = useState<Partial<ExamRecord>>({
     title: '',
@@ -142,11 +144,28 @@ export default function ExamBank({
 
   const handleLiveFinish = (results: { title: string; scores: { moduleId: StudyModule; subTopic?: string; duration: number; subDurations?: Record<string, number> }[] }) => {
     setEditingId(null);
-    // 先使用空的 moduleScores，确保能正常显示
+    // 直接设置好完整的数据
     setNewExam({
       title: results.title,
       date: Date.now(),
-      moduleScores: MAIN_MODULES.map(m => createEmptyModuleScore(m)),
+      moduleScores: MAIN_MODULES.map(m => {
+        const score = results.scores.find(s => s.moduleId === m);
+        const subs = getSubTopics(m);
+        return {
+          moduleId: m as StudyModule,
+          duration: score ? score.duration * 1000 : 0, // 转回毫秒
+          subScores: subs.length > 0 && score?.subDurations
+            ? subs.map(sub => ({
+                subTopic: sub,
+                correctCount: 0,
+                totalCount: 0,
+                duration: (score.subDurations[sub] || 0) * 1000 // 转回毫秒
+              }))
+            : undefined,
+          correctCount: 0,
+          totalCount: 0
+        };
+      }),
       reflection: ''
     });
     // 先关闭 Live Mode
@@ -154,31 +173,7 @@ export default function ExamBank({
     // 确保动画完全结束后再打开 Add Modal
     setTimeout(() => {
       setIsAdding(true);
-      // 等 Add Modal 打开后再填充数据
-      setTimeout(() => {
-        setNewExam(prev => ({
-          ...prev,
-          moduleScores: MAIN_MODULES.map(m => {
-            const score = results.scores.find(s => s.moduleId === m);
-            const subs = getSubTopics(m);
-            return {
-              moduleId: m as StudyModule,
-              duration: score ? score.duration * 1000 : 0, // 转回毫秒
-              subScores: subs.length > 0 && score?.subDurations
-                ? subs.map(sub => ({
-                    subTopic: sub,
-                    correctCount: 0,
-                    totalCount: 0,
-                    duration: (score.subDurations[sub] || 0) * 1000 // 转回毫秒
-                  }))
-                : undefined,
-              correctCount: 0,
-              totalCount: 0
-            };
-          })
-        }));
-      }, 100);
-    }, 300);
+    }, 350);
   };
 
   return (
@@ -279,12 +274,12 @@ export default function ExamBank({
                 {MAIN_MODULES.map(m => {
                   const score = newExam.moduleScores?.find(ms => ms.moduleId === m);
                   const subs = getSubTopics(m);
-                  const [showSubs, setShowSubs] = useState(false);
+                  const showSubs = expandedModules[m] || false;
 
                   return (
                     <div key={m} className="bg-slate-50/50 border border-slate-100 p-4 rounded-3xl space-y-3">
                       {/* 大模块标题 + 展开按钮 */}
-                      <div className="flex items-center justify-between cursor-pointer" onClick={() => setShowSubs(!showSubs)}>
+                      <div className="flex items-center justify-between cursor-pointer" onClick={() => setExpandedModules(prev => ({ ...prev, [m]: !prev[m] }))}>
                         <div className="flex items-center gap-2">
                           <div className={`w-1.5 h-1.5 rounded-full ${subs.length > 0 ? 'bg-indigo-500' : 'bg-emerald-500'}`} />
                           <span className="text-xs font-bold text-slate-700">{m}</span>
@@ -594,7 +589,7 @@ function ExamLiveMode({ onFinish, onClose }: { onFinish: (res: any) => void; onC
   }
 
   return (
-    <div className="fixed inset-0 z-[110] bg-slate-900 flex flex-col text-white">
+    <div className="fixed inset-0 z-[105] bg-slate-900 flex flex-col text-white">
       <div className="p-6 pt-12 text-center space-y-4">
         <div className="text-xs font-bold text-slate-500 uppercase tracking-[0.2em]">{examTitle}</div>
         <div className="flex flex-col items-center">
