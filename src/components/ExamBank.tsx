@@ -384,13 +384,12 @@ function ExamLiveMode({ onFinish, onClose }: { onFinish: (res: any) => void; onC
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const lastTickRef = useRef<number>(0);
-  const activeModuleRef = useRef<StudyModule>(currentModule);
-  const activeSubRef = useRef<string | null>(currentSub);
 
-  useEffect(() => {
-    activeModuleRef.current = currentModule;
-    activeSubRef.current = currentSub;
-  }, [currentModule, currentSub]);
+  // 获取当前活跃的计时目标（子模块优先）
+  const getActiveTarget = () => {
+    if (currentSub) return currentSub;
+    return currentModule;
+  };
 
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -404,16 +403,17 @@ function ExamLiveMode({ onFinish, onClose }: { onFinish: (res: any) => void; onC
           const delta = now - lastTickRef.current;
           lastTickRef.current = now;
           setElapsed(prev => prev + delta);
+          const active = getActiveTarget();
           setModuleDurations(prev => ({
             ...prev,
-            [activeModuleRef.current]: (prev[activeModuleRef.current] || 0) + delta
+            [active]: (prev[active] || 0) + delta
           }));
         }, 100);
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [isStarted]);
+  }, [isStarted, currentModule, currentSub]);
 
   const startExam = () => {
     setIsStarted(true);
@@ -423,9 +423,10 @@ function ExamLiveMode({ onFinish, onClose }: { onFinish: (res: any) => void; onC
       const delta = now - lastTickRef.current;
       lastTickRef.current = now;
       setElapsed(prev => prev + delta);
+      const active = getActiveTarget();
       setModuleDurations(prev => ({
         ...prev,
-        [activeModuleRef.current]: (prev[activeModuleRef.current] || 0) + delta
+        [active]: (prev[active] || 0) + delta
       }));
     }, 100);
   };
@@ -436,20 +437,26 @@ function ExamLiveMode({ onFinish, onClose }: { onFinish: (res: any) => void; onC
 
   const finishExam = () => {
     if (timerRef.current) clearInterval(timerRef.current);
-    // 收集子模块时长（简化：按比例分配）
-    const scoresWithSubs = Object.entries(moduleDurations).map(([id, dur]) => ({
-      moduleId: id as StudyModule,
-      duration: dur,
-      subDurations: hasSubModules(id) ? (() => {
-        const subs = getSubTopics(id);
-        // 如果有子模块计时数据则返回，否则均分
-        const result: Record<string, number> = {};
-        subs.forEach((_, i) => {
-          result[subs[i]] = Math.floor(dur / subs.length);
+    // 正确收集：大模块时长 + 子模块时长（如果有）
+    const scoresWithSubs = MAIN_MODULES.map(m => {
+      const hasSub = hasSubModules(m);
+      const subs = getSubTopics(m);
+      const moduleDuration = moduleDurations[m] || 0;
+      
+      // 如果有子模块计时，用子模块的；否则用大模块的
+      const subDurations: Record<string, number> = {};
+      if (hasSub) {
+        subs.forEach(sub => {
+          subDurations[sub] = moduleDurations[sub] || 0;
         });
-        return result;
-      })() : undefined
-    }));
+      }
+
+      return {
+        moduleId: m,
+        duration: moduleDuration,
+        subDurations: hasSub ? subDurations : undefined
+      };
+    });
 
     onFinish({ title: examTitle, scores: scoresWithSubs });
   };
