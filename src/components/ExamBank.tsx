@@ -142,34 +142,43 @@ export default function ExamBank({
 
   const handleLiveFinish = (results: { title: string; scores: { moduleId: StudyModule; subTopic?: string; duration: number; subDurations?: Record<string, number> }[] }) => {
     setEditingId(null);
+    // 先使用空的 moduleScores，确保能正常显示
     setNewExam({
       title: results.title,
       date: Date.now(),
-      moduleScores: MAIN_MODULES.map(m => {
-        const score = results.scores.find(s => s.moduleId === m);
-        const subs = getSubTopics(m);
-        return {
-          moduleId: m as StudyModule,
-          duration: score?.duration || 0,
-          subScores: subs.length > 0 && score?.subDurations
-            ? subs.map(sub => ({
-                subTopic: sub,
-                correctCount: 0,
-                totalCount: 0,
-                duration: score.subDurations[sub] || 0
-              }))
-            : undefined,
-          correctCount: 0,
-          totalCount: 0
-        };
-      }),
+      moduleScores: MAIN_MODULES.map(m => createEmptyModuleScore(m)),
       reflection: ''
     });
+    // 先关闭 Live Mode
     setIsLiveMode(false);
-    // 确保 isAdding 在 isLiveMode 关闭后设置
+    // 确保动画完全结束后再打开 Add Modal
     setTimeout(() => {
       setIsAdding(true);
-    }, 50);
+      // 等 Add Modal 打开后再填充数据
+      setTimeout(() => {
+        setNewExam(prev => ({
+          ...prev,
+          moduleScores: MAIN_MODULES.map(m => {
+            const score = results.scores.find(s => s.moduleId === m);
+            const subs = getSubTopics(m);
+            return {
+              moduleId: m as StudyModule,
+              duration: score ? score.duration * 1000 : 0, // 转回毫秒
+              subScores: subs.length > 0 && score?.subDurations
+                ? subs.map(sub => ({
+                    subTopic: sub,
+                    correctCount: 0,
+                    totalCount: 0,
+                    duration: (score.subDurations[sub] || 0) * 1000 // 转回毫秒
+                  }))
+                : undefined,
+              correctCount: 0,
+              totalCount: 0
+            };
+          })
+        }));
+      }, 100);
+    }, 300);
   };
 
   return (
