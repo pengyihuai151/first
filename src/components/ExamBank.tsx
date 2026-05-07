@@ -162,10 +162,14 @@ export default function ExamBank({
           correctCount: 0,
           totalCount: 0
         };
-      })
+      }),
+      reflection: ''
     });
     setIsLiveMode(false);
-    setIsAdding(true);
+    // 确保 isAdding 在 isLiveMode 关闭后设置
+    setTimeout(() => {
+      setIsAdding(true);
+    }, 50);
   };
 
   return (
