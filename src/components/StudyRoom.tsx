@@ -18,7 +18,7 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
   const timeRef = useRef(0);
   const pauseTimeRef = useRef<number>(0); // 暂停时的时间点
   const totalPausedDurationRef = useRef<number>(0); // 累计暂停时长
-  const hasRemindedRef = useRef(false); // 是否已经提醒过
+  const reminderStartTimeRef = useRef<number>(0); // 当前提醒周期的开始时间（毫秒）
 
   // 同步 time 到 ref
   useEffect(() => {
@@ -58,13 +58,13 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
         timeRef.current = newTime;
         setTime(newTime);
         
-        // 久学提醒检测：累计今天已保存 + 当前计时
-        if (data.settings.studyReminderEnabled && !hasRemindedRef.current) {
-          const todaySaved = getTodaySavedDuration();
+        // 久学提醒检测：只计算当前提醒周期内的学习时间
+        if (data.settings.studyReminderEnabled) {
           const reminderMs = (data.settings.studyReminderMinutes || 60) * 60 * 1000;
-          if (todaySaved + timeRef.current >= reminderMs) {
+          const currentPeriodDuration = timeRef.current - reminderStartTimeRef.current;
+          
+          if (currentPeriodDuration >= reminderMs) {
             setShowReminder(true);
-            hasRemindedRef.current = true;
             setIsPaused(true); // 弹出提醒时自动暂停
           }
         }
@@ -80,7 +80,7 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [isRunning, isPaused, data.settings.studyReminderEnabled, data.settings.studyReminderMinutes, data.sessions]);
+  }, [isRunning, isPaused, data.settings.studyReminderEnabled, data.settings.studyReminderMinutes]);
 
   // 组件卸载时保存状态（切换 Tab 时触发）
   useEffect(() => {
@@ -112,7 +112,7 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
 
   const handleStart = () => {
     localStorage.removeItem('studyTimerState');
-    hasRemindedRef.current = false;
+    reminderStartTimeRef.current = 0; // 开始新计时时，重置提醒周期
     setIsRunning(true);
     setIsPaused(false);
     pauseTimeRef.current = 0;
@@ -136,7 +136,7 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
     setIsRunning(false);
     setIsPaused(false);
     localStorage.removeItem('studyTimerState');
-    hasRemindedRef.current = false;
+    reminderStartTimeRef.current = 0; // 结束计时时，重置提醒周期
     pauseTimeRef.current = 0;
     totalPausedDurationRef.current = 0;
     
@@ -375,7 +375,10 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
 
               <div className="flex gap-3">
                 <button
-                  onClick={() => setShowReminder(false)}
+                  onClick={() => {
+                    setShowReminder(false);
+                    reminderStartTimeRef.current = timeRef.current; // 关闭提醒后，重置提醒周期起点
+                  }}
                   className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-xl font-bold text-sm active:scale-95 transition-all"
                 >
                   知道了
@@ -385,7 +388,7 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
                     setShowReminder(false);
                     setIsRunning(false);
                     setIsPaused(false);
-                    hasRemindedRef.current = false;
+                    reminderStartTimeRef.current = 0;
                     setTime(0);
                     timeRef.current = 0;
                   }}
