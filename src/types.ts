@@ -125,7 +125,6 @@ export interface AppData {
   settings: {
     examDate: string | null;
     quotes: string[];
-    moduleTargets?: Record<string, number>;
     studyReminderEnabled?: boolean; // 久学提醒开关
     studyReminderMinutes?: number; // 久学提醒时长（分钟）
   };

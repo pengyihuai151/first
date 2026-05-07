@@ -20,14 +20,6 @@ export const storage = {
           "乾坤未定，你我皆是黑马。",
           "种一棵树最好的时间是十年前，其次是现在。"
         ],
-        moduleTargets: {
-          '言语理解': 0.8,
-          '判断推理': 0.8,
-          '资料分析': 0.8,
-          '数量关系': 0.5,
-          '政治': 0.5,
-          '常识判断': 0, // No specific limit
-        },
         studyReminderEnabled: false,
         studyReminderMinutes: 45,
       },
@@ -46,10 +38,6 @@ export const storage = {
       data.examRecords = [];
     }
 
-    if (!data.settings.moduleTargets) {
-      data.settings.moduleTargets = defaultData.settings.moduleTargets;
-    }
-    
     if (!data.config) {
       data.config = defaultData.config;
     }
