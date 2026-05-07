@@ -813,22 +813,12 @@ function RecordCard({
                 </div>
               )}
 
-              {/* 各模块详情（只显示大模块，不带子模块） */}
-              {record.moduleScores.map(ms => {
-                const modAcc = ms.totalCount > 0 ? Math.round((ms.correctCount / ms.totalCount) * 100) : 0;
-                const subs = getSubTopics(ms.moduleId);
-                return (
-                  <div key={ms.moduleId} className="bg-white px-3 py-2.5 rounded-2xl border border-slate-100/50">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-[10px] font-bold text-slate-700">{ms.moduleId}</div>
-                        <div className="text-[9px] text-slate-400 mt-0.5">耗时: {formatTimeWithSeconds(ms.duration)} | 正确: {ms.correctCount}/{ms.totalCount}</div>
-                      </div>
-                      <div className={cn("text-xs font-bold", modAcc >= 80 ? "text-emerald-500" : modAcc >= 60 ? "text-amber-500" : "text-rose-500")}>{modAcc}%</div>
-                    </div>
-                  </div>
-                );
-              })}
+              {/* 各模块详情（极简版） */}
+              {record.moduleScores.map((ms, index) => (
+                <div key={index} className="bg-white px-3 py-2.5 rounded-2xl border border-slate-100/50">
+                  <div className="text-[10px] font-bold text-slate-700">模块 {index + 1}</div>
+                </div>
+              ))}
 
               {/* 录入错题按钮 */}
               {onNavigate && (
