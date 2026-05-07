@@ -30,8 +30,8 @@ export default function App() {
   };
 
   const handleNavigate = (tab: string, extra?: string) => {
-    if (extra === 'examId') {
-      setSelectedExamId(tab as any);
+    if (tab === 'wrong' && extra) {
+      setSelectedExamId(extra);
       setActiveTab('wrong');
       return;
     }
