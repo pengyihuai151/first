@@ -67,15 +67,14 @@ export default function WrongQuestionBank({ data, onUpdate }: { data: AppData; o
 
   const [newQuestion, setNewQuestion] = useState<Partial<WrongQuestion>>({
     moduleId: lastUsedSettings.moduleId,
-    content: '',
     analysis: '',
     tags: lastUsedSettings.tags,
     errorReason: lastUsedSettings.errorReason
   });
 
   const saveQuestion = async () => {
-    if (!newQuestion.content && !newQuestion.errorReason) {
-      alert('请填写题目或选择错误原因');
+    if (!newQuestion.errorReason) {
+      alert('请选择错误原因');
       return;
     }
 
@@ -86,7 +85,6 @@ export default function WrongQuestionBank({ data, onUpdate }: { data: AppData; o
           await storage.updateWrongQuestion({
             ...existing,
             moduleId: newQuestion.moduleId as StudyModule,
-            content: newQuestion.content || '',
             analysis: newQuestion.analysis || '',
             tags: newQuestion.tags || [],
             errorReason: newQuestion.errorReason || ''
@@ -96,7 +94,6 @@ export default function WrongQuestionBank({ data, onUpdate }: { data: AppData; o
         await storage.addWrongQuestion({
           id: uuidv4(),
           moduleId: newQuestion.moduleId as StudyModule,
-          content: newQuestion.content || '',
           analysis: newQuestion.analysis || '',
           tags: newQuestion.tags || [],
           errorReason: newQuestion.errorReason || '',
@@ -116,7 +113,6 @@ export default function WrongQuestionBank({ data, onUpdate }: { data: AppData; o
       // 重置表单
       setNewQuestion({
         moduleId: newQuestion.moduleId as StudyModule,
-        content: '',
         analysis: '',
         tags: [...(newQuestion.tags || [])],
         errorReason: ''
@@ -130,7 +126,6 @@ export default function WrongQuestionBank({ data, onUpdate }: { data: AppData; o
   const handleEdit = (q: WrongQuestion) => {
     setNewQuestion({
       moduleId: q.moduleId,
-      content: q.content,
       analysis: q.analysis,
       tags: q.tags || [],
       errorReason: q.errorReason || ''
@@ -150,7 +145,7 @@ export default function WrongQuestionBank({ data, onUpdate }: { data: AppData; o
     .filter(q => filter === '全部' || q.moduleId === filter)
     .filter(q => masteredFilter === '全部' || (masteredFilter === '已掌握' ? q.mastered : !q.mastered))
     .filter(q => tagFilter === '全部' || tagFilter === '全部知识点' || q.tags?.includes(tagFilter))
-    .filter(q => q.content.includes(search) || (q.analysis && q.analysis.includes(search)))
+    .filter(q => q.analysis && q.analysis.includes(search))
     .sort((a, b) => b.createdAt - a.createdAt);
 
   return (
@@ -167,7 +162,6 @@ export default function WrongQuestionBank({ data, onUpdate }: { data: AppData; o
               setEditingId(null);
               setNewQuestion({ 
                 moduleId: lastUsedSettings.moduleId, 
-                content: '', 
                 analysis: '',
                 tags: [...lastUsedSettings.tags],
                 errorReason: ''
@@ -295,11 +289,7 @@ export default function WrongQuestionBank({ data, onUpdate }: { data: AppData; o
                   </div>
                 </div>
                 <div className="space-y-3">
-                  <div>
-                    <h4 className="text-[10px] font-bold text-slate-400 uppercase mb-1">题目/核心内容</h4>
-                    <p className="text-sm text-slate-700 leading-relaxed font-medium">{q.content}</p>
-                  </div>
-                      <div className="flex flex-wrap gap-1.5 pt-1">
+                  <div className="flex flex-wrap gap-1.5 pt-1">
                         {q.tags?.map(tag => (
                           <span key={tag} className="px-2 py-0.5 bg-indigo-50 text-indigo-500 rounded-md text-[9px] font-bold">
                             # {tag}
@@ -365,11 +355,15 @@ export default function WrongQuestionBank({ data, onUpdate }: { data: AppData; o
                 <div className="space-y-4">
                   <section>
                     <h4 className="text-[10px] font-bold text-slate-400 uppercase mb-2 flex items-center gap-2">
-                       <div className="w-1 h-3 bg-indigo-500 rounded-full" /> 题目/考点内容
+                       <div className="w-1 h-3 bg-indigo-500 rounded-full" /> 知识点标签
                     </h4>
-                    <p className="text-base text-slate-800 leading-relaxed font-medium whitespace-pre-wrap">
-                      {viewingQuestion.content || '（未填写具体题目）'}
-                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {viewingQuestion.tags?.map(tag => (
+                        <span key={tag} className="px-3 py-1 bg-indigo-50 text-indigo-500 rounded-full text-xs font-bold">
+                          # {tag}
+                        </span>
+                      ))}
+                    </div>
                   </section>
 
                   {/* 错误原因 */}
@@ -490,16 +484,6 @@ export default function WrongQuestionBank({ data, onUpdate }: { data: AppData; o
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase">题目/考点内容</label>
-                  <textarea 
-                    value={newQuestion.content}
-                    onChange={(e) => setNewQuestion(prev => ({ ...prev, content: e.target.value }))}
-                    className="w-full px-4 py-3 bg-slate-50 border-none rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500/20 min-h-[100px] outline-none"
-                    placeholder="请输入写错的题目或考点..."
-                  />
-                </div>
-
-                <div className="space-y-2">
                   <label className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1">
                      <Tag size={10} /> 细分知识点 (必选)
                   </label>
@@ -570,7 +554,7 @@ export default function WrongQuestionBank({ data, onUpdate }: { data: AppData; o
               <div className="p-6 bg-slate-50/50 border-t border-slate-100 italic">
                 <button 
                   onClick={saveQuestion}
-                  disabled={!newQuestion.content && !newQuestion.errorReason}
+                  disabled={!newQuestion.errorReason}
                   className="w-full bg-indigo-600 text-white py-3 rounded-2xl font-bold shadow-xl shadow-indigo-100 disabled:opacity-50 disabled:shadow-none transition-all flex items-center justify-center gap-2"
                 >
                   <Check size={18} /> {editingId ? '保存修改' : '保存错题卡'}

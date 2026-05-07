@@ -19,7 +19,8 @@ export default function ExamBank({ data, onUpdate }: { data: AppData; onUpdate: 
       duration: 0,
       correctCount: 0,
       totalCount: 0
-    }))
+    })),
+    reflection: ''
   });
 
   // 保存考试记录，并同时创建学习记录
@@ -34,7 +35,7 @@ export default function ExamBank({ data, onUpdate }: { data: AppData; onUpdate: 
       title: newExam.title,
       date: newExam.date || Date.now(),
       moduleScores: (newExam.moduleScores || []) as ExamModuleScore[],
-      note: newExam.note
+      note: newExam.reflection
     };
 
     // 创建各模块的学习记录
@@ -281,6 +282,18 @@ export default function ExamBank({ data, onUpdate }: { data: AppData; onUpdate: 
                       </div>
                     );
                   })}
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-500 px-1 uppercase tracking-wider flex items-center gap-1">
+                    🖊️ 考试反思
+                  </label>
+                  <textarea
+                    value={newExam.reflection || ''}
+                    onChange={(e) => setNewExam(prev => ({ ...prev, reflection: e.target.value }))}
+                    placeholder="写完这场考试后，你的感受和反思是什么？哪里做得好，哪里需要改进？"
+                    className="w-full bg-slate-50 border-none rounded-2xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-100 outline-none min-h-[120px] resize-none"
+                  />
                 </div>
 
                 <button 
@@ -610,6 +623,12 @@ function RecordCard({
                   </div>
                 );
               })}
+              {record.reflection && (
+                <div className="bg-amber-50 rounded-2xl px-3 py-2.5 border border-amber-100/50">
+                  <div className="text-[10px] font-bold text-amber-600 mb-1">🖊️ 考试反思</div>
+                  <div className="text-xs text-slate-600 leading-relaxed">{record.reflection}</div>
+                </div>
+              )}
             </div>
           </motion.div>
         )}

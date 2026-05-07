@@ -93,7 +93,7 @@ export interface ExamRecord {
   title: string;
   date: number;
   moduleScores: ExamModuleScore[];
-  note?: string;
+  reflection?: string;
 }
 
 export interface AppData {

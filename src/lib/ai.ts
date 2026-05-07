@@ -30,7 +30,8 @@ const SYSTEM_PROMPT = `你是公考备考助手，专门帮助用户高效备考
 3. 不要重复词语或句子
 4. 直接给出建议，不要客套话
 5. 如果用户有部分数据（如错题、学习时长），先分析有数据的部分，不要只说"暂无相关数据"
-6. 优先根据错题和学习时长给出建议，没有模考记录没关系`;
+6. 优先根据错题和学习时长给出建议，没有模考记录没关系
+7. 如果模考记录中有"反思"内容，要结合反思分析用户自我认知到的优势和不足，给出针对性建议`;
 
 // 构建用户画像
 function buildUserProfilePrompt(data: {
@@ -154,7 +155,8 @@ ${recentExams.length > 0 ? recentExams.map((r: any, i: number) => {
   const totalCorrect = (r.moduleScores || []).reduce((s: number, ms: any) => s + (ms.correctCount || 0), 0);
   const totalCount = (r.moduleScores || []).reduce((s: number, ms: any) => s + (ms.totalCount || 0), 0);
   const pct = totalCount > 0 ? Math.round(totalCorrect / totalCount * 100) : 0;
-  return `• 第${recentExams.length - i}次：${totalCorrect}/${totalCount}（${pct}%）`;
+  const refl = r.reflection ? `\n  反思：${r.reflection}` : '';
+  return `• 第${recentExams.length - i}次：${totalCorrect}/${totalCount}（${pct}%）${refl}`;
 }).join('\n') : '- 暂无模考记录'}
 
 ⏱️ 学习时长：
