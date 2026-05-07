@@ -40,8 +40,9 @@ function buildUserProfilePrompt(data: {
   sessions: any[];
   settings: any;
   notes?: any[]; // 实际笔记字段
+  targetExams?: any[]; // 目标考试
 }) {
-  const { wrongQuestions = [], examRecords = [], sessions = [], settings, notes = [] } = data;
+  const { wrongQuestions = [], examRecords = [], sessions = [], settings, notes = [], targetExams = [] } = data;
   
   // 错题统计
   const totalWrong = wrongQuestions.length;
@@ -181,9 +182,54 @@ ${recentExams.length > 0 ? recentExams.map((r: any, i: number) => {
 - 累计：${Math.round(totalTime / 3600000 * 10) / 10} 小时
 - 学习天数：${studyDays} 天
 
+📊 学习时间趋势：
+${(() => {
+  const now = Date.now();
+  const oneWeekAgo = now - 7 * 24 * 60 * 60 * 1000;
+  const twoWeeksAgo = now - 14 * 24 * 60 * 60 * 1000;
+  
+  const lastWeekSessions = sessions.filter((s: any) => s.date > oneWeekAgo);
+  const prevWeekSessions = sessions.filter((s: any) => s.date > twoWeeksAgo && s.date <= oneWeekAgo);
+  
+  const lastWeekTime = lastWeekSessions.reduce((acc: number, s: any) => acc + s.duration, 0);
+  const prevWeekTime = prevWeekSessions.reduce((acc: number, s: any) => acc + s.duration, 0);
+  
+  const lastWeekHours = Math.round(lastWeekTime / 3600000 * 10) / 10;
+  const prevWeekHours = Math.round(prevWeekTime / 3600000 * 10) / 10;
+  
+  const trend = prevWeekHours > 0 ? Math.round((lastWeekHours - prevWeekHours) / prevWeekHours * 100) : 0;
+  const trendText = trend > 0 ? `上升 ${trend}%` : trend < 0 ? `下降 ${Math.abs(trend)}%` : '持平';
+  
+  return `- 近7天：${lastWeekHours} 小时
+- 前7天：${prevWeekHours} 小时
+- 趋势：${trendText}`;
+})()}
+
+🎯 目标考试：
+${(() => {
+  if (targetExams.length === 0) return '- 暂无目标考试';
+  
+  const now = new Date();
+  const upcomingExams = targetExams
+    .map((e: any) => ({
+      ...e,
+      dateObj: new Date(e.date),
+      daysLeft: Math.ceil((new Date(e.date).getTime() - now.getTime()) / (24 * 60 * 60 * 1000))
+    }))
+    .filter((e: any) => e.daysLeft >= 0)
+    .sort((a: any, b: any) => a.daysLeft - b.daysLeft);
+  
+  if (upcomingExams.length === 0) return '- 无即将到来的考试';
+  
+  const nearest = upcomingExams[0];
+  return `- 最近：${nearest.name}（${nearest.date}）
+- 倒计时：${nearest.daysLeft} 天
+${upcomingExams.length > 1 ? `- 共 ${upcomingExams.length} 场目标考试` : ''}`;
+})()}
+
 📚 笔记数量：${noteCount} 篇
 
-🎯 目标：每日 ${settings?.dailyTarget || 30} 分钟`;
+🎯 每日目标：${settings?.dailyTarget || 30} 分钟`;
 }
 
 // 过滤重复词

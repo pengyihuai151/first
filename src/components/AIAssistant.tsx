@@ -61,7 +61,8 @@ export default function AIAssistant({ data, compact = false, onClose, onNavigate
         examRecords: data.examRecords || [],
         sessions: data.sessions || [],
         settings: data.settings,
-        notes: data.notes || []
+        notes: data.notes || [],
+        targetExams: data.targetExams || []
       };
       
       let accumulatedText = '';
