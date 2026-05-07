@@ -50,7 +50,7 @@ function buildUserProfilePrompt(data: {
   const unMasteredWrong = totalWrong - masteredWrong;
   
   // 按模块统计
-  const modules = ['言语理解', '判断推理', '数量关系', '资料分析', '常识判断', '政治理论'];
+  const modules = ['言语理解', '判断推理', '数量关系', '资料分析', '常识判断', '政治'];
   const moduleStats = modules.map(mod => {
     const modQuestions = wrongQuestions.filter((q: any) => q.moduleId === mod);
     const mastered = modQuestions.filter((q: any) => q.mastered).length;
@@ -123,7 +123,7 @@ ${topReasons.length > 0 ? topReasons.map(r => `• ${r[0]}：${r[1]}次`).join('
 
 📊 知识点细分排行（按模块）：
 ${(() => {
-  const modules = ['言语理解', '判断推理', '数量关系', '资料分析', '常识判断', '政治理论'];
+  const modules = ['言语理解', '判断推理', '数量关系', '资料分析', '常识判断', '政治'];
   const lines: string[] = [];
   modules.forEach(mod => {
     const modQuestions = wrongQuestions.filter((q: any) => q.moduleId === mod);
