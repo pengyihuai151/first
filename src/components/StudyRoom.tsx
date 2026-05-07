@@ -22,6 +22,14 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
     timeRef.current = time;
   }, [time]);
 
+  // 计算今天已保存的学习记录的总时长
+  const getTodaySavedDuration = () => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    return data.sessions
+      .filter(s => s.date === todayStr)
+      .reduce((sum, s) => sum + s.duration, 0);
+  };
+
   // 初始化：从 localStorage 恢复计时状态
   useEffect(() => {
     const savedState = localStorage.getItem('studyTimerState');
@@ -52,10 +60,11 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
         timeRef.current = newTime;
         setTime(newTime);
         
-        // 久学提醒检测：仅当前计时时间
-        if (data.settings.studyReminderEnabled && !hasRemindedRef.current) {
-          const reminderMs = (data.settings.studyReminderMinutes || 45) * 60 * 1000;
-          if (timeRef.current >= reminderMs) {
+        // 久学提醒检测：累计今天已保存 + 当前计时
+        if (data.settings.longStudyReminderEnabled && !hasRemindedRef.current) {
+          const todaySaved = getTodaySavedDuration();
+          const reminderMs = (data.settings.longStudyReminderMinutes || 45) * 60 * 1000;
+          if (todaySaved + timeRef.current >= reminderMs) {
             setShowReminder(true);
             hasRemindedRef.current = true;
           }
@@ -67,7 +76,7 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [isRunning, data.settings.studyReminderEnabled, data.settings.studyReminderMinutes]);
+  }, [isRunning, data.settings.longStudyReminderEnabled, data.settings.longStudyReminderMinutes, data.sessions]);
 
   // 页面隐藏时保存状态
   useEffect(() => {
@@ -147,6 +156,11 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
   };
 
   const sortedSessions = [...data.sessions].sort((a, b) => b.startTime - a.startTime).slice(0, 5);
+
+  // 计算总累计时长（今天已保存 + 当前计时）用于显示
+  const getTotalDurationForDisplay = () => {
+    return getTodaySavedDuration() + time;
+  };
 
   return (
     <div className="space-y-6 pb-6">
@@ -309,7 +323,7 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
               <div className="mb-6">
                 <h3 className="text-xl font-bold text-slate-800 mb-2">该休息了！</h3>
                 <p className="text-slate-600 text-sm leading-relaxed">
-                  你已经连续学习了 {formatDuration(time)}。建议休息一下，保护眼睛，活动活动身体。
+                  你今天已经累计学习了 {formatDuration(getTotalDurationForDisplay())}。建议休息一下，保护眼睛，活动活动身体。
                 </p>
               </div>
 
