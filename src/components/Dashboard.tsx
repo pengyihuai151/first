@@ -204,34 +204,34 @@ export default function Dashboard({ data, onUpdate, onNavigate }: { data: AppDat
 
         if (!isSlacking) return null;
 
-        // 懈怠语录库（犀利+激励随机混合）
+        // 懈怠语录库（全犀利版）
         const lazyQuotes = [
-          { text: "你现在的对手，正在你偷懒的时候多刷了5道题。", type: "strict" },
-          { text: "公考不是比谁聪明，是比谁能坐得住。你今天坐住了吗？", type: "strict" },
-          { text: "别人在卷，你在躺？上岸的人里没有躺赢的。", type: "strict" },
-          { text: "今天的「明天再学」，就是考场上那道做不出来的题。", type: "strict" },
-          { text: "你的对手不会因为你累了就停下来等你。", type: "strict" },
-          { text: "刷手机的时间，够你做完一篇资料分析再加10道言语题。", type: "strict" },
-          { text: "每天差30分钟，一个月就是15个小时的差距。这差距能拉开多少分，你自己算算。", type: "strict" },
-          { text: "别假装努力，结果不会陪你演戏。", type: "strict" },
-          { text: "你现在流的汗，都是当初脑子进的水——还不赶紧学！", type: "strict" },
-          { text: "上岸和落榜之间，差的从来不是智商，而是你能不能坚持每天的那几个小时。", type: "strict" },
-          { text: "你已经坚持了这么久，别让今天成为那个「放弃的一天」。", type: "motivate" },
-          { text: "每多学一分钟，离上岸就又近了一步。动起来！", type: "motivate" },
-          { text: "今天的努力，就是明天的底气。现在就开始，还来得及。", type: "motivate" },
-          { text: "你不是没有能力，你只是还没逼自己一把。", type: "motivate" },
-          { text: "想想拿到录取通知书那一刻——值不值得现在多拼一下？", type: "motivate" },
-          { text: "最怕的不是失败，而是本可以做到却没有全力以赴。", type: "motivate" },
-          { text: "休息是为了走更远的路，但你现在走的路还不够远。", type: "motivate" },
-          { text: "把手机放下，去学20分钟。就20分钟，你会发现没那么难。", type: "action" },
-          { text: "先做个5道题热身，状态自然就来了。别犹豫，去做。", type: "action" },
-          { text: "打开错题本看3道题，就当给大脑开个胃。现在就去。", type: "action" },
+          { text: "你现在的对手，正在你偷懒的时候多刷了10道题。你在干嘛？", type: "strict" },
+          { text: "公考不是比谁聪明，是比谁能坐得住。你今天屁股粘椅子了吗？", type: "strict" },
+          { text: "别人在卷，你在躺？上岸名单里真的没你的位置。", type: "strict" },
+          { text: "今天的「明天再学」，就是考场上那道哭着做不出来的题。", type: "strict" },
+          { text: "你的对手不会因为你累了就停下来，人家巴不得你多歇会儿。", type: "strict" },
+          { text: "刷手机这半小时，够你做完一套资料分析了。你刷爽了，对手学爽了。", type: "strict" },
+          { text: "每天差1小时，一个月就是30小时。这30小时能提多少分，你心里有数。", type: "strict" },
+          { text: "别假装努力在那拍照片发朋友圈，成绩出来的时候没人看你朋友圈。", type: "strict" },
+          { text: "你现在流的汗，都是当初脑子进的水——还不赶紧把脑子里的水抖出来学！", type: "strict" },
+          { text: "上岸和落榜之间，差的从来不是智商，是你能不能每天老老实实坐那8小时。", type: "strict" },
+          { text: "你已经浪费了多少天了？再浪费一天，离上岸就远一天。", type: "strict" },
+          { text: "别跟我说你累了，比你优秀的人比你还努力，你有什么资格说累？", type: "strict" },
+          { text: "现在不学，等出成绩那天哭都来不及。哭有用的话，大家都在家哭好了。", type: "strict" },
+          { text: "你是想现在苦几个月，还是想以后一辈子后悔当初没努力？", type: "strict" },
+          { text: "你的竞争对手在图书馆学到闭馆，你在家里学到上床睡觉。这就是差距。", type: "strict" },
+          { text: "别再给自己找借口了，什么今天状态不好、明天再学，都是懒的借口。", type: "strict" },
+          { text: "公考是千军万马过独木桥，你不往前挤，就会被别人挤下去。", type: "strict" },
+          { text: "你想想你父母期待的眼神，你想想你同学都上岸了，你还在这偷懒？", type: "strict" },
+          { text: "现在多学一分钟，考场上就多一分底气。现在少学一分钟，考场上就多一分后悔。", type: "strict" },
+          { text: "别等到报名的时候才开始着急，别等到考试前才开始抱佛脚，佛脚也不是谁都能抱到的。", type: "strict" },
         ];
 
         // 基于日期种子的稳定随机
         const seed = new Date(todayStr).getTime() % lazyQuotes.length;
         const quote = lazyQuotes[seed] || lazyQuotes[0];
-        const isStrict = quote.type === 'strict' || quote.type === 'action';
+        const isStrict = true; // 现在全是犀利版
         const diffMinutes = Math.round((pastAvgMs - totalTodayMs) / 60000);
 
         return (
@@ -239,42 +239,24 @@ export default function Dashboard({ data, onUpdate, onNavigate }: { data: AppDat
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.2 }}
-            className={cn(
-              "rounded-3xl border p-5 space-y-3 relative overflow-hidden",
-              isStrict
-                ? "bg-gradient-to-br from-rose-50 to-orange-50 border-rose-200/60"
-                : "bg-gradient-to-br from-sky-50 to-cyan-50 border-cyan-200/60"
-            )}
+            className="rounded-3xl border p-5 space-y-3 relative overflow-hidden bg-gradient-to-br from-rose-50 to-orange-50 border-rose-200/60"
           >
             <div className="absolute -top-4 -right-4 w-24 h-24 bg-white/40 rounded-full blur-xl" />
             <div className="relative">
               <div className="flex items-center gap-2 mb-1">
-                <Zap size={16} className={cn(isStrict ? "text-orange-500" : "text-cyan-500")} />
-                <h3 className={cn("text-sm font-bold", isStrict ? "text-orange-700" : "text-cyan-700")}>
-                  {isStrict ? "今日提醒" : "加油提醒"}
-                </h3>
-                <span className={cn(
-                  "text-[9px] px-2 py-0.5 rounded-full font-medium ml-auto",
-                  isStrict ? "bg-rose-100 text-rose-500" : "bg-cyan-100 text-cyan-500"
-                )}>
+                <Zap size={16} className="text-orange-500" />
+                <h3 className="text-sm font-bold text-orange-700">今日骂醒</h3>
+                <span className="text-[9px] px-2 py-0.5 rounded-full font-medium ml-auto bg-rose-100 text-rose-500">
                   距均值差{diffMinutes}分钟
                 </span>
               </div>
-              <p className={cn(
-                "text-sm leading-relaxed font-medium",
-                isStrict ? "text-rose-700" : "text-cyan-700"
-              )}>{quote.text}</p>
+              <p className="text-sm leading-relaxed font-medium text-rose-700">{quote.text}</p>
 
               <button
                 onClick={() => onNavigate('study')}
-                className={cn(
-                  "mt-2 w-full py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all active:scale-[0.97]",
-                  isStrict
-                    ? "bg-orange-500 text-white shadow-md shadow-orange-200 hover:bg-orange-600"
-                    : "bg-cyan-500 text-white shadow-md shadow-cyan-200 hover:bg-cyan-600"
-                )}
+                className="mt-2 w-full py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all active:scale-[0.97] bg-orange-500 text-white shadow-md shadow-orange-200 hover:bg-orange-600"
               >
-                <Clock size={13} /> 去计时学习
+                <Clock size={13} /> 滚去学习
               </button>
             </div>
           </motion.div>
