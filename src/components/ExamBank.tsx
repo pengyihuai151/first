@@ -452,6 +452,7 @@ function ExamLiveMode({ onFinish, onClose }: { onFinish: (res: any) => void; onC
   const [examTitle, setExamTitle] = useState('新模拟记录');
   const [totalMinutes, setTotalMinutes] = useState(120);
   const [isStarted, setIsStarted] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const [currentModule, setCurrentModule] = useState<StudyModule>(MAIN_MODULES[0]);
   const [currentSub, setCurrentSub] = useState<string | null>(null);
   const [showSubSelector, setShowSubSelector] = useState(false);
@@ -492,7 +493,7 @@ function ExamLiveMode({ onFinish, onClose }: { onFinish: (res: any) => void; onC
 
   // 核心计时器：每100ms给当前活跃目标+1tick
   useEffect(() => {
-    if (!isStarted) return;
+    if (!isStarted || isPaused) return;
 
     lastTickRef.current = Date.now();
     timerRef.current = setInterval(() => {
@@ -513,7 +514,7 @@ function ExamLiveMode({ onFinish, onClose }: { onFinish: (res: any) => void; onC
       if (document.hidden && timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;
-      } else if (!document.hidden && !timerRef.current && isStarted) {
+      } else if (!document.hidden && !timerRef.current && isStarted && !isPaused) {
         lastTickRef.current = Date.now();
         timerRef.current = setInterval(() => {
           const now = Date.now();
@@ -534,10 +535,11 @@ function ExamLiveMode({ onFinish, onClose }: { onFinish: (res: any) => void; onC
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isStarted]);
+  }, [isStarted, isPaused]);
 
   const startExam = () => {
     setIsStarted(true);
+    setIsPaused(false);
     
     // 检查第一个模块是否有子模块，有就弹出子模块选择
     const firstModule = MAIN_MODULES[0];
@@ -553,6 +555,30 @@ function ExamLiveMode({ onFinish, onClose }: { onFinish: (res: any) => void; onC
     
     lastTickRef.current = Date.now();
 
+    timerRef.current = setInterval(() => {
+      const now = Date.now();
+      const delta = now - lastTickRef.current;
+      lastTickRef.current = now;
+      setElapsed(prev => prev + delta);
+      const target = activeTargetRef.current;
+      setTimers(prev => ({
+        ...prev,
+        [target]: (prev[target] || 0) + delta,
+      }));
+    }, 100);
+  };
+
+  const handlePause = () => {
+    setIsPaused(true);
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+
+  const handleContinue = () => {
+    setIsPaused(false);
+    lastTickRef.current = Date.now();
     timerRef.current = setInterval(() => {
       const now = Date.now();
       const delta = now - lastTickRef.current;
@@ -678,6 +704,13 @@ function ExamLiveMode({ onFinish, onClose }: { onFinish: (res: any) => void; onC
                <div className="text-5xl font-black tabular-nums tracking-tighter text-indigo-100 mt-2">
                   {fmt(displayDuration)}
                </div>
+               <div className="text-[10px] font-bold mt-2 uppercase tracking-widest">
+                 {isPaused ? (
+                   <span className="text-amber-400">已暂停</span>
+                 ) : (
+                   <span className="text-slate-500">正在计时...</span>
+                 )}
+               </div>
             </div>
 
             {/* 大模块选择卡片 */}
@@ -776,6 +809,17 @@ function ExamLiveMode({ onFinish, onClose }: { onFinish: (res: any) => void; onC
       </div>
 
       <div className="p-8 pb-20 flex flex-col gap-4">
+         {isPaused ? (
+           <button onClick={handleContinue}
+             className="w-full bg-indigo-500 text-white py-5 rounded-[28px] font-bold text-lg flex items-center justify-center gap-3 shadow-2xl shadow-indigo-500/20 active:scale-95 transition-all">
+             <Play size={24} /> 继续考试
+           </button>
+         ) : (
+           <button onClick={handlePause}
+             className="w-full bg-amber-500 text-white py-5 rounded-[28px] font-bold text-lg flex items-center justify-center gap-3 shadow-2xl shadow-amber-500/20 active:scale-95 transition-all">
+             <Pause size={24} /> 暂停考试
+           </button>
+         )}
          <button onClick={finishExam}
            className="w-full bg-rose-500 text-white py-5 rounded-[28px] font-bold text-lg flex items-center justify-center gap-3 shadow-2xl shadow-rose-500/20 active:scale-95 transition-all">
            <StopCircle size={24} /> 结束并交卷
