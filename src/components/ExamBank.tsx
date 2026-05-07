@@ -377,13 +377,12 @@ interface TimerState {
 }
 
 function ExamLiveMode({ onFinish, onClose }: { onFinish: (res: any) => void; onClose: () => void }) {
-  // 计时模式：'simple'=只录一级, 'detail'=录二级子模块
-  const [timerMode, setTimerMode] = useState<'simple' | 'detail'>('detail');
   const [examTitle, setExamTitle] = useState('新模拟记录');
   const [totalMinutes, setTotalMinutes] = useState(120);
   const [isStarted, setIsStarted] = useState(false);
   const [currentModule, setCurrentModule] = useState<StudyModule>(MAIN_MODULES[0]);
   const [currentSub, setCurrentSub] = useState<string | null>(null);
+  const [showSubSelector, setShowSubSelector] = useState(false);
 
   // 总已用时间（毫秒）
   const [elapsed, setElapsed] = useState(0);
@@ -467,7 +466,19 @@ function ExamLiveMode({ onFinish, onClose }: { onFinish: (res: any) => void; onC
 
   const startExam = () => {
     setIsStarted(true);
-    activeTargetRef.current = MAIN_MODULES[0];
+    
+    // 检查第一个模块是否有子模块，有就弹出子模块选择
+    const firstModule = MAIN_MODULES[0];
+    if (hasSubModules(firstModule)) {
+      setCurrentModule(firstModule);
+      setShowSubSelector(true);
+      setCurrentSub(null);
+    } else {
+      setCurrentModule(firstModule);
+      setCurrentSub(null);
+      activeTargetRef.current = firstModule;
+    }
+    
     lastTickRef.current = Date.now();
 
     timerRef.current = setInterval(() => {
@@ -491,7 +502,7 @@ function ExamLiveMode({ onFinish, onClose }: { onFinish: (res: any) => void; onC
       const hasSub = hasSubModules(m);
       const subs = getSubTopics(m);
 
-      // 大模块总时长 = 子模块之和 或 直接的大模块时长
+      // 大模块总时长 = 子模块之和（有子模块的）或 直接的大模块时长（无子模块的）
       let moduleDuration = timers[m] || 0;
       const subDurations: Record<string, number> = {};
 
@@ -502,8 +513,8 @@ function ExamLiveMode({ onFinish, onClose }: { onFinish: (res: any) => void; onC
           subDurations[sub] = subTime;
           subTotal += subTime;
         });
-        // 如果子模块有时间，用子模块总和；否则用大模块自身的时间
-        moduleDuration = subTotal > 0 ? subTotal : moduleDuration;
+        // 有子模块的大模块：时间 = 子模块总和
+        moduleDuration = subTotal;
       }
 
       return {
@@ -599,34 +610,34 @@ function ExamLiveMode({ onFinish, onClose }: { onFinish: (res: any) => void; onC
             <div className="grid grid-cols-3 gap-2">
                 {MAIN_MODULES.map(m => {
                   const hasSub = hasSubModules(m);
-                  const isActive = currentModule === m && !currentSub;
+                  const isActive = currentModule === m;
 
-                  // 计算大模块的总时长 = 自身时间 + 所有子模块时间
-                  const selfTime = timers[m] || 0;
-                  let totalTime = selfTime;
+                  // 计算大模块的总时长
+                  let totalTime: number;
                   if (hasSub) {
+                    // 有子模块的大模块：时间 = 子模块总和
                     const subs = getSubTopics(m);
-                    totalTime += subs.reduce((sum, sub) => sum + (timers[sub] || 0), 0);
+                    totalTime = subs.reduce((sum, sub) => sum + (timers[sub] || 0), 0);
+                  } else {
+                    // 无子模块的大模块：直接使用自身时间
+                    totalTime = timers[m] || 0;
                   }
 
                   return (
                     <button key={m}
                         onClick={() => {
-                          if (timerMode === 'simple') {
-                            // 简单模式：直接切换大模块计时（不弹子模块）
+                          if (hasSub) {
+                            // 有子模块的大模块：锁定，必须选子模块
+                            setCurrentModule(m as StudyModule);
+                            setShowSubSelector(true);
+                            setCurrentSub(null);
+                          } else {
+                            // 无子模块的大模块：直接计时
                             setCurrentModule(m as StudyModule);
                             setCurrentSub(null);
+                            setShowSubSelector(false);
+                            activeTargetRef.current = m;
                             lastTickRef.current = Date.now();
-                          } else {
-                            // 详细模式：有子模块时弹出子模块选择
-                            if (hasSub) {
-                              setShowSubs(true);
-                              return; 
-                            } else {
-                              setCurrentModule(m as StudyModule);
-                              activeTargetRef.current = m;
-                              lastTickRef.current = Date.now();
-                            }
                           }
                         }}
                       className={cn("border p-3 rounded-2xl flex flex-col items-center gap-1 active:scale-95 transition-all",
@@ -636,52 +647,48 @@ function ExamLiveMode({ onFinish, onClose }: { onFinish: (res: any) => void; onC
                       <span className={cn("text-xs font-bold", isActive ? "text-white" : "text-slate-300")}>
                         {fmt(totalTime)}
                       </span>
-                      {hasSub && <span className="text-[8px] text-slate-500">▼</span>}
+                      {hasSub && <span className="text-[8px] text-slate-500">🔒 需要选子模块</span>}
                     </button>
                   )
                 })}
             </div>
 
-            {/* 子模块选择（点击大模块后弹出） */}
-            {currentSubTopics.length > 0 && (
-              <div className="flex flex-wrap gap-2 justify-center pt-2">
-                {currentSubTopics.map(sub => (
-                  <button key={sub}
-                    onClick={() => {
-                      setCurrentSub(sub);
-                      activeTargetRef.current = sub; // 切换到子模块计时
-                      lastTickRef.current = Date.now(); // 重置tick防止跳变
-                    }}
-                    className={cn(
-                      "px-4 py-2 rounded-xl text-[11px] font-bold transition-all min-w-[80px]",
-                      currentSub === sub
-                        ? "bg-indigo-400 text-white"
-                        : "bg-slate-900/70 text-slate-400 border border-slate-700/50"
-                    )}>
-                    <div>{sub}</div>
-                    <div className="text-[10px] mt-0.5 opacity-70">{fmt(timers[sub] || 0)}</div>
-                  </button>
-                ))}
-              </div>
-            )}
+            {/* 子模块选择器 */}
+            <AnimatePresence>
+              {showSubSelector && hasSubModules(currentModule) && (
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="bg-slate-800/80 border border-slate-600/50 rounded-2xl p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-300">选择 {currentModule} 子模块</span>
+                    <button onClick={() => setShowSubSelector(false)} className="text-slate-500 hover:text-slate-300"><X size={14} /></button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {getSubTopics(currentModule).map(sub => (
+                      <button key={sub}
+                        onClick={() => {
+                          setCurrentSub(sub);
+                          setShowSubSelector(false);
+                          activeTargetRef.current = sub; // 切换到子模块计时
+                          lastTickRef.current = Date.now(); // 重置tick防止跳变
+                        }}
+                        className={cn(
+                          "px-4 py-2 rounded-xl text-[11px] font-bold transition-all min-w-[80px]",
+                          currentSub === sub
+                            ? "bg-indigo-400 text-white"
+                            : "bg-slate-900/70 text-slate-400 border border-slate-700/50"
+                        )}>
+                        <div>{sub}</div>
+                        <div className="text-[10px] mt-0.5 opacity-70">{fmt(timers[sub] || 0)}</div>
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-            {/* 说明文字 + 模式切换 */}
-            <div className="text-center space-y-2">
-              <div className="flex items-center justify-center gap-2">
-                <span className="text-[10px] text-slate-500 font-medium">计时模式：</span>
-                <button onClick={() => setTimerMode(timerMode === 'simple' ? 'detail' : 'simple')}
-                  className={`text-[10px] px-3 py-1 rounded-full font-bold transition-all ${
-                    timerMode === 'simple'
-                      ? 'bg-indigo-100 text-indigo-600'
-                      : 'bg-emerald-100 text-emerald-600'
-                  }`}>
-                  {timerMode === 'simple' ? '📦 只录一级模块' : '📋 细分到二级'}
-                </button>
-              </div>
+            {/* 说明文字 */}
+            <div className="text-center">
               <p className="text-[10px] text-slate-500 font-medium">
-                {timerMode === 'simple'
-                  ? '点击大模块直接计时 · 不细分子模块'
-                  : '点击模块选子模块计时 · 总时间=各层之和'}
+                🔒 言语理解、判断推理必须选子模块计时 · 大模块时间 = 子模块之和
               </p>
             </div>
          </div>
