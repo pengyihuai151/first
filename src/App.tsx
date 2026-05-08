@@ -25,7 +25,7 @@ export default function App() {
   const requestWakeLock = async () => {
     if (!data?.settings.screenWakeLockEnabled) return;
     if (!('wakeLock' in navigator)) return;
-    if (wakeLockRef.current) return; // 已持有锁，不再重复请求
+    if (wakeLockRef.current) return;
 
     try {
       wakeLockRef.current = await navigator.wakeLock.request('screen');
@@ -33,7 +33,6 @@ export default function App() {
         wakeLockRef.current = null;
       });
     } catch (err) {
-      // 静默处理失败
       wakeLockRef.current = null;
     }
   };
@@ -45,14 +44,21 @@ export default function App() {
     }
   };
 
+  // 统一的 Wake Lock 处理函数
+  const syncWakeLock = async () => {
+    if (!data) return;
+    
+    if (data.settings.screenWakeLockEnabled && document.visibilityState === 'visible') {
+      await requestWakeLock();
+    } else {
+      await releaseWakeLock();
+    }
+  };
+
   useEffect(() => {
-    // 页面可见性变化时处理
+    // 1. 页面可见性变化时处理
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        requestWakeLock();
-      } else {
-        releaseWakeLock();
-      }
+      syncWakeLock();
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -61,20 +67,11 @@ export default function App() {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       releaseWakeLock();
     };
-  }, [data?.settings.screenWakeLockEnabled]);
+  }, []);
 
-  // 当 data 加载完成或设置变化时，处理 Wake Lock
+  // 2. 当 data 加载完成或变化时处理
   useEffect(() => {
-    if (!data) return;
-
-    if (data.settings.screenWakeLockEnabled) {
-      // 如果用户已开启常亮，且当前页面可见，立即请求
-      if (document.visibilityState === 'visible') {
-        requestWakeLock();
-      }
-    } else {
-      releaseWakeLock();
-    }
+    syncWakeLock();
   }, [data?.settings.screenWakeLockEnabled]);
 
   useEffect(() => {
