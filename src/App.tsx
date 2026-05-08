@@ -21,10 +21,11 @@ export default function App() {
   const [selectedExamId, setSelectedExamId] = useState<string | null>(null);
   const wakeLockRef = useRef<any>(null);
   const needsWakeLockRef = useRef(false);
+  const screenWakeLockEnabledRef = useRef(false);
 
   // 保持屏幕常亮（仅当用户开启时）
   const requestWakeLock = async () => {
-    if (!data?.settings.screenWakeLockEnabled) return;
+    if (!screenWakeLockEnabledRef.current) return;
     if (!('wakeLock' in navigator)) return;
     if (wakeLockRef.current) return;
 
@@ -52,7 +53,7 @@ export default function App() {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         // 页面回到前台，标记需要在用户交互后申请 Wake Lock
-        if (data?.settings.screenWakeLockEnabled) {
+        if (screenWakeLockEnabledRef.current) {
           needsWakeLockRef.current = true;
         }
       } else {
@@ -72,7 +73,7 @@ export default function App() {
   // 2. 监听用户交互，在有需要时申请 Wake Lock
   useEffect(() => {
     const handleUserInteraction = () => {
-      if (needsWakeLockRef.current && data?.settings.screenWakeLockEnabled) {
+      if (needsWakeLockRef.current && screenWakeLockEnabledRef.current) {
         requestWakeLock();
         needsWakeLockRef.current = false;
       }
@@ -87,10 +88,13 @@ export default function App() {
     };
   }, [data?.settings.screenWakeLockEnabled]);
 
-  // 3. 数据加载完成后，如果是第一次加载且页面可见，标记需要申请
+  // 3. 当 data 变化时，更新 ref 里的状态
   useEffect(() => {
-    if (data && data.settings.screenWakeLockEnabled && document.visibilityState === 'visible') {
-      needsWakeLockRef.current = true;
+    if (data) {
+      screenWakeLockEnabledRef.current = data.settings.screenWakeLockEnabled;
+      if (data.settings.screenWakeLockEnabled && document.visibilityState === 'visible') {
+        needsWakeLockRef.current = true;
+      }
     }
   }, [data]);  // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -99,10 +103,6 @@ export default function App() {
     return () => {
       releaseWakeLock();
     };
-  }, []);  // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    loadData();
   }, []);  // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadData = async () => {
