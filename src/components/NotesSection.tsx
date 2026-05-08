@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AppData, StudyModule, MAIN_MODULES, ExamNote } from '../types';
 import { storage } from '../lib/storage';
-import { Plus, Search, X, Trash2, Edit2, FileText, ChevronRight, Eye, BookOpen, Image as ImageIcon } from 'lucide-react';
+import { Plus, Search, X, Trash2, Edit2, FileText, ChevronRight, Eye, BookOpen, Image as ImageIcon, ZoomIn, ZoomOut, RefreshCw } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn, compressImage } from '../lib/utils';
@@ -26,6 +26,11 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
   
   const [isAdding, setIsAdding] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null); // 大图预览
+  const [viewerScale, setViewerScale] = useState(1); // 图片查看器缩放
+  const [viewerPosition, setViewerPosition] = useState({ x: 0, y: 0 }); // 图片查看器位置
+  const [viewerIsDragging, setViewerIsDragging] = useState(false); // 是否在拖拽
+  const [viewerDragStart, setViewerDragStart] = useState({ x: 0, y: 0 }); // 拖拽起始位置
+  const [viewerLastDistance, setViewerLastDistance] = useState(0); // 双指缩放上次距离
   const [searchQuery, setSearchQuery] = useState(''); // 搜索关键词
   const [cropperState, setCropperState] = useState<{ image: string; callback: (cropped: string) => void } | null>(null); // 裁剪状态
 
@@ -42,6 +47,82 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
       const scrollLeft = item.offsetLeft - container.offsetWidth / 2 + item.offsetWidth / 2;
       container.scrollTo({ left: scrollLeft, behavior: 'smooth' });
     }
+  };
+
+  // 图片查看器 - 重置状态
+  const resetViewerState = () => {
+    setViewerScale(1);
+    setViewerPosition({ x: 0, y: 0 });
+    setViewerIsDragging(false);
+    setViewerLastDistance(0);
+  };
+
+  // 图片查看器 - 鼠标/触摸事件
+  const viewerGetDistance = (p1: { x: number; y: number }, p2: { x: number; y: number }) => {
+    return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
+  };
+
+  const viewerGetTouchPoint = (e: React.TouchEvent) => ({ x: e.touches[0].clientX, y: e.touches[0].clientY });
+
+  const viewerMouseDown = (e: React.MouseEvent) => {
+    if (viewerScale > 1) {
+      setViewerIsDragging(true);
+      setViewerDragStart({ x: e.clientX - viewerPosition.x, y: e.clientY - viewerPosition.y });
+    }
+  };
+
+  const viewerMouseMove = (e: React.MouseEvent) => {
+    if (viewerIsDragging) {
+      setViewerPosition({ x: e.clientX - viewerDragStart.x, y: e.clientY - viewerDragStart.y });
+    }
+  };
+
+  const viewerMouseUp = () => {
+    setViewerIsDragging(false);
+  };
+
+  const viewerWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? 0.9 : 1.1;
+    const newScale = Math.max(1, Math.min(10, viewerScale * delta));
+    setViewerScale(newScale);
+    if (newScale === 1) {
+      setViewerPosition({ x: 0, y: 0 });
+    }
+  };
+
+  const viewerTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1 && viewerScale > 1) {
+      setViewerIsDragging(true);
+      setViewerDragStart({ x: e.touches[0].clientX - viewerPosition.x, y: e.touches[0].clientY - viewerPosition.y });
+    } else if (e.touches.length === 2) {
+      const p1 = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      const p2 = { x: e.touches[1].clientX, y: e.touches[1].clientY };
+      setViewerLastDistance(viewerGetDistance(p1, p2));
+    }
+  };
+
+  const viewerTouchMove = (e: React.TouchEvent) => {
+    e.preventDefault();
+    if (e.touches.length === 1 && viewerIsDragging) {
+      setViewerPosition({ x: e.touches[0].clientX - viewerDragStart.x, y: e.touches[0].clientY - viewerDragStart.y });
+    } else if (e.touches.length === 2 && viewerLastDistance > 0) {
+      const p1 = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      const p2 = { x: e.touches[1].clientX, y: e.touches[1].clientY };
+      const currentDistance = viewerGetDistance(p1, p2);
+      const delta = currentDistance / viewerLastDistance;
+      const newScale = Math.max(1, Math.min(10, viewerScale * delta));
+      setViewerScale(newScale);
+      setViewerLastDistance(currentDistance);
+      if (newScale === 1) {
+        setViewerPosition({ x: 0, y: 0 });
+      }
+    }
+  };
+
+  const viewerTouchEnd = () => {
+    setViewerIsDragging(false);
+    setViewerLastDistance(0);
   };
 
   useEffect(() => scrollIntoView(scrollModuleRef.current, activeModuleRef.current), [filter]);
@@ -752,21 +833,82 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 p-4"
-            onClick={() => setSelectedImage(null)}
+            className="fixed inset-0 z-[60] bg-black/95 flex flex-col"
+            onClick={() => {
+              setSelectedImage(null);
+              resetViewerState();
+            }}
           >
-            <div className="relative max-w-full max-h-full">
+            {/* 顶部操作栏 */}
+            <div className="flex justify-between items-center p-4 z-10">
               <button
-                onClick={() => setSelectedImage(null)}
-                className="absolute top-4 right-4 bg-white/20 text-white p-2 rounded-full hover:bg-white/30 transition-colors z-10"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedImage(null);
+                  resetViewerState();
+                }}
+                className="bg-white/20 text-white px-4 py-2 rounded-lg hover:bg-white/30 transition-colors"
               >
-                <X size={24} />
+                关闭
               </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const newScale = Math.max(1, viewerScale - 0.5);
+                    setViewerScale(newScale);
+                    if (newScale === 1) {
+                      setViewerPosition({ x: 0, y: 0 });
+                    }
+                  }}
+                  className="bg-white/20 text-white p-2 rounded-lg hover:bg-white/30 transition-colors"
+                >
+                  <ZoomOut size={20} />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setViewerScale(Math.min(10, viewerScale + 0.5));
+                  }}
+                  className="bg-white/20 text-white p-2 rounded-lg hover:bg-white/30 transition-colors"
+                >
+                  <ZoomIn size={20} />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    resetViewerState();
+                  }}
+                  className="bg-white/20 text-white p-2 rounded-lg hover:bg-white/30 transition-colors"
+                >
+                  <RefreshCw size={20} />
+                </button>
+              </div>
+            </div>
+
+            {/* 图片区域 */}
+            <div 
+              className="flex-1 flex items-center justify-center overflow-hidden select-none"
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={viewerMouseDown}
+              onMouseMove={viewerMouseMove}
+              onMouseUp={viewerMouseUp}
+              onMouseLeave={viewerMouseUp}
+              onWheel={viewerWheel}
+              onTouchStart={viewerTouchStart}
+              onTouchMove={viewerTouchMove}
+              onTouchEnd={viewerTouchEnd}
+              style={{ cursor: viewerScale > 1 && viewerIsDragging ? 'grabbing' : viewerScale > 1 ? 'grab' : 'default' }}
+            >
               <img
                 src={selectedImage}
                 alt="大图预览"
-                className="max-w-full max-h-[85vh] object-contain rounded-lg"
-                onClick={(e) => e.stopPropagation()}
+                className="max-w-[90vw] max-h-[80vh] object-contain rounded-lg transition-transform"
+                style={{
+                  transform: `translate(${viewerPosition.x}px, ${viewerPosition.y}px) scale(${viewerScale})`,
+                  transformOrigin: 'center center'
+                }}
+                draggable={false}
               />
             </div>
           </motion.div>
