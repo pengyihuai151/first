@@ -25,6 +25,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
   const [essayTagFilter, setEssayTagFilter] = useState<string>('全部');
   
   const [isAdding, setIsAdding] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null); // 大图预览
 
   // Refs for scrolling
   const scrollModuleRef = useRef<HTMLDivElement>(null);
@@ -338,6 +339,12 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                     )}>
                     {n.moduleId}
                     </span>
+                    {/* 有图图标 */}
+                    {n.moduleId !== StudyModule.ESSAY && n.images && n.images.length > 0 && (
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-100 text-indigo-600 flex items-center gap-0.5">
+                            <ImageIcon size={10} /> {n.images.length}
+                        </span>
+                    )}
                     {n.essayType && (
                         <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 text-slate-500">
                             {n.essayType}
@@ -632,7 +639,11 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                     <div className="text-[10px] font-bold text-slate-400 uppercase">笔记图片</div>
                     <div className="grid grid-cols-2 gap-2">
                       {selectedNote.images.map((img, index) => (
-                        <div key={index} className="aspect-square rounded-xl overflow-hidden bg-slate-100">
+                        <div 
+                          key={index} 
+                          className="aspect-square rounded-xl overflow-hidden bg-slate-100 cursor-pointer hover:opacity-90 transition-opacity"
+                          onClick={() => setSelectedImage(img)}
+                        >
                           <img src={img} alt={`笔记图片 ${index + 1}`} className="w-full h-full object-contain" />
                         </div>
                       ))}
@@ -675,6 +686,34 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                 </button>
               </div>
             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 大图预览弹层 */}
+      <AnimatePresence>
+        {selectedImage && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 p-4"
+            onClick={() => setSelectedImage(null)}
+          >
+            <div className="relative max-w-full max-h-full">
+              <button
+                onClick={() => setSelectedImage(null)}
+                className="absolute top-4 right-4 bg-white/20 text-white p-2 rounded-full hover:bg-white/30 transition-colors z-10"
+              >
+                <X size={24} />
+              </button>
+              <img
+                src={selectedImage}
+                alt="大图预览"
+                className="max-w-full max-h-[85vh] object-contain rounded-lg"
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
