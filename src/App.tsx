@@ -81,12 +81,6 @@ export default function App() {
 
   const loadData = async () => {
     const appData = await storage.getData();
-    // 只有第一次加载时才自动关闭屏幕常亮，避免用户点击开关后被重置
-    if (!initialLoadRef.current) {
-      initialLoadRef.current = true;
-      appData.settings.screenWakeLockEnabled = false;
-      await storage.saveData(appData);
-    }
     setData(appData);
   };
 
