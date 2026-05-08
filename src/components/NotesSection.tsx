@@ -27,6 +27,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
   const [isAdding, setIsAdding] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null); // 大图预览
   const [searchQuery, setSearchQuery] = useState(''); // 搜索关键词
+  const [cropperState, setCropperState] = useState<{ image: string; callback: (cropped: string) => void } | null>(null); // 裁剪状态
 
   // Refs for scrolling
   const scrollModuleRef = useRef<HTMLDivElement>(null);
@@ -130,25 +131,41 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
   };
 
   // 处理图片上传
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
-    try {
-      // 压缩所有图片
-      const compressedImages = await Promise.all(
-        files.map(file => compressImage(file, 1000, 0.6))
-      );
-      
-      // 添加到现有图片数组
-      setNewNote(prev => ({
-        ...prev,
-        images: [...(prev.images || []), ...compressedImages]
-      }));
-    } catch (error) {
-      console.error('图片压缩失败:', error);
-      alert('图片处理失败，请重试');
-    }
+    // 处理第一个文件（多个文件先不支持裁剪，后续可扩展）
+    const file = files[0];
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (e) => {
+      const imageDataUrl = e.target?.result as string;
+      // 打开裁剪界面
+      setCropperState({
+        image: imageDataUrl,
+        callback: async (croppedImage) => {
+          try {
+            // 裁剪后的图片再压缩
+            // 将 base64 转为 File 对象以便压缩
+            const response = await fetch(croppedImage);
+            const blob = await response.blob();
+            const croppedFile = new File([blob], 'cropped.jpg', { type: 'image/jpeg' });
+            
+            const compressed = await compressImage(croppedFile, 1000, 0.6);
+            
+            // 添加到现有图片数组
+            setNewNote(prev => ({
+              ...prev,
+              images: [...(prev.images || []), compressed]
+            }));
+          } catch (error) {
+            console.error('图片处理失败:', error);
+            alert('图片处理失败，请重试');
+          }
+        }
+      });
+    };
     
     // 清空 input
     e.target.value = '';
@@ -756,6 +773,187 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* 图片裁剪弹层 */}
+      <AnimatePresence>
+        {cropperState && (
+          <ImageCropper
+            image={cropperState.image}
+            onConfirm={(cropped) => {
+              cropperState.callback(cropped);
+              setCropperState(null);
+            }}
+            onCancel={() => setCropperState(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
+  );
+}
+
+// 简单的图片裁剪组件
+function ImageCropper({ image, onConfirm, onCancel }: { image: string; onConfirm: (cropped: string) => void; onCancel: () => void }) {
+  const imgRef = useRef<HTMLImageElement>(null);
+  const [cropBox, setCropBox] = useState({ x: 0, y: 0, width: 0, height: 0 });
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (imgRef.current && containerRef.current) {
+      const img = imgRef.current;
+      const container = containerRef.current;
+      
+      // 图片加载完成后设置裁剪框（默认居中 80%）
+      const setCrop = () => {
+        const imgWidth = img.naturalWidth;
+        const imgHeight = img.naturalHeight;
+        const displayWidth = img.clientWidth;
+        const displayHeight = img.clientHeight;
+        
+        // 计算显示比例
+        const scaleX = displayWidth / imgWidth;
+        const scaleY = displayHeight / imgHeight;
+        const scale = Math.min(scaleX, scaleY);
+        
+        const scaledWidth = imgWidth * scale;
+        const scaledHeight = imgHeight * scale;
+        
+        // 裁剪框大小（80%）
+        const cropWidth = scaledWidth * 0.8;
+        const cropHeight = scaledHeight * 0.8;
+        
+        setCropBox({
+          x: (displayWidth - cropWidth) / 2,
+          y: (displayHeight - cropHeight) / 2,
+          width: cropWidth,
+          height: cropHeight
+        });
+      };
+      
+      if (img.complete) {
+        setCrop();
+      } else {
+        img.onload = setCrop;
+      }
+    }
+  }, [image]);
+
+  const handleConfirm = () => {
+    if (!imgRef.current) return;
+    
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    const img = imgRef.current;
+    const imgWidth = img.naturalWidth;
+    const imgHeight = img.naturalHeight;
+    const displayWidth = img.clientWidth;
+    const displayHeight = img.clientHeight;
+    
+    // 计算显示比例
+    const scaleX = displayWidth / imgWidth;
+    const scaleY = displayHeight / imgHeight;
+    const scale = Math.min(scaleX, scaleY);
+    
+    // 计算实际裁剪坐标（转换为原图尺寸）
+    const realX = cropBox.x / scale;
+    const realY = cropBox.y / scale;
+    const realWidth = cropBox.width / scale;
+    const realHeight = cropBox.height / scale;
+    
+    // 设置画布大小
+    canvas.width = realWidth;
+    canvas.height = realHeight;
+    
+    // 绘制裁剪区域
+    ctx.drawImage(
+      img,
+      realX, realY, realWidth, realHeight,
+      0, 0, realWidth, realHeight
+    );
+    
+    // 导出为 base64
+    const croppedDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+    onConfirm(croppedDataUrl);
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[70] bg-black flex flex-col"
+    >
+      {/* 顶部操作栏 */}
+      <div className="flex justify-between items-center p-4 bg-black/50">
+        <button
+          onClick={onCancel}
+          className="text-white px-4 py-2 rounded-xl hover:bg-white/10 transition-colors"
+        >
+          取消
+        </button>
+        <div className="text-white font-bold">裁剪图片</div>
+        <button
+          onClick={handleConfirm}
+          className="bg-indigo-600 text-white px-4 py-2 rounded-xl hover:bg-indigo-700 transition-colors font-bold"
+        >
+          确认
+        </button>
+      </div>
+      
+      {/* 裁剪区域 */}
+      <div 
+        ref={containerRef}
+        className="flex-1 flex items-center justify-center relative overflow-hidden"
+      >
+        <img
+          ref={imgRef}
+          src={image}
+          alt="裁剪"
+          className="max-w-full max-h-full object-contain"
+        />
+        
+        {/* 裁剪框 */}
+        <div
+          className="absolute border-2 border-white rounded-lg shadow-lg"
+          style={{
+            left: cropBox.x,
+            top: cropBox.y,
+            width: cropBox.width,
+            height: cropBox.height
+          }}
+        >
+          {/* 裁剪框角落手柄（简单的视觉提示） */}
+          <div className="absolute -top-1 -left-1 w-3 h-3 border-t-2 border-l-2 border-white" />
+          <div className="absolute -top-1 -right-1 w-3 h-3 border-t-2 border-r-2 border-white" />
+          <div className="absolute -bottom-1 -left-1 w-3 h-3 border-b-2 border-l-2 border-white" />
+          <div className="absolute -bottom-1 -right-1 w-3 h-3 border-b-2 border-r-2 border-white" />
+        </div>
+        
+        {/* 遮罩层（除裁剪框外变暗） */}
+        <div className="absolute inset-0 pointer-events-none">
+          {/* 顶部 */}
+          <div 
+            className="absolute bg-black/60"
+            style={{ top: 0, left: 0, right: 0, height: cropBox.y }}
+          />
+          {/* 底部 */}
+          <div 
+            className="absolute bg-black/60"
+            style={{ bottom: 0, left: 0, right: 0, top: cropBox.y + cropBox.height }}
+          />
+          {/* 左侧 */}
+          <div 
+            className="absolute bg-black/60"
+            style={{ top: cropBox.y, left: 0, width: cropBox.x, height: cropBox.height }}
+          />
+          {/* 右侧 */}
+          <div 
+            className="absolute bg-black/60"
+            style={{ top: cropBox.y, right: 0, left: cropBox.x + cropBox.width, height: cropBox.height }}
+          />
+        </div>
+      </div>
+    </motion.div>
   );
 }
