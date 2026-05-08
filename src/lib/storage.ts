@@ -178,5 +178,10 @@ export const storage = {
     } catch (e) {
       throw new Error('Invalid data format');
     }
+  },
+
+  async exportData(): Promise<string> {
+    const data = await this.getData();
+    return JSON.stringify(data, null, 2);
   }
 };

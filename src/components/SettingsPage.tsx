@@ -288,13 +288,25 @@ export default function SettingsPage({ data, onUpdate, onNavigate }: { data: App
     await storage.saveData(result);
   };
 
-  const handleBackup = () => {
-    const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `backup-${new Date().toISOString().split('T')[0]}.json`;
-    a.click();
+  const handleBackup = async () => {
+    try {
+      const jsonString = await storage.exportData();
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const now = new Date();
+      const dateStr = now.toISOString().split('T')[0];
+      const timeStr = now.toTimeString().slice(0, 5).replace(':', '-');
+      a.download = `公考数据备份-${dateStr}-${timeStr}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      localStorage.setItem('lastBackupTime', now.toISOString());
+      setAlertModal({ open: true, message: '备份成功！文件已下载' });
+    } catch (e) {
+      console.error('Backup failed:', e);
+      setAlertModal({ open: true, message: '备份失败，请重试' });
+    }
   };
 
   const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -954,6 +966,32 @@ export default function SettingsPage({ data, onUpdate, onNavigate }: { data: App
           </a>
         </div>
       </div>
+
+      {/* 数据备份 */}
+      <section className="space-y-3">
+        <h3 className="text-xs font-bold text-slate-400 uppercase px-1">数据备份</h3>
+        <div className="bg-white p-4 rounded-2xl border border-slate-100 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="bg-emerald-50 w-fit p-2 rounded-xl text-emerald-500">
+                <FileDown size={20} />
+              </div>
+              <div className="text-left">
+                <div className="text-sm font-bold">导出备份</div>
+                <div className="text-[10px] text-slate-400">
+                  上次备份: {localStorage.getItem('lastBackupTime') ? new Date(localStorage.getItem('lastBackupTime')!).toLocaleString() : '从未备份'}
+                </div>
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={handleBackup}
+            className="w-full bg-emerald-500 text-white py-3 rounded-xl font-semibold active:scale-[0.98] transition-transform"
+          >
+            立即备份全部数据
+          </button>
+        </div>
+      </section>
 
       {/* Safety */}
       <section className="space-y-3">
