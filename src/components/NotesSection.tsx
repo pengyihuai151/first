@@ -26,6 +26,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
   
   const [isAdding, setIsAdding] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null); // 大图预览
+  const [searchQuery, setSearchQuery] = useState(''); // 搜索关键词
 
   // Refs for scrolling
   const scrollModuleRef = useRef<HTMLDivElement>(null);
@@ -186,18 +187,33 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
       if (category === '申论' && !isEssay) return false;
       
       // Then filter by specific module (for 行测)
+      let passModuleFilter = true;
       if (category === '行测') {
-        return filter === '全部' || n.moduleId === filter;
+        passModuleFilter = filter === '全部' || n.moduleId === filter;
       }
       
       // For 申论, filter by type and tag
+      let passTypeTagFilter = true;
       if (category === '申论') {
         const typeMatch = essayTypeFilter === '全部' || n.essayType === essayTypeFilter;
         const tagMatch = essayTagFilter === '全部' || n.essayTag === essayTagFilter;
-        return typeMatch && tagMatch;
+        passTypeTagFilter = typeMatch && tagMatch;
       }
       
-      return true;
+      // 搜索过滤
+      let passSearchFilter = true;
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        passSearchFilter = (
+          n.title.toLowerCase().includes(q) ||
+          n.content.toLowerCase().includes(q) ||
+          (n.tags || []).some(tag => tag.toLowerCase().includes(q)) ||
+          (n.essayType && n.essayType.toLowerCase().includes(q)) ||
+          (n.essayTag && n.essayTag.toLowerCase().includes(q))
+        );
+      }
+      
+      return passModuleFilter && passTypeTagFilter && passSearchFilter;
     })
     .sort((a, b) => b.updatedAt - a.updatedAt);
 
@@ -206,12 +222,35 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
       {/* Sticky Header */}
       <div className="sticky top-0 z-40 bg-slate-50 pt-2 -mx-4 px-4 pb-4 space-y-4">
         <header className="flex justify-between items-end">
-          <div>
+          <div className="flex-1">
             <h1 className="text-2xl font-bold text-slate-800">知识笔记</h1>
             <p className="text-sm text-slate-500">
               {category === '行测' ? '行测考点：积少成多' : '申论金句：妙笔生花'}
             </p>
           </div>
+          
+          {/* 搜索框 */}
+          <div className="flex-1 max-w-xs relative">
+            <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+              <Search size={16} className="text-slate-400" />
+            </div>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="搜索笔记..."
+              className="w-full pl-10 pr-10 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute inset-y-0 right-3 flex items-center text-slate-400 hover:text-slate-600"
+              >
+                <X size={16} />
+              </button>
+            )}
+          </div>
+          
           <button 
             onClick={() => {
               setNewNote(prev => ({ ...prev, moduleId: category === '行测' ? StudyModule.VERBAL : StudyModule.ESSAY }));
