@@ -578,62 +578,40 @@ function ExamLiveMode({ onFinish, onClose }: { onFinish: (res: any) => void; onC
     setIsPaused(false);
   };
 
-  // 切换屏幕常亮
+  // 切换屏幕常亮（简化版）
   const toggleWakeLock = async () => {
+    if (!('wakeLock' in navigator)) {
+      alert('当前浏览器不支持屏幕常亮');
+      return;
+    }
+
     if (isWakeLockActive) {
       // 关闭常亮
       if (wakeLockRef.current) {
-        await wakeLockRef.current.release();
+        try {
+          await wakeLockRef.current.release();
+        } catch (e) {}
         wakeLockRef.current = null;
       }
       setIsWakeLockActive(false);
     } else {
       // 开启常亮
-      if ('wakeLock' in navigator) {
-        try {
-          wakeLockRef.current = await navigator.wakeLock.request('screen');
-          setIsWakeLockActive(true);
-          
-          // 监听释放
-          wakeLockRef.current.addEventListener('release', () => {
-            setIsWakeLockActive(false);
-            wakeLockRef.current = null;
-          });
-        } catch (err) {
-          console.error('常亮申请失败', err);
-        }
+      try {
+        const lock = await navigator.wakeLock.request('screen');
+        wakeLockRef.current = lock;
+        setIsWakeLockActive(true);
+        
+        // 监听系统释放
+        lock.addEventListener('release', () => {
+          setIsWakeLockActive(false);
+          wakeLockRef.current = null;
+        });
+      } catch (err) {
+        console.error('常亮申请失败', err);
+        alert('无法开启常亮（可能是低电量或权限限制）');
       }
     }
   };
-
-  // 监听页面可见性变化（回到前台时重新申请）
-  useEffect(() => {
-    const handleVisibilityChange = async () => {
-      if (document.visibilityState === 'visible' && isWakeLockActive && !wakeLockRef.current) {
-        if ('wakeLock' in navigator) {
-          try {
-            wakeLockRef.current = await navigator.wakeLock.request('screen');
-            // 监听释放
-            wakeLockRef.current.addEventListener('release', () => {
-              setIsWakeLockActive(false);
-              wakeLockRef.current = null;
-            });
-          } catch (err) {
-            console.error('常亮重新申请失败', err);
-            setIsWakeLockActive(false);
-          }
-        }
-      }
-    };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      if (wakeLockRef.current) {
-        wakeLockRef.current.release();
-      }
-    };
-  }, [isWakeLockActive]);
 
   const finishExam = () => {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -725,6 +703,22 @@ function ExamLiveMode({ onFinish, onClose }: { onFinish: (res: any) => void; onC
 
   return (
     <div className="fixed inset-0 z-[105] bg-slate-900 flex flex-col text-white">
+      {/* 右上角常亮按钮 */}
+      <div className="absolute top-6 right-6 z-10">
+        <button
+          onClick={toggleWakeLock}
+          className={cn(
+            "w-10 h-10 rounded-full flex items-center justify-center transition-all",
+            isWakeLockActive 
+              ? "bg-amber-500/30 text-amber-400 border border-amber-500/30" 
+              : "bg-slate-800/50 text-slate-400 border border-slate-700/30 hover:bg-slate-800"
+          )}
+          title={isWakeLockActive ? "关闭屏幕常亮" : "开启屏幕常亮"}
+        >
+          {isWakeLockActive ? <Sun size={20} fill="currentColor" /> : <SunDim size={20} />}
+        </button>
+      </div>
+      
       <div className="p-6 pt-12 text-center space-y-4">
         <div className="text-xs font-bold text-slate-500 uppercase tracking-[0.2em]">{examTitle}</div>
         <div className="flex flex-col items-center">
@@ -852,33 +846,17 @@ function ExamLiveMode({ onFinish, onClose }: { onFinish: (res: any) => void; onC
       </div>
 
       <div className="p-8 pb-20 flex flex-col gap-4">
-         <div className="flex gap-4 items-center">
-           {isPaused ? (
-             <button onClick={handleContinue}
-               className="flex-1 bg-indigo-500 text-white py-5 rounded-[28px] font-bold text-lg flex items-center justify-center gap-3 shadow-2xl shadow-indigo-500/20 active:scale-95 transition-all">
-               <Play size={24} /> 继续考试
-             </button>
-           ) : (
-             <button onClick={handlePause}
-               className="flex-1 bg-amber-500 text-white py-5 rounded-[28px] font-bold text-lg flex items-center justify-center gap-3 shadow-2xl shadow-amber-500/20 active:scale-95 transition-all">
-               <Pause size={24} /> 暂停考试
-             </button>
-           )}
-           
-           {/* 屏幕常亮小按钮 */}
-           <button
-             onClick={toggleWakeLock}
-             className={cn(
-               "w-14 h-14 rounded-[28px] flex items-center justify-center transition-all",
-               isWakeLockActive 
-                 ? "bg-amber-500/20 text-amber-400 border border-amber-500/30" 
-                 : "bg-slate-800/50 text-slate-400 border border-slate-700/30 hover:bg-slate-800"
-             )}
-             title={isWakeLockActive ? "关闭屏幕常亮" : "开启屏幕常亮"}
-           >
-             {isWakeLockActive ? <Sun size={24} fill="currentColor" /> : <SunDim size={24} />}
+         {isPaused ? (
+           <button onClick={handleContinue}
+             className="w-full bg-indigo-500 text-white py-5 rounded-[28px] font-bold text-lg flex items-center justify-center gap-3 shadow-2xl shadow-indigo-500/20 active:scale-95 transition-all">
+             <Play size={24} /> 继续考试
            </button>
-         </div>
+         ) : (
+           <button onClick={handlePause}
+             className="w-full bg-amber-500 text-white py-5 rounded-[28px] font-bold text-lg flex items-center justify-center gap-3 shadow-2xl shadow-amber-500/20 active:scale-95 transition-all">
+             <Pause size={24} /> 暂停考试
+           </button>
+         )}
          
          <button onClick={finishExam}
            className="w-full bg-rose-500 text-white py-5 rounded-[28px] font-bold text-lg flex items-center justify-center gap-3 shadow-2xl shadow-rose-500/20 active:scale-95 transition-all">
