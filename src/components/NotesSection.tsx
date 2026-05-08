@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AppData, StudyModule, MAIN_MODULES, ExamNote } from '../types';
 import { storage } from '../lib/storage';
-import { Plus, Search, X, Trash2, Edit2, FileText, ChevronRight, Eye, BookOpen } from 'lucide-react';
+import { Plus, Search, X, Trash2, Edit2, FileText, ChevronRight, Eye, BookOpen, Image as ImageIcon } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { motion, AnimatePresence } from 'motion/react';
-import { cn } from '../lib/utils';
+import { cn, compressImage } from '../lib/utils';
 
 const ALL_NOTE_MODULES = [...MAIN_MODULES, StudyModule.ESSAY];
 
@@ -49,7 +49,8 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
     moduleId: StudyModule.VERBAL,
     title: '',
     content: '',
-    tags: []
+    tags: [],
+    images: []
   });
 
   const saveNote = async () => {
@@ -80,6 +81,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
           essayType: newNote.essayType,
           essayTag: newNote.essayTag,
           tags: newNote.tags || [],
+          images: newNote.images || [],
           updatedAt: Date.now()
         });
       } else {
@@ -91,7 +93,8 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
           updatedAt: Date.now(),
           essayType: newNote.essayType,
           essayTag: newNote.essayTag,
-          tags: newNote.tags || []
+          tags: newNote.tags || [],
+          images: newNote.images || []
         });
       }
       
@@ -106,7 +109,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
   const closeModal = () => {
     setIsAdding(false);
     setEditingNote(null);
-    setNewNote({ moduleId: category === '行测' ? StudyModule.VERBAL : StudyModule.ESSAY, title: '', content: '' });
+    setNewNote({ moduleId: category === '行测' ? StudyModule.VERBAL : StudyModule.ESSAY, title: '', content: '', tags: [], images: [] });
   };
 
   const handleEdit = (note: ExamNote) => {
@@ -118,9 +121,43 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
       content: note.content,
       essayType: note.essayType,
       essayTag: note.essayTag,
-      tags: note.tags || []
+      tags: note.tags || [],
+      images: note.images || []
     });
     setIsAdding(true);
+  };
+
+  // 处理图片上传
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    try {
+      // 压缩所有图片
+      const compressedImages = await Promise.all(
+        files.map(file => compressImage(file, 1000, 0.6))
+      );
+      
+      // 添加到现有图片数组
+      setNewNote(prev => ({
+        ...prev,
+        images: [...(prev.images || []), ...compressedImages]
+      }));
+    } catch (error) {
+      console.error('图片压缩失败:', error);
+      alert('图片处理失败，请重试');
+    }
+    
+    // 清空 input
+    e.target.value = '';
+  };
+
+  // 删除图片
+  const removeImage = (index: number) => {
+    setNewNote(prev => ({
+      ...prev,
+      images: (prev.images || []).filter((_, i) => i !== index)
+    }));
   };
 
   const deleteNote = async (id: string) => {
@@ -465,7 +502,47 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                         />
                     </div>
 
-                    <div className="space-y-2 flex-1 flex flex-col min-h-[300px]">
+                    {/* 图片上传区域（仅行测笔记显示） */}
+                    {newNote.moduleId !== StudyModule.ESSAY && (
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1">
+                                <ImageIcon size={12} /> 图片（可选，多张）
+                            </label>
+                            
+                            {/* 已上传图片预览 */}
+                            {newNote.images && newNote.images.length > 0 && (
+                                <div className="grid grid-cols-3 gap-2">
+                                    {newNote.images.map((img, index) => (
+                                        <div key={index} className="relative aspect-square rounded-xl overflow-hidden bg-slate-100">
+                                            <img src={img} alt={`笔记图片 ${index + 1}`} className="w-full h-full object-cover" />
+                                            <button
+                                                onClick={() => removeImage(index)}
+                                                className="absolute top-1 right-1 bg-rose-500 text-white p-0.5 rounded-full hover:bg-rose-600"
+                                            >
+                                                <X size={12} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            
+                            {/* 上传按钮 */}
+                            <label className="flex items-center justify-center gap-2 px-4 py-3 bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl text-sm text-slate-500 hover:bg-slate-100 hover:border-slate-300 cursor-pointer transition-all">
+                                <ImageIcon size={16} />
+                                <span>点击添加图片</span>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    multiple
+                                    onChange={handleImageUpload}
+                                    className="hidden"
+                                />
+                            </label>
+                            <p className="text-[9px] text-slate-400">支持多张，自动压缩，节省空间</p>
+                        </div>
+                    )}
+
+                    <div className="space-y-2 flex-1 flex flex-col min-h-[200px]">
                         <label className="text-[10px] font-bold text-slate-400 uppercase">笔记正文</label>
                         <textarea 
                             value={newNote.content}
@@ -548,6 +625,20 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                     </span>
                   ))}
                 </div>
+
+                {/* 图片显示（仅行测笔记且有图片时显示） */}
+                {selectedNote.moduleId !== StudyModule.ESSAY && selectedNote.images && selectedNote.images.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="text-[10px] font-bold text-slate-400 uppercase">笔记图片</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {selectedNote.images.map((img, index) => (
+                        <div key={index} className="aspect-square rounded-xl overflow-hidden bg-slate-100">
+                          <img src={img} alt={`笔记图片 ${index + 1}`} className="w-full h-full object-contain" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* 正文 */}
                 <div className="bg-slate-50 rounded-2xl p-5 min-h-[120px]">

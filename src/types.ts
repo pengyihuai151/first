@@ -72,6 +72,7 @@ export interface ExamNote {
   essayType?: string;
   essayTag?: string;
   tags?: string[];
+  images?: string[]; // 压缩后的 base64 图片数组
 }
 
 // ==================== 应用配置 ====================
