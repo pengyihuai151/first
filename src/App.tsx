@@ -19,8 +19,8 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('home');
   const [data, setData] = useState<AppData | null>(null);
   const [selectedExamId, setSelectedExamId] = useState<string | null>(null);
-  const initialLoadRef = useRef(false);
   const wakeLockRef = useRef<any>(null);
+  const needsWakeLockRef = useRef(false);
 
   // 保持屏幕常亮（仅当用户开启时）
   const requestWakeLock = async () => {
@@ -45,21 +45,20 @@ export default function App() {
     }
   };
 
-  // 统一的 Wake Lock 处理函数
-  const syncWakeLock = async () => {
-    if (!data) return;
-    
-    if (data.settings.screenWakeLockEnabled && document.visibilityState === 'visible') {
-      await requestWakeLock();
-    } else {
-      await releaseWakeLock();
-    }
-  };
-
+  // 核心：Wake Lock 需要用户交互后才能申请
+  // 当应用回到前台时标记需要申请，等用户点击页面后再真正申请
   useEffect(() => {
-    // 1. 页面可见性变化时处理
+    // 1. 监听页面可见性变化
     const handleVisibilityChange = () => {
-      syncWakeLock();
+      if (document.visibilityState === 'visible') {
+        // 页面回到前台，标记需要在用户交互后申请 Wake Lock
+        if (data?.settings.screenWakeLockEnabled) {
+          needsWakeLockRef.current = true;
+        }
+      } else {
+        // 页面进入后台，立即释放
+        releaseWakeLock();
+      }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -68,21 +67,52 @@ export default function App() {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       releaseWakeLock();
     };
-  }, []);
-
-  // 2. 当 data 加载完成或变化时处理
-  useEffect(() => {
-    syncWakeLock();
   }, [data?.settings.screenWakeLockEnabled]);
+
+  // 2. 监听用户交互，在有需要时申请 Wake Lock
+  useEffect(() => {
+    const handleUserInteraction = () => {
+      if (needsWakeLockRef.current && data?.settings.screenWakeLockEnabled) {
+        requestWakeLock();
+        needsWakeLockRef.current = false;
+      }
+    };
+
+    document.addEventListener('click', handleUserInteraction);
+    document.addEventListener('touchstart', handleUserInteraction);
+
+    return () => {
+      document.removeEventListener('click', handleUserInteraction);
+      document.removeEventListener('touchstart', handleUserInteraction);
+    };
+  }, [data?.settings.screenWakeLockEnabled]);
+
+  // 3. 数据加载完成后，如果是第一次加载且页面可见，标记需要申请
+  useEffect(() => {
+    if (data && data.settings.screenWakeLockEnabled && document.visibilityState === 'visible') {
+      needsWakeLockRef.current = true;
+    }
+  }, [data]);  // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 4. 组件卸载时释放
+  useEffect(() => {
+    return () => {
+      releaseWakeLock();
+    };
+  }, []);  // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, []);  // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadData = async () => {
     const appData = await storage.getData();
     setData(appData);
   };
+
+  useEffect(() => {
+    loadData();
+  }, []);  // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleNavigate = (tab: string, extra?: string) => {
     if (tab === 'wrong' && extra) {
