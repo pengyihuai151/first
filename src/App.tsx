@@ -80,6 +80,9 @@ export default function App() {
 
   const loadData = async () => {
     const appData = await storage.getData();
+    // 每次打开应用时自动关闭屏幕常亮，避免不生效的问题
+    appData.settings.screenWakeLockEnabled = false;
+    await storage.saveData(appData);
     setData(appData);
   };
 
