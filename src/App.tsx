@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { LayoutDashboard, Clock, FileText, BarChart3, Settings } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AppData } from './types';
@@ -19,6 +19,45 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('home');
   const [data, setData] = useState<AppData | null>(null);
   const [selectedExamId, setSelectedExamId] = useState<string | null>(null);
+  const wakeLockRef = useRef<any>(null);
+
+  // 保持屏幕常亮
+  const requestWakeLock = async () => {
+    if ('wakeLock' in navigator) {
+      try {
+        wakeLockRef.current = await navigator.wakeLock.request('screen');
+      } catch (err) {
+        // Wake Lock 失败时静默处理
+      }
+    }
+  };
+
+  const releaseWakeLock = async () => {
+    if (wakeLockRef.current) {
+      await wakeLockRef.current.release();
+      wakeLockRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    // 页面可见时请求唤醒锁，隐藏时释放
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        requestWakeLock();
+      } else {
+        releaseWakeLock();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    // 初始请求一次
+    requestWakeLock();
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      releaseWakeLock();
+    };
+  }, []);
 
   useEffect(() => {
     loadData();
