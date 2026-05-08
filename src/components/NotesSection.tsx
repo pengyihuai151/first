@@ -796,7 +796,10 @@ function ImageCropper({ image, onConfirm, onCancel }: { image: string; onConfirm
   const [cropBox, setCropBox] = useState({ x: 0, y: 0, width: 0, height: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const dragStartRef = useRef({ x: 0, y: 0, startBoxX: 0, startBoxY: 0 });
+  const [scalingCorner, setScalingCorner] = useState<string | null>(null); // 'tl' | 'tr' | 'bl' | 'br'
+  const [isPinching, setIsPinching] = useState(false);
+  const pinchStartRef = useRef({ distance: 0, centerX: 0, centerY: 0, startBoxX: 0, startBoxY: 0, startBoxW: 0, startBoxH: 0 });
+  const dragStartRef = useRef({ x: 0, y: 0, startBoxX: 0, startBoxY: 0, startBoxW: 0, startBoxH: 0 });
 
   useEffect(() => {
     if (imgRef.current && containerRef.current) {
@@ -839,8 +842,30 @@ function ImageCropper({ image, onConfirm, onCancel }: { image: string; onConfirm
     }
   }, [image]);
 
-  // 拖拽开始
+  // 处理角落缩放开始
+  const handleCornerStart = (corner: string, e: React.MouseEvent | React.TouchEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setScalingCorner(corner);
+    
+    const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
+    
+    dragStartRef.current = {
+      x: clientX,
+      y: clientY,
+      startBoxX: cropBox.x,
+      startBoxY: cropBox.y,
+      startBoxW: cropBox.width,
+      startBoxH: cropBox.height
+    };
+  };
+
+  // 拖拽开始（移动整个框）
   const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
+    // 如果点击的是角落，不触发移动
+    if ((e.target as HTMLElement).closest('.crop-corner')) return;
+    
     e.preventDefault();
     setIsDragging(true);
     
@@ -851,13 +876,77 @@ function ImageCropper({ image, onConfirm, onCancel }: { image: string; onConfirm
       x: clientX,
       y: clientY,
       startBoxX: cropBox.x,
-      startBoxY: cropBox.y
+      startBoxY: cropBox.y,
+      startBoxW: cropBox.width,
+      startBoxH: cropBox.height
     };
   };
 
-  // 拖拽中
+  // 拖拽/缩放中
   const handleDragMove = (e: React.MouseEvent | React.TouchEvent) => {
-    if (!isDragging || !imgRef.current || !containerRef.current) return;
+    if (!imgRef.current || !containerRef.current) return;
+    
+    // 检查是否是双指触摸
+    if ('touches' in e && e.touches.length === 2) {
+      e.preventDefault();
+      
+      const touch1 = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      const touch2 = { x: e.touches[1].clientX, y: e.touches[1].clientY };
+      const currentDistance = getDistance(touch1, touch2);
+      const currentCenter = getCenter(touch1, touch2);
+      
+      if (!isPinching) {
+        // 开始双指缩放
+        setIsPinching(true);
+        setIsDragging(false);
+        setScalingCorner(null);
+        pinchStartRef.current = {
+          distance: currentDistance,
+          centerX: currentCenter.x,
+          centerY: currentCenter.y,
+          startBoxX: cropBox.x,
+          startBoxY: cropBox.y,
+          startBoxW: cropBox.width,
+          startBoxH: cropBox.height
+        };
+        return;
+      }
+      
+      // 双指缩放中
+      const img = imgRef.current;
+      const container = containerRef.current;
+      const imgRect = img.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+      const imgX = imgRect.left - containerRect.left;
+      const imgY = imgRect.top - containerRect.top;
+      
+      // 计算缩放比例
+      const scale = currentDistance / pinchStartRef.current.distance;
+      
+      // 计算新的宽高
+      let newW = Math.max(50, pinchStartRef.current.startBoxW * scale);
+      let newH = Math.max(50, pinchStartRef.current.startBoxH * scale);
+      
+      // 计算新的位置（保持中心点不变）
+      const centerX = pinchStartRef.current.startBoxX + pinchStartRef.current.startBoxW / 2;
+      const centerY = pinchStartRef.current.startBoxY + pinchStartRef.current.startBoxH / 2;
+      
+      let newX = centerX - newW / 2;
+      let newY = centerY - newH / 2;
+      
+      // 限制边界
+      newX = Math.max(imgX, newX);
+      newY = Math.max(imgY, newY);
+      newW = Math.min(newW, imgX + imgRect.width - newX);
+      newH = Math.min(newH, imgY + imgRect.height - newY);
+      
+      setCropBox({ x: newX, y: newY, width: newW, height: newH });
+      return;
+    }
+    
+    // 单指操作
+    if (!isDragging && !scalingCorner) return;
+    
     e.preventDefault();
     
     const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
@@ -866,30 +955,84 @@ function ImageCropper({ image, onConfirm, onCancel }: { image: string; onConfirm
     const img = imgRef.current;
     const container = containerRef.current;
     const imgRect = img.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+    const imgX = imgRect.left - containerRect.left;
+    const imgY = imgRect.top - containerRect.top;
     
     // 计算移动的距离
     const deltaX = clientX - dragStartRef.current.x;
     const deltaY = clientY - dragStartRef.current.y;
     
-    // 计算新的位置（限制在图片范围内）
-    let newX = dragStartRef.current.startBoxX + deltaX;
-    let newY = dragStartRef.current.startBoxY + deltaY;
-    
-    // 限制边界
-    const minX = imgRect.left - container.getBoundingClientRect().left;
-    const minY = imgRect.top - container.getBoundingClientRect().top;
-    const maxX = minX + imgRect.width - cropBox.width;
-    const maxY = minY + imgRect.height - cropBox.height;
-    
-    newX = Math.max(minX, Math.min(maxX, newX));
-    newY = Math.max(minY, Math.min(maxY, newY));
-    
-    setCropBox(prev => ({ ...prev, x: newX, y: newY }));
+    if (scalingCorner) {
+      // 缩放模式
+      let newX = dragStartRef.current.startBoxX;
+      let newY = dragStartRef.current.startBoxY;
+      let newW = dragStartRef.current.startBoxW;
+      let newH = dragStartRef.current.startBoxH;
+      
+      // 根据不同角落计算
+      if (scalingCorner === 'br') {
+        // 右下角：只改宽高
+        newW = Math.max(50, dragStartRef.current.startBoxW + deltaX);
+        newH = Math.max(50, dragStartRef.current.startBoxH + deltaY);
+      } else if (scalingCorner === 'tl') {
+        // 左上角：改位置和宽高
+        newX = dragStartRef.current.startBoxX + deltaX;
+        newY = dragStartRef.current.startBoxY + deltaY;
+        newW = Math.max(50, dragStartRef.current.startBoxW - deltaX);
+        newH = Math.max(50, dragStartRef.current.startBoxH - deltaY);
+      } else if (scalingCorner === 'tr') {
+        // 右上角
+        newY = dragStartRef.current.startBoxY + deltaY;
+        newW = Math.max(50, dragStartRef.current.startBoxW + deltaX);
+        newH = Math.max(50, dragStartRef.current.startBoxH - deltaY);
+      } else if (scalingCorner === 'bl') {
+        // 左下角
+        newX = dragStartRef.current.startBoxX + deltaX;
+        newW = Math.max(50, dragStartRef.current.startBoxW - deltaX);
+        newH = Math.max(50, dragStartRef.current.startBoxH + deltaY);
+      }
+      
+      // 限制边界
+      newX = Math.max(imgX, newX);
+      newY = Math.max(imgY, newY);
+      newW = Math.min(newW, imgX + imgRect.width - newX);
+      newH = Math.min(newH, imgY + imgRect.height - newY);
+      
+      setCropBox({ x: newX, y: newY, width: newW, height: newH });
+    } else if (isDragging) {
+      // 移动模式
+      let newX = dragStartRef.current.startBoxX + deltaX;
+      let newY = dragStartRef.current.startBoxY + deltaY;
+      
+      // 限制边界
+      const minX = imgX;
+      const minY = imgY;
+      const maxX = imgX + imgRect.width - cropBox.width;
+      const maxY = imgY + imgRect.height - cropBox.height;
+      
+      newX = Math.max(minX, Math.min(maxX, newX));
+      newY = Math.max(minY, Math.min(maxY, newY));
+      
+      setCropBox(prev => ({ ...prev, x: newX, y: newY }));
+    }
   };
 
-  // 拖拽结束
+  // 拖拽/缩放结束
   const handleDragEnd = () => {
     setIsDragging(false);
+    setScalingCorner(null);
+    setIsPinching(false);
+  };
+
+  // 计算两点之间的距离
+  const getDistance = (p1: { x: number; y: number }, p2: { x: number; y: number }) => {
+    return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
+  };
+
+  // 计算两点的中心点
+  const getCenter = (p1: { x: number; y: number }, p2: { x: number; y: number }) => {
+    return { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
   };
 
   const handleConfirm = () => {
@@ -976,7 +1119,7 @@ function ImageCropper({ image, onConfirm, onCancel }: { image: string; onConfirm
         
         {/* 裁剪框 */}
         <div
-          className="absolute border-2 border-white rounded-lg shadow-lg cursor-move"
+          className="absolute border-2 border-white rounded-lg shadow-lg"
           style={{
             left: cropBox.x,
             top: cropBox.y,
@@ -991,11 +1134,39 @@ function ImageCropper({ image, onConfirm, onCancel }: { image: string; onConfirm
           onMouseLeave={handleDragEnd}
           onTouchEnd={handleDragEnd}
         >
-          {/* 裁剪框角落手柄（简单的视觉提示） */}
-          <div className="absolute -top-1 -left-1 w-3 h-3 border-t-2 border-l-2 border-white" />
-          <div className="absolute -top-1 -right-1 w-3 h-3 border-t-2 border-r-2 border-white" />
-          <div className="absolute -bottom-1 -left-1 w-3 h-3 border-b-2 border-l-2 border-white" />
-          <div className="absolute -bottom-1 -right-1 w-3 h-3 border-b-2 border-r-2 border-white" />
+          {/* 裁剪框角落手柄 - 可拖拽缩放 */}
+          {/* 左上角 */}
+          <div 
+            className="crop-corner absolute -top-2 -left-2 w-6 h-6 cursor-nwse-resize z-10 flex items-center justify-center"
+            onMouseDown={(e) => handleCornerStart('tl', e)}
+            onTouchStart={(e) => handleCornerStart('tl', e)}
+          >
+            <div className="w-3 h-3 bg-white rounded-full shadow-lg" />
+          </div>
+          {/* 右上角 */}
+          <div 
+            className="crop-corner absolute -top-2 -right-2 w-6 h-6 cursor-nesw-resize z-10 flex items-center justify-center"
+            onMouseDown={(e) => handleCornerStart('tr', e)}
+            onTouchStart={(e) => handleCornerStart('tr', e)}
+          >
+            <div className="w-3 h-3 bg-white rounded-full shadow-lg" />
+          </div>
+          {/* 左下角 */}
+          <div 
+            className="crop-corner absolute -bottom-2 -left-2 w-6 h-6 cursor-nesw-resize z-10 flex items-center justify-center"
+            onMouseDown={(e) => handleCornerStart('bl', e)}
+            onTouchStart={(e) => handleCornerStart('bl', e)}
+          >
+            <div className="w-3 h-3 bg-white rounded-full shadow-lg" />
+          </div>
+          {/* 右下角 */}
+          <div 
+            className="crop-corner absolute -bottom-2 -right-2 w-6 h-6 cursor-nwse-resize z-10 flex items-center justify-center"
+            onMouseDown={(e) => handleCornerStart('br', e)}
+            onTouchStart={(e) => handleCornerStart('br', e)}
+          >
+            <div className="w-3 h-3 bg-white rounded-full shadow-lg" />
+          </div>
         </div>
         
         {/* 遮罩层（除裁剪框外变暗） */}
