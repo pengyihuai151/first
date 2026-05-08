@@ -19,6 +19,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('home');
   const [data, setData] = useState<AppData | null>(null);
   const [selectedExamId, setSelectedExamId] = useState<string | null>(null);
+  const initialLoadRef = useRef(false);
   const wakeLockRef = useRef<any>(null);
 
   // 保持屏幕常亮（仅当用户开启时）
@@ -80,9 +81,12 @@ export default function App() {
 
   const loadData = async () => {
     const appData = await storage.getData();
-    // 每次打开应用时自动关闭屏幕常亮，避免不生效的问题
-    appData.settings.screenWakeLockEnabled = false;
-    await storage.saveData(appData);
+    // 只有第一次加载时才自动关闭屏幕常亮，避免用户点击开关后被重置
+    if (!initialLoadRef.current) {
+      initialLoadRef.current = true;
+      appData.settings.screenWakeLockEnabled = false;
+      await storage.saveData(appData);
+    }
     setData(appData);
   };
 
