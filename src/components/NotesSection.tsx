@@ -1089,7 +1089,7 @@ function ImageCropper({ image, onConfirm, onCancel }: { image: string; onConfirm
       className="fixed inset-0 z-[70] bg-black flex flex-col"
     >
       {/* 顶部操作栏 */}
-      <div className="flex justify-between items-center p-4 bg-black/50">
+      <div className="flex justify-between items-center p-4 pt-10 bg-black/50">
         <button
           onClick={onCancel}
           className="text-white px-4 py-2 rounded-xl hover:bg-white/10 transition-colors"
