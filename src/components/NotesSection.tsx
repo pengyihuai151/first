@@ -618,7 +618,6 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                 <div className="p-6 bg-slate-50/50 border-t border-slate-100">
                     <button 
                         onClick={saveNote}
-                        disabled={!newNote.title}
                         className="w-full bg-indigo-600 text-white py-3 rounded-2xl font-bold shadow-xl shadow-indigo-100 flex items-center justify-center gap-2"
                     >
                         保存笔记
@@ -796,6 +795,8 @@ function ImageCropper({ image, onConfirm, onCancel }: { image: string; onConfirm
   const imgRef = useRef<HTMLImageElement>(null);
   const [cropBox, setCropBox] = useState({ x: 0, y: 0, width: 0, height: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartRef = useRef({ x: 0, y: 0, startBoxX: 0, startBoxY: 0 });
 
   useEffect(() => {
     if (imgRef.current && containerRef.current) {
@@ -804,29 +805,30 @@ function ImageCropper({ image, onConfirm, onCancel }: { image: string; onConfirm
       
       // 图片加载完成后设置裁剪框（默认居中 80%）
       const setCrop = () => {
-        const imgWidth = img.naturalWidth;
-        const imgHeight = img.naturalHeight;
-        const displayWidth = img.clientWidth;
-        const displayHeight = img.clientHeight;
-        
-        // 计算显示比例
-        const scaleX = displayWidth / imgWidth;
-        const scaleY = displayHeight / imgHeight;
-        const scale = Math.min(scaleX, scaleY);
-        
-        const scaledWidth = imgWidth * scale;
-        const scaledHeight = imgHeight * scale;
-        
-        // 裁剪框大小（80%）
-        const cropWidth = scaledWidth * 0.8;
-        const cropHeight = scaledHeight * 0.8;
-        
-        setCropBox({
-          x: (displayWidth - cropWidth) / 2,
-          y: (displayHeight - cropHeight) / 2,
-          width: cropWidth,
-          height: cropHeight
-        });
+        // 等待一下让图片布局完成
+        setTimeout(() => {
+          if (!imgRef.current || !containerRef.current) return;
+          
+          const img = imgRef.current;
+          const container = containerRef.current;
+          const imgRect = img.getBoundingClientRect();
+          const containerRect = container.getBoundingClientRect();
+          
+          // 计算图片在容器内的位置
+          const imgX = imgRect.left - containerRect.left;
+          const imgY = imgRect.top - containerRect.top;
+          
+          // 裁剪框大小（图片的 80%）
+          const cropWidth = imgRect.width * 0.8;
+          const cropHeight = imgRect.height * 0.8;
+          
+          setCropBox({
+            x: imgX + (imgRect.width - cropWidth) / 2,
+            y: imgY + (imgRect.height - cropHeight) / 2,
+            width: cropWidth,
+            height: cropHeight
+          });
+        }, 100);
       };
       
       if (img.complete) {
@@ -837,14 +839,68 @@ function ImageCropper({ image, onConfirm, onCancel }: { image: string; onConfirm
     }
   }, [image]);
 
+  // 拖拽开始
+  const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+    
+    const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
+    
+    dragStartRef.current = {
+      x: clientX,
+      y: clientY,
+      startBoxX: cropBox.x,
+      startBoxY: cropBox.y
+    };
+  };
+
+  // 拖拽中
+  const handleDragMove = (e: React.MouseEvent | React.TouchEvent) => {
+    if (!isDragging || !imgRef.current || !containerRef.current) return;
+    e.preventDefault();
+    
+    const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
+    
+    const img = imgRef.current;
+    const container = containerRef.current;
+    const imgRect = img.getBoundingClientRect();
+    
+    // 计算移动的距离
+    const deltaX = clientX - dragStartRef.current.x;
+    const deltaY = clientY - dragStartRef.current.y;
+    
+    // 计算新的位置（限制在图片范围内）
+    let newX = dragStartRef.current.startBoxX + deltaX;
+    let newY = dragStartRef.current.startBoxY + deltaY;
+    
+    // 限制边界
+    const minX = imgRect.left - container.getBoundingClientRect().left;
+    const minY = imgRect.top - container.getBoundingClientRect().top;
+    const maxX = minX + imgRect.width - cropBox.width;
+    const maxY = minY + imgRect.height - cropBox.height;
+    
+    newX = Math.max(minX, Math.min(maxX, newX));
+    newY = Math.max(minY, Math.min(maxY, newY));
+    
+    setCropBox(prev => ({ ...prev, x: newX, y: newY }));
+  };
+
+  // 拖拽结束
+  const handleDragEnd = () => {
+    setIsDragging(false);
+  };
+
   const handleConfirm = () => {
-    if (!imgRef.current) return;
+    if (!imgRef.current || !containerRef.current) return;
     
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     
     const img = imgRef.current;
+    const container = containerRef.current;
     const imgWidth = img.naturalWidth;
     const imgHeight = img.naturalHeight;
     const displayWidth = img.clientWidth;
@@ -856,8 +912,13 @@ function ImageCropper({ image, onConfirm, onCancel }: { image: string; onConfirm
     const scale = Math.min(scaleX, scaleY);
     
     // 计算实际裁剪坐标（转换为原图尺寸）
-    const realX = cropBox.x / scale;
-    const realY = cropBox.y / scale;
+    const imgRect = img.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+    const relativeX = cropBox.x - (imgRect.left - containerRect.left);
+    const relativeY = cropBox.y - (imgRect.top - containerRect.top);
+    
+    const realX = relativeX / scale;
+    const realY = relativeY / scale;
     const realWidth = cropBox.width / scale;
     const realHeight = cropBox.height / scale;
     
@@ -868,7 +929,7 @@ function ImageCropper({ image, onConfirm, onCancel }: { image: string; onConfirm
     // 绘制裁剪区域
     ctx.drawImage(
       img,
-      realX, realY, realWidth, realHeight,
+      Math.max(0, realX), Math.max(0, realY), realWidth, realHeight,
       0, 0, realWidth, realHeight
     );
     
@@ -915,13 +976,20 @@ function ImageCropper({ image, onConfirm, onCancel }: { image: string; onConfirm
         
         {/* 裁剪框 */}
         <div
-          className="absolute border-2 border-white rounded-lg shadow-lg"
+          className="absolute border-2 border-white rounded-lg shadow-lg cursor-move"
           style={{
             left: cropBox.x,
             top: cropBox.y,
             width: cropBox.width,
             height: cropBox.height
           }}
+          onMouseDown={handleDragStart}
+          onTouchStart={handleDragStart}
+          onMouseMove={handleDragMove}
+          onTouchMove={handleDragMove}
+          onMouseUp={handleDragEnd}
+          onMouseLeave={handleDragEnd}
+          onTouchEnd={handleDragEnd}
         >
           {/* 裁剪框角落手柄（简单的视觉提示） */}
           <div className="absolute -top-1 -left-1 w-3 h-3 border-t-2 border-l-2 border-white" />
