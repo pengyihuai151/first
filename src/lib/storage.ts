@@ -22,6 +22,7 @@ export const storage = {
         ],
         studyReminderEnabled: false,
         studyReminderMinutes: 60,
+        screenWakeLockEnabled: false,
       },
       config: {
         essayTypes: ['金句', '文章结构', '首尾段'],

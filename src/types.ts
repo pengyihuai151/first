@@ -127,6 +127,7 @@ export interface AppData {
     quotes: string[];
     studyReminderEnabled?: boolean; // 久学提醒开关
     studyReminderMinutes?: number; // 久学提醒时长（分钟）
+    screenWakeLockEnabled?: boolean; // 屏幕常亮开关
   };
   config?: AppConfig;
   /** 阅读打卡记录：日期 -> 已读笔记ID列表 */

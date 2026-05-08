@@ -21,14 +21,20 @@ export default function App() {
   const [selectedExamId, setSelectedExamId] = useState<string | null>(null);
   const wakeLockRef = useRef<any>(null);
 
-  // 保持屏幕常亮
+  // 保持屏幕常亮（仅当用户开启时）
   const requestWakeLock = async () => {
-    if ('wakeLock' in navigator) {
-      try {
-        wakeLockRef.current = await navigator.wakeLock.request('screen');
-      } catch (err) {
-        // Wake Lock 失败时静默处理
-      }
+    if (!data?.settings.screenWakeLockEnabled) return;
+    if (!('wakeLock' in navigator)) return;
+    if (wakeLockRef.current) return; // 已持有锁，不再重复请求
+
+    try {
+      wakeLockRef.current = await navigator.wakeLock.request('screen');
+      wakeLockRef.current.addEventListener('release', () => {
+        wakeLockRef.current = null;
+      });
+    } catch (err) {
+      // 静默处理失败
+      wakeLockRef.current = null;
     }
   };
 
@@ -40,7 +46,7 @@ export default function App() {
   };
 
   useEffect(() => {
-    // 页面可见时请求唤醒锁，隐藏时释放
+    // 页面可见性变化时处理
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         requestWakeLock();
@@ -50,14 +56,19 @@ export default function App() {
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    // 初始请求一次
-    requestWakeLock();
+
+    // 用户开关变化时处理
+    if (data?.settings.screenWakeLockEnabled) {
+      requestWakeLock();
+    } else {
+      releaseWakeLock();
+    }
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       releaseWakeLock();
     };
-  }, []);
+  }, [data?.settings.screenWakeLockEnabled]);
 
   useEffect(() => {
     loadData();

@@ -685,6 +685,42 @@ export default function SettingsPage({ data, onUpdate, onNavigate }: { data: App
         </div>
       </section>
 
+      {/* 屏幕常亮 */}
+      <section className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm space-y-4">
+        <h3 className="text-xs font-bold text-slate-400 uppercase flex items-center gap-2">
+          <Clock size={14} /> 屏幕常亮
+        </h3>
+        
+        <div className="space-y-4">
+          {/* 开关 */}
+          <div className="flex items-center justify-between">
+            <div className="text-left">
+              <p className="text-sm font-bold text-slate-800">保持屏幕常亮</p>
+              <p className="text-[10px] text-slate-400">学习时屏幕不会自动休眠（需手动开启）</p>
+            </div>
+            <button
+              onClick={() => updateSettings({ screenWakeLockEnabled: !data.settings.screenWakeLockEnabled })}
+              className={cn(
+                "w-14 h-8 rounded-full transition-colors relative",
+                data.settings.screenWakeLockEnabled ? "bg-indigo-500" : "bg-slate-200"
+              )}
+            >
+              <div className={cn(
+                "absolute top-1 w-6 h-6 bg-white rounded-full shadow-sm transition-all",
+                data.settings.screenWakeLockEnabled ? "left-7" : "left-1"
+              )} />
+            </button>
+          </div>
+          
+          {/* 提示 */}
+          {data.settings.screenWakeLockEnabled && (
+            <div className="text-[10px] text-amber-600 bg-amber-50 rounded-xl px-3 py-2">
+              💡 iOS 16.4+ 或 Chrome/Edge 支持，切换到后台会自动释放
+            </div>
+          )}
+        </div>
+      </section>
+
       {/* Export Options */}
       <section className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm space-y-4">
         <h3 className="text-xs font-bold text-slate-400 uppercase flex items-center gap-2">
