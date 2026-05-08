@@ -57,17 +57,24 @@ export default function App() {
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    // 用户开关变化时处理
-    if (data?.settings.screenWakeLockEnabled) {
-      requestWakeLock();
-    } else {
-      releaseWakeLock();
-    }
-
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       releaseWakeLock();
     };
+  }, [data?.settings.screenWakeLockEnabled]);
+
+  // 当 data 加载完成或设置变化时，处理 Wake Lock
+  useEffect(() => {
+    if (!data) return;
+
+    if (data.settings.screenWakeLockEnabled) {
+      // 如果用户已开启常亮，且当前页面可见，立即请求
+      if (document.visibilityState === 'visible') {
+        requestWakeLock();
+      }
+    } else {
+      releaseWakeLock();
+    }
   }, [data?.settings.screenWakeLockEnabled]);
 
   useEffect(() => {
