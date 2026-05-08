@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Trophy, Plus, Trash2, Calendar, Clock, Target, ChevronRight, X, Play, StopCircle, Timer, Edit2, ChevronDown, BookOpen, Pause } from 'lucide-react';
+import { Trophy, Plus, Trash2, Calendar, Clock, Target, ChevronRight, X, Play, StopCircle, Timer, Edit2, ChevronDown, BookOpen, Pause, Sun, SunDim } from 'lucide-react';
 import { AppData, MAIN_MODULES, StudyModule, ExamRecord, ExamModuleScore, ExamSubScore, StudySession } from '../types';
 import { hasSubModules, getSubTopics } from '../types';
 import { storage } from '../lib/storage';
@@ -456,6 +456,8 @@ function ExamLiveMode({ onFinish, onClose }: { onFinish: (res: any) => void; onC
   const [currentModule, setCurrentModule] = useState<StudyModule>(MAIN_MODULES[0]);
   const [currentSub, setCurrentSub] = useState<string | null>(null);
   const [showSubSelector, setShowSubSelector] = useState(false);
+  const [isWakeLockActive, setIsWakeLockActive] = useState(false); // 屏幕常亮状态
+  const wakeLockRef = useRef<any>(null); // Wake Lock 引用
 
   // 总已用时间（毫秒）
   const [elapsed, setElapsed] = useState(0);
@@ -575,6 +577,63 @@ function ExamLiveMode({ onFinish, onClose }: { onFinish: (res: any) => void; onC
   const handleContinue = () => {
     setIsPaused(false);
   };
+
+  // 切换屏幕常亮
+  const toggleWakeLock = async () => {
+    if (isWakeLockActive) {
+      // 关闭常亮
+      if (wakeLockRef.current) {
+        await wakeLockRef.current.release();
+        wakeLockRef.current = null;
+      }
+      setIsWakeLockActive(false);
+    } else {
+      // 开启常亮
+      if ('wakeLock' in navigator) {
+        try {
+          wakeLockRef.current = await navigator.wakeLock.request('screen');
+          setIsWakeLockActive(true);
+          
+          // 监听释放
+          wakeLockRef.current.addEventListener('release', () => {
+            setIsWakeLockActive(false);
+            wakeLockRef.current = null;
+          });
+        } catch (err) {
+          console.error('常亮申请失败', err);
+        }
+      }
+    }
+  };
+
+  // 监听页面可见性变化（回到前台时重新申请）
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible' && isWakeLockActive && !wakeLockRef.current) {
+        if ('wakeLock' in navigator) {
+          try {
+            wakeLockRef.current = await navigator.wakeLock.request('screen');
+            // 监听释放
+            wakeLockRef.current.addEventListener('release', () => {
+              setIsWakeLockActive(false);
+              wakeLockRef.current = null;
+            });
+          } catch (err) {
+            console.error('常亮重新申请失败', err);
+            setIsWakeLockActive(false);
+          }
+        }
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (wakeLockRef.current) {
+        wakeLockRef.current.release();
+      }
+    };
+  }, [isWakeLockActive]);
 
   const finishExam = () => {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -793,17 +852,34 @@ function ExamLiveMode({ onFinish, onClose }: { onFinish: (res: any) => void; onC
       </div>
 
       <div className="p-8 pb-20 flex flex-col gap-4">
-         {isPaused ? (
-           <button onClick={handleContinue}
-             className="w-full bg-indigo-500 text-white py-5 rounded-[28px] font-bold text-lg flex items-center justify-center gap-3 shadow-2xl shadow-indigo-500/20 active:scale-95 transition-all">
-             <Play size={24} /> 继续考试
+         <div className="flex gap-4 items-center">
+           {isPaused ? (
+             <button onClick={handleContinue}
+               className="flex-1 bg-indigo-500 text-white py-5 rounded-[28px] font-bold text-lg flex items-center justify-center gap-3 shadow-2xl shadow-indigo-500/20 active:scale-95 transition-all">
+               <Play size={24} /> 继续考试
+             </button>
+           ) : (
+             <button onClick={handlePause}
+               className="flex-1 bg-amber-500 text-white py-5 rounded-[28px] font-bold text-lg flex items-center justify-center gap-3 shadow-2xl shadow-amber-500/20 active:scale-95 transition-all">
+               <Pause size={24} /> 暂停考试
+             </button>
+           )}
+           
+           {/* 屏幕常亮小按钮 */}
+           <button
+             onClick={toggleWakeLock}
+             className={cn(
+               "w-14 h-14 rounded-[28px] flex items-center justify-center transition-all",
+               isWakeLockActive 
+                 ? "bg-amber-500/20 text-amber-400 border border-amber-500/30" 
+                 : "bg-slate-800/50 text-slate-400 border border-slate-700/30 hover:bg-slate-800"
+             )}
+             title={isWakeLockActive ? "关闭屏幕常亮" : "开启屏幕常亮"}
+           >
+             {isWakeLockActive ? <Sun size={24} fill="currentColor" /> : <SunDim size={24} />}
            </button>
-         ) : (
-           <button onClick={handlePause}
-             className="w-full bg-amber-500 text-white py-5 rounded-[28px] font-bold text-lg flex items-center justify-center gap-3 shadow-2xl shadow-amber-500/20 active:scale-95 transition-all">
-             <Pause size={24} /> 暂停考试
-           </button>
-         )}
+         </div>
+         
          <button onClick={finishExam}
            className="w-full bg-rose-500 text-white py-5 rounded-[28px] font-bold text-lg flex items-center justify-center gap-3 shadow-2xl shadow-rose-500/20 active:scale-95 transition-all">
            <StopCircle size={24} /> 结束并交卷

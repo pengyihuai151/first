@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { AppData, StudyModule, MAIN_MODULES } from '../types';
 import { storage } from '../lib/storage';
 import { formatDuration, cn } from '../lib/utils';
-import { Play, Square, Timer, History, Trash2, Bell, X, Pause } from 'lucide-react';
+import { Play, Square, Timer, History, Trash2, Bell, X, Pause, Sun, SunDim } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -13,6 +13,8 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
   const [time, setTime] = useState(0);
   const [showResume, setShowResume] = useState(false); // 显示继续计时提示
   const [showReminder, setShowReminder] = useState(false); // 显示久学提醒
+  const [isWakeLockActive, setIsWakeLockActive] = useState(false); // 屏幕常亮状态
+  const wakeLockRef = useRef<any>(null); // Wake Lock 引用
   const startTimeRef = useRef<number | null>(null);
   const intervalRef = useRef<any>(null);
   const timeRef = useRef(0);
@@ -94,6 +96,63 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
       }
     };
   }, [isRunning, time, activeModule]);
+
+  // 切换屏幕常亮
+  const toggleWakeLock = async () => {
+    if (isWakeLockActive) {
+      // 关闭常亮
+      if (wakeLockRef.current) {
+        await wakeLockRef.current.release();
+        wakeLockRef.current = null;
+      }
+      setIsWakeLockActive(false);
+    } else {
+      // 开启常亮
+      if ('wakeLock' in navigator) {
+        try {
+          wakeLockRef.current = await navigator.wakeLock.request('screen');
+          setIsWakeLockActive(true);
+          
+          // 监听释放
+          wakeLockRef.current.addEventListener('release', () => {
+            setIsWakeLockActive(false);
+            wakeLockRef.current = null;
+          });
+        } catch (err) {
+          console.error('常亮申请失败', err);
+        }
+      }
+    }
+  };
+
+  // 监听页面可见性变化（回到前台时重新申请）
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible' && isWakeLockActive && !wakeLockRef.current) {
+        if ('wakeLock' in navigator) {
+          try {
+            wakeLockRef.current = await navigator.wakeLock.request('screen');
+            // 监听释放
+            wakeLockRef.current.addEventListener('release', () => {
+              setIsWakeLockActive(false);
+              wakeLockRef.current = null;
+            });
+          } catch (err) {
+            console.error('常亮重新申请失败', err);
+            setIsWakeLockActive(false);
+          }
+        }
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (wakeLockRef.current) {
+        wakeLockRef.current.release();
+      }
+    };
+  }, [isWakeLockActive]);
 
   const handleResume = () => {
     setShowResume(false);
@@ -260,7 +319,7 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
           </span>
         </div>
 
-        <div className="flex gap-4">
+        <div className="flex gap-4 items-center">
           {!isRunning ? (
             <button
               onClick={handleStart}
@@ -299,6 +358,20 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
               </button>
             </>
           )}
+          
+          {/* 屏幕常亮小按钮 */}
+          <button
+            onClick={toggleWakeLock}
+            className={cn(
+              "w-12 h-12 rounded-full flex items-center justify-center transition-all",
+              isWakeLockActive 
+                ? "bg-amber-100 text-amber-600 shadow-amber-200 shadow-lg" 
+                : "bg-slate-100 text-slate-400 hover:bg-slate-200"
+            )}
+            title={isWakeLockActive ? "关闭屏幕常亮" : "开启屏幕常亮"}
+          >
+            {isWakeLockActive ? <Sun size={20} fill="currentColor" /> : <SunDim size={20} />}
+          </button>
         </div>
       </div>
 
