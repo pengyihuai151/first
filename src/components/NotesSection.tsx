@@ -840,7 +840,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
             }}
           >
             {/* 顶部操作栏 */}
-            <div className="flex justify-between items-center p-4 z-10">
+            <div className="flex justify-between items-center p-4 pt-10 z-10">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
