@@ -39,11 +39,21 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
   useEffect(() => {
     const savedState = localStorage.getItem('studyTimerState');
     if (savedState) {
-      const { savedTime, savedModule } = JSON.parse(savedState);
-      timeRef.current = savedTime;
-      setTime(savedTime);
-      setActiveModule(savedModule);
-      setShowResume(true);
+      try {
+        const { savedTime, savedModule } = JSON.parse(savedState);
+        if (savedTime && savedTime > 1000) {
+          timeRef.current = savedTime;
+          setTime(savedTime);
+          setActiveModule(savedModule || MAIN_MODULES[0]);
+          setShowResume(true);
+        } else {
+          // 时间太短，清除状态
+          localStorage.removeItem('studyTimerState');
+        }
+      } catch (e) {
+        // 解析错误，清除状态
+        localStorage.removeItem('studyTimerState');
+      }
     }
   }, []);
 
@@ -197,8 +207,8 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
   };
 
   const handleModuleChange = (module: StudyModule) => {
-    // 保存当前计时状态
-    if (time > 1000) {
+    // 保存当前计时状态：只有正在计时的时候才保存
+    if (isRunning && time > 1000) {
       localStorage.setItem('studyTimerState', JSON.stringify({
         savedTime: time,
         savedModule: activeModule,
