@@ -21,11 +21,16 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
   const pauseTimeRef = useRef<number>(0); // 暂停时的时间点
   const totalPausedDurationRef = useRef<number>(0); // 累计暂停时长
   const reminderStartTimeRef = useRef<number>(0); // 当前提醒周期的开始时间（毫秒）
+  // 用于解决闭包问题的 ref
+  const isRunningRef = useRef(false);
+  const activeModuleRef = useRef<StudyModule>(MAIN_MODULES[0]);
 
-  // 同步 time 到 ref
+  // 同步状态到 ref，解决闭包问题
   useEffect(() => {
     timeRef.current = time;
-  }, [time]);
+    isRunningRef.current = isRunning;
+    activeModuleRef.current = activeModule;
+  }, [time, isRunning, activeModule]);
 
   // 计算今天已保存的学习记录的总时长
   const getTodaySavedDuration = () => {
@@ -97,15 +102,16 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
   // 组件卸载时保存状态（切换 Tab 时触发）
   useEffect(() => {
     return () => {
-      if (isRunning && time > 1000) {
+      // 使用 ref 获取最新状态，解决闭包问题
+      if (isRunningRef.current && timeRef.current > 1000) {
         localStorage.setItem('studyTimerState', JSON.stringify({
-          savedTime: time,
-          savedModule: activeModule,
+          savedTime: timeRef.current,
+          savedModule: activeModuleRef.current,
           savedAt: Date.now()
         }));
       }
     };
-  }, [isRunning, time, activeModule]);
+  }, []);
 
   // 切换屏幕常亮（简化版）
   const toggleWakeLock = async () => {
@@ -152,18 +158,22 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
 
   const handleDiscard = () => {
     localStorage.removeItem('studyTimerState');
+    localStorage.removeItem('studyTimerState');
     setShowResume(false);
     setTime(0);
     timeRef.current = 0;
+    localStorage.removeItem('studyTimerState');
   };
 
   const handleStart = () => {
+    localStorage.removeItem('studyTimerState');
     localStorage.removeItem('studyTimerState');
     reminderStartTimeRef.current = 0; // 开始新计时时，重置提醒周期
     setIsRunning(true);
     setIsPaused(false);
     pauseTimeRef.current = 0;
     totalPausedDurationRef.current = 0;
+    localStorage.removeItem('studyTimerState');
   };
   
   const handlePause = () => {
@@ -183,6 +193,8 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
     setShowReminder(false);
     setIsRunning(false);
     setIsPaused(false);
+    // 双保险：多次清除 localStorage
+    localStorage.removeItem('studyTimerState');
     localStorage.removeItem('studyTimerState');
     reminderStartTimeRef.current = 0; // 结束计时时，重置提醒周期
     pauseTimeRef.current = 0;
@@ -204,6 +216,8 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
     }
     setTime(0);
     timeRef.current = 0;
+    // 最后再清除一次
+    localStorage.removeItem('studyTimerState');
   };
 
   const handleModuleChange = (module: StudyModule) => {
