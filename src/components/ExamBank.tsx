@@ -704,7 +704,7 @@ function ExamLiveMode({ onFinish, onClose }: { onFinish: (res: any) => void; onC
   return (
     <div className="fixed inset-0 z-[105] bg-slate-900 flex flex-col text-white">
       {/* 右上角常亮按钮 */}
-      <div className="absolute top-6 right-6 z-10">
+      <div className="absolute top-16 right-6 z-10">
         <button
           onClick={toggleWakeLock}
           className={cn(
