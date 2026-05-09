@@ -154,6 +154,10 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
         alert('请选择类型');
         return;
       }
+      if (!newNote.essayTags || newNote.essayTags.length === 0) {
+        alert('请至少选择一个标签');
+        return;
+      }
     }
     
     try {
