@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AppData, StudyModule, MAIN_MODULES, ExamNote } from '../types';
 import { storage } from '../lib/storage';
-import { Plus, Search, X, Trash2, Edit2, FileText, ChevronRight, Eye, BookOpen, Image as ImageIcon, ZoomIn, ZoomOut, RefreshCw } from 'lucide-react';
+import { Plus, Search, X, Trash2, Edit2, FileText, ChevronRight, Eye, BookOpen, Image as ImageIcon, ZoomIn, ZoomOut, RefreshCw, Bold, Highlighter } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn, compressImage } from '../lib/utils';
@@ -134,7 +134,8 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
     title: '',
     content: '',
     tags: [],
-    images: []
+    images: [],
+    essayTags: []
   });
 
   const saveNote = async () => {
@@ -149,8 +150,8 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
     
     // Validation for ESSAY
     if (newNote.moduleId === StudyModule.ESSAY) {
-      if (!newNote.essayType || !newNote.essayTag) {
-        alert('请选择类型和专题标签');
+      if (!newNote.essayType) {
+        alert('请选择类型');
         return;
       }
     }
@@ -163,7 +164,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
           title: newNote.title,
           content: newNote.content || '',
           essayType: newNote.essayType,
-          essayTag: newNote.essayTag,
+          essayTags: newNote.essayTags || [],
           tags: newNote.tags || [],
           images: newNote.images || [],
           updatedAt: Date.now()
@@ -176,7 +177,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
           content: newNote.content || '',
           updatedAt: Date.now(),
           essayType: newNote.essayType,
-          essayTag: newNote.essayTag,
+          essayTags: newNote.essayTags || [],
           tags: newNote.tags || [],
           images: newNote.images || []
         });
@@ -193,7 +194,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
   const closeModal = () => {
     setIsAdding(false);
     setEditingNote(null);
-    setNewNote({ moduleId: category === '行测' ? StudyModule.VERBAL : StudyModule.ESSAY, title: '', content: '', tags: [], images: [] });
+    setNewNote({ moduleId: category === '行测' ? StudyModule.VERBAL : StudyModule.ESSAY, title: '', content: '', tags: [], images: [], essayTags: [] });
   };
 
   const handleEdit = (note: ExamNote) => {
@@ -204,7 +205,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
       title: note.title,
       content: note.content,
       essayType: note.essayType,
-      essayTag: note.essayTag,
+      essayTags: note.essayTags || [],
       tags: note.tags || [],
       images: note.images || []
     });
@@ -294,7 +295,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
       let passTypeTagFilter = true;
       if (category === '申论') {
         const typeMatch = essayTypeFilter === '全部' || n.essayType === essayTypeFilter;
-        const tagMatch = essayTagFilter === '全部' || n.essayTag === essayTagFilter;
+        const tagMatch = essayTagFilter === '全部' || (n.essayTags || []).includes(essayTagFilter);
         passTypeTagFilter = typeMatch && tagMatch;
       }
       
@@ -307,7 +308,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
           n.content.toLowerCase().includes(q) ||
           (n.tags || []).some(tag => tag.toLowerCase().includes(q)) ||
           (n.essayType && n.essayType.toLowerCase().includes(q)) ||
-          (n.essayTag && n.essayTag.toLowerCase().includes(q))
+          (n.essayTags || []).some(tag => tag.toLowerCase().includes(q))
         );
       }
       
@@ -487,11 +488,11 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                             {n.essayType}
                         </span>
                     )}
-                    {n.essayTag && (
-                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-50 text-amber-600">
-                            #{n.essayTag}
+                    {(n.essayTags || []).map(tag => (
+                        <span key={tag} className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-50 text-amber-600">
+                            #{tag}
                         </span>
-                    )}
+                    ))}
                     {n.tags && n.tags.map(tag => (
                         <span key={tag} className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 text-slate-500">
                             #{tag}
@@ -585,17 +586,25 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                                 </div>
                             </div>
                             <div className="space-y-2">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1">
-                                    专题标签 <span className="text-rose-500">*</span>
+                                <label className="text-[10px] font-bold text-slate-400 uppercase">
+                                    专题标签 (多选)
                                 </label>
                                 <div className="flex flex-wrap gap-2">
                                     {config.essayTags.map(t => (
                                         <button
                                             key={t}
-                                            onClick={() => setNewNote(prev => ({ ...prev, essayTag: t }))}
+                                            onClick={() => {
+                                                const current = newNote.essayTags || [];
+                                                setNewNote(prev => ({
+                                                    ...prev,
+                                                    essayTags: current.includes(t)
+                                                        ? current.filter(tag => tag !== t)
+                                                        : [...current, t]
+                                                }));
+                                            }}
                                             className={cn(
                                                 "px-3 py-1 rounded-full text-[10px] font-bold transition-all border",
-                                                newNote.essayTag === t ? "bg-amber-600 text-white border-amber-600" : "bg-white text-slate-500 border-slate-100"
+                                                (newNote.essayTags || []).includes(t) ? "bg-amber-600 text-white border-amber-600" : "bg-white text-slate-500 border-slate-100"
                                             )}
                                         >
                                             {t}
@@ -686,6 +695,47 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                         </div>
                     )}
 
+                    {newNote.moduleId === StudyModule.ESSAY && (
+                        <div className="flex items-center gap-2 p-2 bg-slate-100 rounded-xl">
+                            <button
+                                onClick={() => {
+                                    const textarea = document.querySelector('textarea[placeholder="在此输入公考要点、口诀或写作框架..."]') as HTMLTextAreaElement;
+                                    if (textarea) {
+                                        const start = textarea.selectionStart;
+                                        const end = textarea.selectionEnd;
+                                        const selectedText = newNote.content.substring(start, end);
+                                        if (selectedText) {
+                                            const newContent = newNote.content.substring(0, start) + `**${selectedText}**` + newNote.content.substring(end);
+                                            setNewNote(prev => ({ ...prev, content: newContent }));
+                                        }
+                                    }
+                                }}
+                                className="p-2 rounded-lg hover:bg-slate-200 transition-colors"
+                                title="加粗"
+                            >
+                                <Bold size={16} className="text-slate-600" />
+                            </button>
+                            <button
+                                onClick={() => {
+                                    const textarea = document.querySelector('textarea[placeholder="在此输入公考要点、口诀或写作框架..."]') as HTMLTextAreaElement;
+                                    if (textarea) {
+                                        const start = textarea.selectionStart;
+                                        const end = textarea.selectionEnd;
+                                        const selectedText = newNote.content.substring(start, end);
+                                        if (selectedText) {
+                                            const newContent = newNote.content.substring(0, start) + `==${selectedText}==` + newNote.content.substring(end);
+                                            setNewNote(prev => ({ ...prev, content: newContent }));
+                                        }
+                                    }
+                                }}
+                                className="p-2 rounded-lg hover:bg-slate-200 transition-colors"
+                                title="高亮"
+                            >
+                                <Highlighter size={16} className="text-slate-600" />
+                            </button>
+                            <span className="text-[9px] text-slate-400 ml-2">先选中文字，再点击按钮</span>
+                        </div>
+                    )}
                     <div className="space-y-2 flex-1 flex flex-col min-h-[200px]">
                         <label className="text-[10px] font-bold text-slate-400 uppercase">笔记正文</label>
                         <textarea 
@@ -757,11 +807,11 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                       {selectedNote.essayType}
                     </span>
                   )}
-                  {selectedNote.essayTag && (
-                    <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-50 text-amber-600">
-                      #{selectedNote.essayTag}
+                  {(selectedNote.essayTags || []).map(tag => (
+                    <span key={tag} className="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-50 text-amber-600">
+                      #{tag}
                     </span>
-                  )}
+                  ))}
                   {(selectedNote.tags || []).map(tag => (
                     <span key={tag} className="px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-50 text-slate-400">
                       #{tag}
@@ -789,9 +839,17 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
 
                 {/* 正文 */}
                 <div className="bg-slate-50 rounded-2xl p-5 min-h-[120px]">
-                  <div className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap break-words overflow-wrap-anywhere font-sans">
-                    {selectedNote.content}
-                  </div>
+                  <div 
+                    className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap break-words overflow-wrap-anywhere font-sans"
+                    dangerouslySetInnerHTML={{
+                      __html: selectedNote.content
+                        .replace(/&/g, '&amp;')
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;')
+                        .replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-slate-900">$1</strong>')
+                        .replace(/==(.*?)==/g, '<mark class="bg-yellow-200 px-1 rounded">$1</mark>')
+                    }}
+                  />
                 </div>
 
                 {/* 元信息 */}

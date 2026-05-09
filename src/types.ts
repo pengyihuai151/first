@@ -70,7 +70,7 @@ export interface ExamNote {
   content: string;
   updatedAt: number;
   essayType?: string;
-  essayTag?: string;
+  essayTags?: string[]; // 多选标签
   tags?: string[];
   images?: string[]; // 压缩后的 base64 图片数组
 }
