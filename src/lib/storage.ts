@@ -91,6 +91,20 @@ export const storage = {
       return { ...q, tags: uniqueTags };
     });
 
+    // 迁移：旧笔记的 essayTag 单个字符串 → 新的 essayTags 数组
+    data.notes = data.notes.map(note => {
+      // 如果已经有 essayTags 数组了，保持不变
+      if (note.essayTags && Array.isArray(note.essayTags)) {
+        return note;
+      }
+      // 如果有旧的 essayTag，转换成数组
+      if (note.essayTag) {
+        return { ...note, essayTags: [note.essayTag] };
+      }
+      // 否则保持原样
+      return note;
+    });
+
     return data;
   },
 

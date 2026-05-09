@@ -204,12 +204,19 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
   const handleEdit = (note: ExamNote) => {
     setEditingNote(note);
     setCategory(note.moduleId === StudyModule.ESSAY ? '申论' : '行测');
+    // 兼容旧数据：如果是 essayTag 单个字符串，转换成 essayTags 数组
+    let convertedEssayTags: string[] = [];
+    if (note.essayTags && Array.isArray(note.essayTags)) {
+      convertedEssayTags = note.essayTags;
+    } else if (note.essayTag) {
+      convertedEssayTags = [note.essayTag];
+    }
     setNewNote({
       moduleId: note.moduleId,
       title: note.title,
       content: note.content,
       essayType: note.essayType,
-      essayTags: note.essayTags || [],
+      essayTags: convertedEssayTags,
       tags: note.tags || [],
       images: note.images || []
     });

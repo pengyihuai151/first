@@ -62,3 +62,25 @@ export async function compressImage(file: File, maxWidth = 1200, quality = 0.7):
     reader.onerror = () => reject(new Error('文件读取失败'));
   });
 }
+
+/**
+ * 解析富文本标记：**文字** → 加粗，==文字== → 高亮
+ * @param text 原始文本
+ * @returns HTML 字符串
+ */
+export function formatRichText(text: string): string {
+  if (!text) return '';
+  
+  let result = text;
+  
+  // 先处理高亮：==文字==
+  result = result.replace(/==([^=]+)==/g, '<span style="background-color: #fef08a; padding: 0 2px; border-radius: 2px;">$1</span>');
+  
+  // 再处理加粗：**文字**
+  result = result.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  
+  // 换行转 <br>
+  result = result.replace(/\n/g, '<br>');
+  
+  return result;
+}

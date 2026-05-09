@@ -420,13 +420,20 @@ export default function Dashboard({ data, onUpdate, onNavigate }: { data: AppDat
                               {note.essayType && (
                                 <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-medium">{note.essayType}</span>
                               )}
-                              {note.essayTags && note.essayTags.length > 0 && (
-                                <>
-                                  {note.essayTags.map(tag => (
-                                  <span key={tag} className="text-[9px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 font-medium">#{tag}</span>
-                                  ))}
-                                </>
-                              )}
+                              {/* 兼容新旧数据格式：优先使用 essayTags，否则使用 essayTag */}
+                              {(() => {
+                                // 新格式：essayTags 数组
+                                if (note.essayTags && Array.isArray(note.essayTags) && note.essayTags.length > 0) {
+                                  return note.essayTags.map(tag => (
+                                    <span key={tag} className="text-[9px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 font-medium">#{tag}</span>
+                                  ));
+                                }
+                                // 旧格式：essayTag 单个字符串
+                                if (note.essayTag) {
+                                  return <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 font-medium">#{note.essayTag}</span>;
+                                }
+                                return null;
+                              })()}
                               <Eye size={10} className="text-indigo-300 shrink-0" />
                               <span className="text-[9px] text-indigo-300 shrink-0">{note.content?.length || 0}字</span>
                             </div>
@@ -497,13 +504,20 @@ export default function Dashboard({ data, onUpdate, onNavigate }: { data: AppDat
                       {selectedNote.essayType && (
                         <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-100 text-slate-500">{selectedNote.essayType}</span>
                       )}
-                      {selectedNote.essayTags && selectedNote.essayTags.length > 0 && (
-                        <>
-                          {selectedNote.essayTags.map(tag => (
-                          <span key={tag} className="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-50 text-amber-600">#{tag}</span>
-                          ))}
-                        </>
-                      )}
+                      {/* 兼容新旧数据格式：优先使用 essayTags，否则使用 essayTag */}
+                      {(() => {
+                        // 新格式：essayTags 数组
+                        if (selectedNote.essayTags && Array.isArray(selectedNote.essayTags) && selectedNote.essayTags.length > 0) {
+                          return selectedNote.essayTags.map(tag => (
+                            <span key={tag} className="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-50 text-amber-600">#{tag}</span>
+                          ));
+                        }
+                        // 旧格式：essayTag 单个字符串
+                        if (selectedNote.essayTag) {
+                          return <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-50 text-amber-600">#{selectedNote.essayTag}</span>;
+                        }
+                        return null;
+                      })()}
                     </div>
 
                     <div className="bg-slate-50 rounded-2xl p-4 min-h-[100px]">
