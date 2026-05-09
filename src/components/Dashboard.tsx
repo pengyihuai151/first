@@ -1,6 +1,6 @@
 import React from 'react';
 import { AppData, MAIN_MODULES, StudyModule, ExamNote, TargetExam } from '../types';
-import { cn, formatTimeFriendly } from '../lib/utils';
+import { cn, formatTimeFriendly, formatRichText } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { Trophy, Clock, AlertTriangle, Calendar, RotateCw, ChevronRight, BarChart3, BookOpen, CheckCircle2, Flame, Eye, X, Edit2, Trash2, Zap, ChevronDown } from 'lucide-react';
 import { startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
@@ -420,8 +420,12 @@ export default function Dashboard({ data, onUpdate, onNavigate }: { data: AppDat
                               {note.essayType && (
                                 <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-medium">{note.essayType}</span>
                               )}
-                              {note.essayTag && (
-                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 font-medium">#{note.essayTag}</span>
+                              {note.essayTags && note.essayTags.length > 0 && (
+                                <>
+                                  {note.essayTags.map(tag => (
+                                  <span key={tag} className="text-[9px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 font-medium">#{tag}</span>
+                                  ))}
+                                </>
                               )}
                               <Eye size={10} className="text-indigo-300 shrink-0" />
                               <span className="text-[9px] text-indigo-300 shrink-0">{note.content?.length || 0}字</span>
@@ -493,15 +497,20 @@ export default function Dashboard({ data, onUpdate, onNavigate }: { data: AppDat
                       {selectedNote.essayType && (
                         <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-100 text-slate-500">{selectedNote.essayType}</span>
                       )}
-                      {selectedNote.essayTag && (
-                        <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-50 text-amber-600">#{selectedNote.essayTag}</span>
+                      {selectedNote.essayTags && selectedNote.essayTags.length > 0 && (
+                        <>
+                          {selectedNote.essayTags.map(tag => (
+                          <span key={tag} className="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-50 text-amber-600">#{tag}</span>
+                          ))}
+                        </>
                       )}
                     </div>
 
                     <div className="bg-slate-50 rounded-2xl p-4 min-h-[100px]">
-                      <div className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap break-words font-sans">
-                        {selectedNote.content}
-                      </div>
+                      <div 
+                        className="text-sm text-slate-700 leading-relaxed break-words font-sans"
+                        dangerouslySetInnerHTML={{ __html: formatRichText(selectedNote.content || '') }}
+                      />
                     </div>
 
                     <div className="text-[10px] text-slate-300 font-medium space-y-1 pt-2 border-t border-slate-100 pb-safe">
