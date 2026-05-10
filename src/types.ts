@@ -59,6 +59,7 @@ export interface WrongQuestion {
   mastered?: boolean;
   reviewCount?: number;
   createdAt: number;
+  images?: string[]; // 压缩后的 base64 图片数组
 }
 
 // ==================== 笔记 ====================
