@@ -574,11 +574,8 @@ export default function WrongQuestionBank({
                         <button
                           key={tag}
                           onClick={() => {
-                            const current = newQuestion.tags || [];
-                            const next = isSelected 
-                              ? current.filter(t => t !== tag)
-                              : [...current, tag];
-                            setNewQuestion(prev => ({ ...prev, tags: next }));
+                            // 单选：直接设置为这个 tag
+                            setNewQuestion(prev => ({ ...prev, tags: [tag] }));
                           }}
                           className={cn(
                             "px-2.5 py-1 rounded-lg text-[9px] font-bold transition-all border",

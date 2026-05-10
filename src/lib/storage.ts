@@ -106,6 +106,11 @@ export const storage = {
       return note;
     });
 
+    // 迁移：清空之前存储的默认错误原因，只保留空对象
+    if (data.config) {
+      data.config.errorReasons = {};
+    }
+
     return data;
   },
 
