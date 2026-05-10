@@ -106,10 +106,7 @@ export const storage = {
       return note;
     });
 
-    // 迁移：清空之前存储的默认错误原因，只保留空对象
-    if (data.config) {
-      data.config.errorReasons = {};
-    }
+    // 注意：不再在这里清空 errorReasons，因为用户可能已经添加了自定义原因
 
     return data;
   },
