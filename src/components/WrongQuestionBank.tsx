@@ -287,6 +287,10 @@ export default function WrongQuestionBank({
       alert('请选择错误原因');
       return;
     }
+    if (!newQuestion.analysis || newQuestion.analysis.trim() === '') {
+      alert('请填写个人复盘/思路');
+      return;
+    }
 
     try {
       if (editingId) {
