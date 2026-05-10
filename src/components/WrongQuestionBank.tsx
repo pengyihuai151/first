@@ -202,6 +202,18 @@ export default function WrongQuestionBank({
       });
     };
     
+    // 更新本地 config 立即生效
+    setConfig(prev => ({
+      ...prev,
+      errorReasons: {
+        ...(prev.errorReasons || {}),
+        [moduleId]: {
+          ...((prev.errorReasons || {})[moduleId] || {}),
+          [subTopic]: reasons
+        }
+      }
+    }));
+
     // 清空 input
     e.target.value = '';
   };
