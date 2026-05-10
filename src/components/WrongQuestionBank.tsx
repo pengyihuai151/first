@@ -6,8 +6,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 
-// 常见错误原因选项
-const ERROR_REASONS = [
+// 默认错误原因选项
+const DEFAULT_ERROR_REASONS = [
   '审题不清', '概念混淆', '公式记错', '计算失误',
   '思路卡壳', '粗心大意', '时间不够', '方法不当',
   '陷阱踩坑', '知识点遗忘'
@@ -81,6 +81,66 @@ export default function WrongQuestionBank({
     tags: lastUsedSettings.tags,
     errorReason: lastUsedSettings.errorReason
   });
+  const [customErrorReasonInput, setCustomErrorReasonInput] = useState('');
+
+  // 获取当前选中的细分知识点（取第一个选中的，或者没有子模块就用模块名）
+  const getCurrentSubTopic = (): string => {
+    if (newQuestion.tags && newQuestion.tags.length > 0) {
+      return newQuestion.tags[0];
+    }
+    // 如果没有子模块，就用模块名作为 key
+    return newQuestion.moduleId || 'default';
+  };
+
+  // 获取当前模块和细分知识点的错误原因列表（默认 + 自定义）
+  const getCurrentErrorReasons = (): string[] => {
+    const moduleId = newQuestion.moduleId || 'default';
+    const subTopic = getCurrentSubTopic();
+    
+    // 从 config 中获取自定义错误原因
+    const customReasons = data.config?.errorReasons?.[moduleId]?.[subTopic] || [];
+    
+    // 合并默认和自定义，去重
+    const allReasons = [...new Set([...DEFAULT_ERROR_REASONS, ...customReasons])];
+    return allReasons;
+  };
+
+  // 保存新的自定义错误原因
+  const addCustomErrorReason = async () => {
+    if (!customErrorReasonInput.trim()) {
+      alert('请输入错误原因');
+      return;
+    }
+
+    const moduleId = newQuestion.moduleId || 'default';
+    const subTopic = getCurrentSubTopic();
+    const newReason = customErrorReasonInput.trim();
+
+    // 更新 config
+    const newConfig = { ...data.config } || {};
+    if (!newConfig.errorReasons) {
+      newConfig.errorReasons = {};
+    }
+    if (!newConfig.errorReasons[moduleId]) {
+      newConfig.errorReasons[moduleId] = {};
+    }
+    if (!newConfig.errorReasons[moduleId][subTopic]) {
+      newConfig.errorReasons[moduleId][subTopic] = [];
+    }
+    
+    // 添加新原因，去重
+    if (!newConfig.errorReasons[moduleId][subTopic].includes(newReason)) {
+      newConfig.errorReasons[moduleId][subTopic].push(newReason);
+    }
+
+    // 保存到 storage
+    await storage.saveData({ ...data, config: newConfig });
+    onUpdate();
+
+    // 选中这个新原因
+    setNewQuestion(prev => ({ ...prev, errorReason: newReason }));
+    setCustomErrorReasonInput('');
+  };
 
   const saveQuestion = async () => {
     if (!newQuestion.errorReason) {
@@ -128,6 +188,7 @@ export default function WrongQuestionBank({
         tags: [...(newQuestion.tags || [])],
         errorReason: ''
       });
+      setCustomErrorReasonInput('');
       onUpdate();
     } catch (error) {
       console.error('Save failed:', error);
@@ -547,7 +608,7 @@ export default function WrongQuestionBank({
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold text-slate-400 uppercase">错误原因（快速选择）</label>
                   <div className="flex flex-wrap gap-2 pt-1">
-                    {ERROR_REASONS.map(reason => {
+                    {getCurrentErrorReasons().map(reason => {
                       const isSelected = newQuestion.errorReason === reason;
                       return (
                         <button
@@ -567,6 +628,28 @@ export default function WrongQuestionBank({
                         </button>
                       );
                     })}
+                  </div>
+                  
+                  {/* 自定义错误原因输入 */}
+                  <div className="flex gap-2 pt-2">
+                    <input 
+                      type="text"
+                      value={customErrorReasonInput}
+                      onChange={(e) => setCustomErrorReasonInput(e.target.value)}
+                      placeholder="添加新的错误原因..."
+                      className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-rose-500/20 outline-none"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          addCustomErrorReason();
+                        }
+                      }}
+                    />
+                    <button 
+                      onClick={addCustomErrorReason}
+                      className="px-4 py-2 bg-rose-500 text-white rounded-xl text-sm font-bold hover:bg-rose-600 transition-colors"
+                    >
+                      添加
+                    </button>
                   </div>
                 </div>
               </div>

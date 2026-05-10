@@ -81,6 +81,8 @@ export interface AppConfig {
   essayTypes: string[];
   essayTags: string[];
   noteTags: string[];
+  // 自定义错误原因：{ 模块ID: { 子知识点: 原因数组 } }
+  errorReasons?: Record<string, Record<string, string[]>>;
 }
 
 // ==================== 考试录入（含子模块成绩） ====================
