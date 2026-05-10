@@ -6,13 +6,6 @@ import { v4 as uuidv4 } from 'uuid';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn, compressImage } from '../lib/utils';
 
-// 默认错误原因选项
-const DEFAULT_ERROR_REASONS = [
-  '审题不清', '概念混淆', '公式记错', '计算失误',
-  '思路卡壳', '粗心大意', '时间不够', '方法不当',
-  '陷阱踩坑', '知识点遗忘'
-];
-
 export default function WrongQuestionBank({
   data,
   onUpdate,
@@ -229,17 +222,15 @@ export default function WrongQuestionBank({
     return newQuestion.moduleId || 'default';
   };
 
-  // 获取当前模块和细分知识点的错误原因列表（默认 + 自定义）
+  // 获取当前模块和细分知识点的错误原因列表（仅自定义，无默认）
   const getCurrentErrorReasons = (): string[] => {
     const moduleId = newQuestion.moduleId || 'default';
     const subTopic = getCurrentSubTopic();
     
-    // 从 config 中获取自定义错误原因
+    // 从 config 中获取该模块+知识点的自定义错误原因
     const customReasons = data.config?.errorReasons?.[moduleId]?.[subTopic] || [];
     
-    // 合并默认和自定义，去重
-    const allReasons = [...new Set([...DEFAULT_ERROR_REASONS, ...customReasons])];
-    return allReasons;
+    return customReasons;
   };
 
   // 保存新的自定义错误原因
@@ -814,31 +805,35 @@ export default function WrongQuestionBank({
                   <p className="text-[9px] text-slate-400">支持多张，自动压缩，节省空间</p>
                 </div>
 
-                {/* 错误原因快捷选择 */}
+                {/* 错误原因（手动添加） */}
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase">错误原因（快速选择）</label>
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    {getCurrentErrorReasons().map(reason => {
-                      const isSelected = newQuestion.errorReason === reason;
-                      return (
-                        <button
-                          key={reason}
-                          onClick={() => setNewQuestion(prev => ({
-                            ...prev,
-                            errorReason: isSelected ? '' : reason
-                          }))}
-                          className={cn(
-                            "px-2.5 py-1.5 rounded-lg text-[9px] font-bold transition-all border",
-                            isSelected
-                              ? "bg-rose-500 text-white border-rose-500 shadow-sm"
-                              : "bg-white text-slate-500 border-slate-100 hover:bg-rose-50 hover:border-rose-200"
-                          )}
-                        >
-                          {reason}
-                        </button>
-                      );
-                    })}
-                  </div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase">错误原因（手动添加，按知识点保存）</label>
+                  {getCurrentErrorReasons().length > 0 ? (
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {getCurrentErrorReasons().map(reason => {
+                        const isSelected = newQuestion.errorReason === reason;
+                        return (
+                          <button
+                            key={reason}
+                            onClick={() => setNewQuestion(prev => ({
+                              ...prev,
+                              errorReason: isSelected ? '' : reason
+                            }))}
+                            className={cn(
+                              "px-2.5 py-1.5 rounded-lg text-[9px] font-bold transition-all border",
+                              isSelected
+                                ? "bg-rose-500 text-white border-rose-500 shadow-sm"
+                                : "bg-white text-slate-500 border-slate-100 hover:bg-rose-50 hover:border-rose-200"
+                            )}
+                          >
+                            {reason}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-slate-400 italic py-1">该知识点暂无已保存的错误原因，请在下方添加</p>
+                  )}
                   
                   {/* 自定义错误原因输入 */}
                   <div className="flex gap-2 pt-2">

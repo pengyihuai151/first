@@ -98,11 +98,39 @@ function buildUserProfilePrompt(data: {
   // 笔记统计
   const noteCount = notes?.length || 0;
   
-  // 错误原因统计
-  const errorReasons = wrongQuestions.filter((q: any) => q.errorReason).map((q: any) => q.errorReason);
-  const reasonStats: Record<string, number> = {};
-  errorReasons.forEach((r: string) => { reasonStats[r] = (reasonStats[r] || 0) + 1; });
-  const topReasons = Object.entries(reasonStats).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  // 错误原因统计（按模块+知识点细分）
+  const errorReasonByModule: Record<string, { reason: string; moduleId: string; subTopic: string }[]> = {};
+  wrongQuestions.filter((q: any) => q.errorReason).forEach((q: any) => {
+    const key = `${q.moduleId || '未知'} | ${q.subTopic || '未分类'}`;
+    if (!errorReasonByModule[key]) errorReasonByModule[key] = [];
+    errorReasonByModule[key].push({
+      reason: q.errorReason,
+      moduleId: q.moduleId || '未知',
+      subTopic: q.subTopic || '未分类'
+    });
+  });
+
+  // 按模块+知识点汇总错误原因次数
+  const detailedErrorStats: Array<{ module: string; subTopic: string; reasons: Array<{ reason: string; count: number }> }> = [];
+  Object.entries(errorReasonByModule).forEach(([key, items]) => {
+    const [mod, sub] = key.split(' | ');
+    const reasonCount: Record<string, number> = {};
+    items.forEach(item => {
+      reasonCount[item.reason] = (reasonCount[item.reason] || 0) + 1;
+    });
+    detailedErrorStats.push({
+      module: mod,
+      subTopic: sub,
+      reasons: Object.entries(reasonCount).map(([r, c]) => ({ reason: r, count: c })).sort((a, b) => b.count - a.count)
+    });
+  });
+  detailedErrorStats.sort((a, b) => b.reasons.reduce((s, r) => s + r.count, 0) - a.reasons.reduce((s, r) => s + r.count, 0));
+
+  // 全局错误原因 Top（用于快速概览）
+  const allReasons = wrongQuestions.filter((q: any) => q.errorReason).map((q: any) => q.errorReason);
+  const globalReasonStats: Record<string, number> = {};
+  allReasons.forEach((r: string) => { globalReasonStats[r] = (globalReasonStats[r] || 0) + 1; });
+  const topGlobalReasons = Object.entries(globalReasonStats).sort((a, b) => b[1] - a[1]).slice(0, 5);
   
   // 学习天数
   const studyDays = new Set(sessions.map((s: any) => new Date(s.startTime).toDateString())).size;
@@ -118,8 +146,13 @@ ${moduleStats.length > 0 ? moduleStats.map(m =>
   `• ${m.name}：${m.total}题（掌握${m.rate}%）${m.topTags.length > 0 ? ` | 高频错点：${m.topTags.map(t => `${t[0]}(${t[1]}次)`).join('、')}` : ''}`
 ).join('\n') : '- 各模块暂无错题'}
 
-🔍 错误原因分析：
-${topReasons.length > 0 ? topReasons.map(r => `• ${r[0]}：${r[1]}次`).join('\n') : '- 暂无错误原因记录'}
+🔍 错误原因分析（按模块+知识点）：
+${detailedErrorStats.length > 0 ? detailedErrorStats.slice(0, 8).map(d =>
+  `• ${d.module} > ${d.subTopic}：\n  ${d.reasons.map(r => `- ${r.reason}(${r.count}次)`).join('\n  ')}`
+).join('\n\n') : '- 暂无错误原因记录'}
+
+📌 全局高频错误原因 Top5：
+${topGlobalReasons.length > 0 ? topGlobalReasons.map(r => `• ${r[0]}：${r[1]}次`).join('\n') : '- 暂无'}
 
 📊 知识点细分排行（按模块）：
 ${(() => {
