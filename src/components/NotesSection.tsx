@@ -196,7 +196,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
 
   // 行测笔记标签
   const [selectedSubModule, setSelectedSubModule] = useState<string | null>(null);
-  const [selectedKnowledgePoint, setSelectedKnowledgePoint] = useState<string | null>(null);
+  const [selectedKnowledgePoints, setSelectedKnowledgePoints] = useState<string[]>([]);
 
   const saveNote = async () => {
     if (!newNote.title?.trim()) {
@@ -220,10 +220,30 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
       }
     }
     
+    // 行测笔记验证：有细化模块则必选，知识点多选必选
+    if (newNote.moduleId !== StudyModule.ESSAY) {
+      const currentNoteTags = data.config?.noteTags?.[newNote.moduleId || ''];
+      const hasSubModules = currentNoteTags?.subModules && currentNoteTags.subModules.length > 0;
+      const hasKnowledgePoints = currentNoteTags?.knowledgePoints?.[selectedSubModule || ''] && 
+                                currentNoteTags.knowledgePoints[selectedSubModule || ''].length > 0;
+      
+      // 如果有细化模块，则必选
+      if (hasSubModules && !selectedSubModule) {
+        alert('请选择细化模块');
+        return;
+      }
+      
+      // 如果有知识点，则必选至少一个
+      if (hasKnowledgePoints && selectedKnowledgePoints.length === 0) {
+        alert('请至少选择一个知识点');
+        return;
+      }
+    }
+    
     // 行测笔记：将细化模块和知识点合并到 tags
     const noteTags: string[] = [];
     if (selectedSubModule) noteTags.push(selectedSubModule);
-    if (selectedKnowledgePoint) noteTags.push(selectedKnowledgePoint);
+    noteTags.push(...selectedKnowledgePoints);
     
     try {
       if (editingNote) {
@@ -265,7 +285,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
     setEditingNote(null);
     setNewNote({ moduleId: category === '行测' ? StudyModule.VERBAL : StudyModule.ESSAY, title: '', content: '', tags: [], images: [], essayTags: [] });
     setSelectedSubModule(null);
-    setSelectedKnowledgePoint(null);
+    setSelectedKnowledgePoints([]);
     setNewSubModule('');
     setNewKnowledgePoint('');
   };
@@ -280,10 +300,10 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
     } else if (note.essayTag) {
       convertedEssayTags = [note.essayTag];
     }
-    // 解析 tags：第一个是细化模块，第二个是知识点
+    // 解析 tags：第一个是细化模块，后续都是知识点（数组）
     const tags = note.tags || [];
     setSelectedSubModule(tags[0] || null);
-    setSelectedKnowledgePoint(tags[1] || null);
+    setSelectedKnowledgePoints(tags.slice(1)); // 知识点是多选，取除第一个外的所有
     setNewNote({
       moduleId: note.moduleId,
       title: note.title,
@@ -851,19 +871,24 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                           </div>
                         </div>
 
-                        {/* 知识点（属于当前细化模块） */}
+                        {/* 知识点（属于当前细化模块，可多选） */}
                         <div className="space-y-2">
-                          <label className="text-[10px] font-bold text-slate-400 uppercase">知识点</label>
+                          <label className="text-[10px] font-bold text-slate-400 uppercase">知识点（多选）</label>
                           <div className="flex flex-wrap gap-2">
                             {(getCurrentNoteTags().knowledgePoints[selectedSubModule || ''] || []).map(t => (
                               <button
                                 key={t}
                                 onClick={() => {
-                                  setSelectedKnowledgePoint(selectedKnowledgePoint === t ? null : t);
+                                  // 多选：点击切换选中状态
+                                  if (selectedKnowledgePoints.includes(t)) {
+                                    setSelectedKnowledgePoints(selectedKnowledgePoints.filter(k => k !== t));
+                                  } else {
+                                    setSelectedKnowledgePoints([...selectedKnowledgePoints, t]);
+                                  }
                                 }}
                                 className={cn(
                                   "px-4 py-2 rounded-xl text-xs font-bold transition-all border min-h-[44px]",
-                                  selectedKnowledgePoint === t ? "bg-amber-600 text-white border-amber-600" : "bg-white text-slate-500 border-slate-100"
+                                  selectedKnowledgePoints.includes(t) ? "bg-amber-600 text-white border-amber-600" : "bg-white text-slate-500 border-slate-100"
                                 )}
                               >
                                 {t}
@@ -879,7 +904,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter' && newKnowledgePoint.trim()) {
                                     handleAddKnowledgePoint(newNote.moduleId!, selectedSubModule, newKnowledgePoint.trim());
-                                    setSelectedKnowledgePoint(newKnowledgePoint.trim());
+                                    setSelectedKnowledgePoints([...selectedKnowledgePoints, newKnowledgePoint.trim()]);
                                     setNewKnowledgePoint('');
                                   }
                                 }}
@@ -890,7 +915,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                                 <button
                                   onClick={() => {
                                     handleAddKnowledgePoint(newNote.moduleId!, selectedSubModule, newKnowledgePoint.trim());
-                                    setSelectedKnowledgePoint(newKnowledgePoint.trim());
+                                    setSelectedKnowledgePoints([...selectedKnowledgePoints, newKnowledgePoint.trim()]);
                                     setNewKnowledgePoint('');
                                   }}
                                   className="absolute right-2 text-amber-600 font-bold text-lg active:scale-90"
