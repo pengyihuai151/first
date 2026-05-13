@@ -40,28 +40,27 @@ export default function QuotesManager({ data, onUpdate, onBack }: QuotesManagerP
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
-      className="pb-24 space-y-5"
+      className="pb-24 space-y-4"
     >
-      <header className="flex items-center gap-3">
+      {/* Header */}
+      <div className="flex items-center gap-3 pt-2">
         <button 
           onClick={onBack}
           className="p-2 -ml-2 text-slate-400 active:bg-slate-100 rounded-xl transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
         >
           <ChevronLeft size={24} />
         </button>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-100">
-            <MessageSquare size={20} className="text-white" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-slate-800">语录池管理</h1>
-            <p className="text-xs text-slate-400">激励自己，随时调取</p>
-          </div>
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-100">
+          <MessageSquare size={20} className="text-white" />
         </div>
-      </header>
+        <div>
+          <h1 className="text-xl font-bold text-slate-800">语录池管理</h1>
+          <p className="text-xs text-slate-400">激励自己，随时调取</p>
+        </div>
+      </div>
 
       {/* Stats Card */}
-      <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-5 rounded-2xl text-white shadow-xl shadow-indigo-200/50 relative overflow-hidden">
+      <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-6 rounded-2xl text-white shadow-xl shadow-indigo-200/50 relative overflow-hidden">
         <div className="absolute -top-8 -right-8 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
         <div className="relative flex items-center justify-between">
           <div className="space-y-1">
@@ -76,33 +75,36 @@ export default function QuotesManager({ data, onUpdate, onBack }: QuotesManagerP
       </div>
 
       {/* Add New */}
-      <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex gap-3">
-        <input 
-          type="text" 
-          value={newQuote}
-          onChange={(e) => setNewQuote(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
-          placeholder="输入新的励志语录..."
-          className="flex-1 bg-slate-50 border-none rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 ring-indigo-100 transition-all min-h-[48px]"
-        />
-        <button 
-          onClick={handleAdd}
-          disabled={!newQuote.trim()}
-          className={cn(
-            "text-white p-3 rounded-xl shadow-md transition-all min-w-[48px] min-h-[48px] flex items-center justify-center",
-            newQuote.trim() 
-              ? "bg-indigo-600 active:scale-95 shadow-indigo-200" 
-              : "bg-slate-300 cursor-not-allowed"
-          )}
-        >
-          <Plus size={24} />
-        </button>
+      <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 space-y-3">
+        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">添加新语录</label>
+        <div className="flex gap-3">
+          <input 
+            type="text" 
+            value={newQuote}
+            onChange={(e) => setNewQuote(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
+            placeholder="输入励志语录..."
+            className="flex-1 bg-slate-50 border-none rounded-xl px-4 py-4 text-sm outline-none focus:ring-2 ring-indigo-100 transition-all min-h-[52px]"
+          />
+          <button 
+            onClick={handleAdd}
+            disabled={!newQuote.trim()}
+            className={cn(
+              "text-white rounded-xl shadow-md transition-all min-w-[52px] min-h-[52px] flex items-center justify-center",
+              newQuote.trim() 
+                ? "bg-indigo-600 active:scale-95 shadow-indigo-200 hover:bg-indigo-700" 
+                : "bg-slate-200 cursor-not-allowed"
+            )}
+          >
+            <Plus size={24} />
+          </button>
+        </div>
       </div>
 
       {/* List */}
-      <div className="space-y-3">
+      <div className="space-y-3 pt-2">
         {quotes.length === 0 ? (
-          <div className="py-16 text-center space-y-3">
+          <div className="py-20 text-center space-y-3">
             <div className="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center mx-auto">
               <Quote size={28} className="text-slate-300" />
             </div>
@@ -114,20 +116,24 @@ export default function QuotesManager({ data, onUpdate, onBack }: QuotesManagerP
             <motion.div 
               layout
               key={index}
-              className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-start gap-3 active:bg-slate-50 transition-colors group"
+              className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm active:bg-slate-50 transition-colors"
             >
-              <div className="bg-gradient-to-br from-indigo-50 to-purple-50 w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold text-indigo-500 shrink-0">
-                {index + 1}
+              <div className="flex items-start gap-4">
+                <div className="bg-gradient-to-br from-indigo-50 to-purple-50 w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold text-indigo-500 shrink-0">
+                  {index + 1}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap break-words">
+                    "{quote}"
+                  </p>
+                </div>
+                <button 
+                  onClick={() => handleDelete(index)}
+                  className="p-3 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all shrink-0"
+                >
+                  <Trash2 size={18} />
+                </button>
               </div>
-              <p className="flex-1 text-sm text-slate-600 leading-relaxed pt-1.5 whitespace-pre-wrap">
-                "{quote}"
-              </p>
-              <button 
-                onClick={() => handleDelete(index)}
-                className="p-3 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all min-w-[44px] min-h-[44px] flex items-center justify-center"
-              >
-                <Trash2 size={18} />
-              </button>
             </motion.div>
           ))
         )}
