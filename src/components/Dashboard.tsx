@@ -283,10 +283,9 @@ export default function Dashboard({ data, onUpdate, onNavigate }: { data: AppDat
           { text: "别等到报名的时候才开始着急，别等到考试前才开始抱佛脚，佛脚也不是谁都能抱到的。", type: "strict" },
         ];
 
-        // 使用时间戳的小时级种子，让语录更频繁变化
-        const now = new Date();
-        const hourlySeed = Math.floor(now.getTime() / (1000 * 60 * 60)); // 每小时一变
-        const quote = lazyQuotes[hourlySeed % lazyQuotes.length] || lazyQuotes[0];
+        // 每次刷新都随机选择语录
+        const randomIndex = Math.floor(Math.random() * lazyQuotes.length);
+        const quote = lazyQuotes[randomIndex] || lazyQuotes[0];
         const isStrict = true; // 现在全是犀利版
         const diffMinutes = Math.round((pastAvgMs - totalTodayMs) / 60000);
 
