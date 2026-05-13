@@ -129,14 +129,56 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
   useEffect(() => scrollIntoView(scrollTypeRef.current, activeTypeRef.current), [essayTypeFilter]);
   useEffect(() => scrollIntoView(scrollTagRef.current, activeTagRef.current), [essayTagFilter]);
 
-  const [newNote, setNewNote] = useState<Partial<ExamNote>>({
-    moduleId: StudyModule.VERBAL,
-    title: '',
-    content: '',
-    tags: [],
-    images: [],
-    essayTags: []
-  });
+  // 获取当前模块的标签配置
+  const getCurrentNoteTags = () => {
+    if (!newNote.moduleId || newNote.moduleId === StudyModule.ESSAY) {
+      return { subModules: [] as string[], knowledgePoints: [] as string[] };
+    }
+    return data.config?.noteTags?.[newNote.moduleId] || { subModules: [], knowledgePoints: [] };
+  };
+
+  // 添加细化模块
+  const handleAddSubModule = async (moduleId: string, subModule: string) => {
+    if (!subModule.trim()) return;
+    const trimmed = subModule.trim();
+    const noteTags = data.config?.noteTags || {};
+    if (!noteTags[moduleId]) {
+      noteTags[moduleId] = { subModules: [], knowledgePoints: [] };
+    }
+    if (!noteTags[moduleId].subModules.includes(trimmed)) {
+      noteTags[moduleId].subModules.push(trimmed);
+    }
+    await storage.saveData({
+      ...data,
+      config: { ...data.config, noteTags }
+    });
+    onUpdate();
+  };
+
+  // 添加知识点
+  const handleAddKnowledgePoint = async (moduleId: string, kp: string) => {
+    if (!kp.trim()) return;
+    const trimmed = kp.trim();
+    const noteTags = data.config?.noteTags || {};
+    if (!noteTags[moduleId]) {
+      noteTags[moduleId] = { subModules: [], knowledgePoints: [] };
+    }
+    if (!noteTags[moduleId].knowledgePoints.includes(trimmed)) {
+      noteTags[moduleId].knowledgePoints.push(trimmed);
+    }
+    await storage.saveData({
+      ...data,
+      config: { ...data.config, noteTags }
+    });
+    onUpdate();
+  };
+
+  const [newSubModule, setNewSubModule] = useState('');
+  const [newKnowledgePoint, setNewKnowledgePoint] = useState('');
+
+  // 行测笔记标签
+  const [selectedSubModule, setSelectedSubModule] = useState<string | null>(null);
+  const [selectedKnowledgePoint, setSelectedKnowledgePoint] = useState<string | null>(null);
 
   const saveNote = async () => {
     if (!newNote.title?.trim()) {
@@ -160,6 +202,11 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
       }
     }
     
+    // 行测笔记：将细化模块和知识点合并到 tags
+    const noteTags: string[] = [];
+    if (selectedSubModule) noteTags.push(selectedSubModule);
+    if (selectedKnowledgePoint) noteTags.push(selectedKnowledgePoint);
+    
     try {
       if (editingNote) {
         await storage.updateNote({
@@ -169,7 +216,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
           content: newNote.content || '',
           essayType: newNote.essayType,
           essayTags: newNote.essayTags || [],
-          tags: newNote.tags || [],
+          tags: noteTags,
           images: newNote.images || [],
           updatedAt: Date.now()
         });
@@ -182,7 +229,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
           updatedAt: Date.now(),
           essayType: newNote.essayType,
           essayTags: newNote.essayTags || [],
-          tags: newNote.tags || [],
+          tags: noteTags,
           images: newNote.images || []
         });
       }
@@ -199,6 +246,10 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
     setIsAdding(false);
     setEditingNote(null);
     setNewNote({ moduleId: category === '行测' ? StudyModule.VERBAL : StudyModule.ESSAY, title: '', content: '', tags: [], images: [], essayTags: [] });
+    setSelectedSubModule(null);
+    setSelectedKnowledgePoint(null);
+    setNewSubModule('');
+    setNewKnowledgePoint('');
   };
 
   const handleEdit = (note: ExamNote) => {
@@ -211,6 +262,10 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
     } else if (note.essayTag) {
       convertedEssayTags = [note.essayTag];
     }
+    // 解析 tags：第一个是细化模块，第二个是知识点
+    const tags = note.tags || [];
+    setSelectedSubModule(tags[0] || null);
+    setSelectedKnowledgePoint(tags[1] || null);
     setNewNote({
       moduleId: note.moduleId,
       title: note.title,
@@ -627,32 +682,107 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                     )}
 
                     {newNote.moduleId !== StudyModule.ESSAY && (
+                      <div className="space-y-4">
+                        {/* 细化模块 */}
                         <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-slate-400 uppercase">标签 (多选)</label>
-                            <div className="flex flex-wrap gap-2">
-                                {config.noteTags.map(t => {
-                                    const isSelected = newNote.tags?.includes(t);
-                                    return (
-                                        <button
-                                            key={t}
-                                            onClick={() => {
-                                                const current = newNote.tags || [];
-                                                const next = isSelected 
-                                                    ? current.filter(tag => tag !== t)
-                                                    : [...current, t];
-                                                setNewNote(prev => ({ ...prev, tags: next }));
-                                            }}
-                                            className={cn(
-                                                "px-3 py-1 rounded-full text-[10px] font-bold transition-all border",
-                                                isSelected ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-500 border-slate-100"
-                                            )}
-                                        >
-                                            {t}
-                                        </button>
-                                    );
-                                })}
+                          <label className="text-[10px] font-bold text-slate-400 uppercase">细化模块</label>
+                          <div className="flex flex-wrap gap-2">
+                            {getCurrentNoteTags().subModules.map(t => (
+                              <button
+                                key={t}
+                                onClick={() => {
+                                  setSelectedSubModule(selectedSubModule === t ? null : t);
+                                }}
+                                className={cn(
+                                  "px-3 py-1 rounded-full text-[10px] font-bold transition-all border",
+                                  selectedSubModule === t ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-500 border-slate-100"
+                                )}
+                              >
+                                {t}
+                              </button>
+                            ))}
+                            {/* 新增细化模块 */}
+                            <div className="relative inline-flex items-center">
+                              <input
+                                type="text"
+                                value={newSubModule}
+                                onChange={(e) => setNewSubModule(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && newSubModule.trim()) {
+                                    handleAddSubModule(newNote.moduleId!, newSubModule.trim());
+                                    setSelectedSubModule(newSubModule.trim());
+                                    setNewSubModule('');
+                                  }
+                                }}
+                                placeholder="+新增"
+                                className="w-16 px-2 py-1 text-[10px] border border-dashed border-slate-300 rounded-full outline-none focus:border-indigo-400"
+                              />
+                              {newSubModule.trim() && (
+                                <button
+                                  onClick={() => {
+                                    handleAddSubModule(newNote.moduleId!, newSubModule.trim());
+                                    setSelectedSubModule(newSubModule.trim());
+                                    setNewSubModule('');
+                                  }}
+                                  className="absolute right-1 text-indigo-500 text-[10px]"
+                                >
+                                  ✓
+                                </button>
+                              )}
                             </div>
+                          </div>
                         </div>
+
+                        {/* 知识点 */}
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase">知识点</label>
+                          <div className="flex flex-wrap gap-2">
+                            {getCurrentNoteTags().knowledgePoints.map(t => (
+                              <button
+                                key={t}
+                                onClick={() => {
+                                  setSelectedKnowledgePoint(selectedKnowledgePoint === t ? null : t);
+                                }}
+                                className={cn(
+                                  "px-3 py-1 rounded-full text-[10px] font-bold transition-all border",
+                                  selectedKnowledgePoint === t ? "bg-amber-600 text-white border-amber-600" : "bg-white text-slate-500 border-slate-100"
+                                )}
+                              >
+                                {t}
+                              </button>
+                            ))}
+                            {/* 新增知识点 */}
+                            <div className="relative inline-flex items-center">
+                              <input
+                                type="text"
+                                value={newKnowledgePoint}
+                                onChange={(e) => setNewKnowledgePoint(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && newKnowledgePoint.trim()) {
+                                    handleAddKnowledgePoint(newNote.moduleId!, newKnowledgePoint.trim());
+                                    setSelectedKnowledgePoint(newKnowledgePoint.trim());
+                                    setNewKnowledgePoint('');
+                                  }
+                                }}
+                                placeholder="+新增"
+                                className="w-16 px-2 py-1 text-[10px] border border-dashed border-slate-300 rounded-full outline-none focus:border-amber-400"
+                              />
+                              {newKnowledgePoint.trim() && (
+                                <button
+                                  onClick={() => {
+                                    handleAddKnowledgePoint(newNote.moduleId!, newKnowledgePoint.trim());
+                                    setSelectedKnowledgePoint(newKnowledgePoint.trim());
+                                    setNewKnowledgePoint('');
+                                  }}
+                                  className="absolute right-1 text-amber-500 text-[10px]"
+                                >
+                                  ✓
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     )}
 
                     <div className="space-y-2">

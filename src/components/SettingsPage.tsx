@@ -811,8 +811,7 @@ export default function SettingsPage({ data, onUpdate, onNavigate }: { data: App
         <div className="space-y-3">
           {[
             { id: 'essayTypes', label: '申论内容分类', color: 'indigo' },
-            { id: 'essayTags', label: '申论专题标签', color: 'emerald' },
-            { id: 'noteTags', label: '行测笔记标签', color: 'blue' }
+            { id: 'essayTags', label: '申论专题标签', color: 'emerald' }
           ].map(group => (
             <div key={group.id} className="border border-slate-50 rounded-2xl overflow-hidden">
               <button 
