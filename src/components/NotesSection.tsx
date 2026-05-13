@@ -736,7 +736,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                                 key={m}
                                 onClick={() => setNewNote(prev => ({ ...prev, moduleId: m }))}
                                 className={cn(
-                                "px-3 py-1 rounded-full text-[10px] font-bold transition-all border",
+                                "px-4 py-2 rounded-xl text-sm font-bold transition-all border min-h-[44px]",
                                 newNote.moduleId === m 
                                     ? "bg-indigo-600 text-white border-indigo-600" 
                                     : "bg-white text-slate-500 border-slate-100 hover:bg-slate-50"
@@ -760,7 +760,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                                             key={t}
                                             onClick={() => setNewNote(prev => ({ ...prev, essayType: t }))}
                                             className={cn(
-                                                "px-3 py-1 rounded-full text-[10px] font-bold transition-all border",
+                                                "px-4 py-2 rounded-xl text-sm font-bold transition-all border min-h-[44px]",
                                                 newNote.essayType === t ? "bg-slate-800 text-white border-slate-800" : "bg-white text-slate-500 border-slate-100"
                                             )}
                                         >
@@ -787,7 +787,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                                                 }));
                                             }}
                                             className={cn(
-                                                "px-3 py-1 rounded-full text-[10px] font-bold transition-all border",
+                                                "px-4 py-2 rounded-xl text-sm font-bold transition-all border min-h-[44px]",
                                                 (newNote.essayTags || []).includes(t) ? "bg-amber-600 text-white border-amber-600" : "bg-white text-slate-500 border-slate-100"
                                             )}
                                         >
@@ -812,7 +812,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                                   setSelectedSubModule(selectedSubModule === t ? null : t);
                                 }}
                                 className={cn(
-                                  "px-3 py-1 rounded-full text-[10px] font-bold transition-all border",
+                                  "px-4 py-2 rounded-xl text-sm font-bold transition-all border min-h-[44px]",
                                   selectedSubModule === t ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-500 border-slate-100"
                                 )}
                               >
@@ -820,7 +820,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                               </button>
                             ))}
                             {/* 新增细化模块 */}
-                            <div className="relative inline-flex items-center">
+                            <div className="relative inline-flex items-center w-full max-w-[180px]">
                               <input
                                 type="text"
                                 value={newSubModule}
@@ -832,8 +832,8 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                                     setNewSubModule('');
                                   }
                                 }}
-                                placeholder="+新增"
-                                className="w-16 px-2 py-1 text-[10px] border border-dashed border-slate-300 rounded-full outline-none focus:border-indigo-400"
+                                placeholder="+细化模块"
+                                className="w-full px-3 py-2 text-sm border-2 border-dashed border-slate-300 rounded-xl outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                               />
                               {newSubModule.trim() && (
                                 <button
@@ -842,7 +842,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                                     setSelectedSubModule(newSubModule.trim());
                                     setNewSubModule('');
                                   }}
-                                  className="absolute right-1 text-indigo-500 text-[10px]"
+                                  className="absolute right-2 text-indigo-600 font-bold text-lg active:scale-90"
                                 >
                                   ✓
                                 </button>
@@ -862,7 +862,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                                   setSelectedKnowledgePoint(selectedKnowledgePoint === t ? null : t);
                                 }}
                                 className={cn(
-                                  "px-3 py-1 rounded-full text-[10px] font-bold transition-all border",
+                                  "px-4 py-2 rounded-xl text-sm font-bold transition-all border min-h-[44px]",
                                   selectedKnowledgePoint === t ? "bg-amber-600 text-white border-amber-600" : "bg-white text-slate-500 border-slate-100"
                                 )}
                               >
@@ -871,7 +871,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                             ))}
                             {/* 新增知识点（属于当前细化模块） */}
                             {selectedSubModule && (
-                            <div className="relative inline-flex items-center">
+                            <div className="relative inline-flex items-center w-full max-w-[180px]">
                               <input
                                 type="text"
                                 value={newKnowledgePoint}
@@ -883,8 +883,8 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                                     setNewKnowledgePoint('');
                                   }
                                 }}
-                                placeholder="+新增"
-                                className="w-16 px-2 py-1 text-[10px] border border-dashed border-slate-300 rounded-full outline-none focus:border-amber-400"
+                                placeholder="+知识点"
+                                className="w-full px-3 py-2 text-sm border-2 border-dashed border-slate-300 rounded-xl outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
                               />
                               {newKnowledgePoint.trim() && (
                                 <button
@@ -893,7 +893,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                                     setSelectedKnowledgePoint(newKnowledgePoint.trim());
                                     setNewKnowledgePoint('');
                                   }}
-                                  className="absolute right-1 text-amber-500 text-[10px]"
+                                  className="absolute right-2 text-amber-600 font-bold text-lg active:scale-90"
                                 >
                                   ✓
                                 </button>
