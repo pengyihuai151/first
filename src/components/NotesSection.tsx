@@ -954,47 +954,45 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                         <p className="text-[9px] text-slate-400">支持多张，自动压缩，节省空间</p>
                     </div>
 
-                    {newNote.moduleId === StudyModule.ESSAY && (
-                        <div className="flex items-center gap-2 p-2 bg-slate-100 rounded-xl">
-                            <button
-                                onClick={() => {
-                                    const textarea = document.querySelector('textarea[placeholder="在此输入公考要点、口诀或写作框架..."]') as HTMLTextAreaElement;
-                                    if (textarea) {
-                                        const start = textarea.selectionStart;
-                                        const end = textarea.selectionEnd;
-                                        const selectedText = newNote.content.substring(start, end);
-                                        if (selectedText) {
-                                            const newContent = newNote.content.substring(0, start) + `**${selectedText}**` + newNote.content.substring(end);
-                                            setNewNote(prev => ({ ...prev, content: newContent }));
-                                        }
+                    <div className="flex items-center gap-2 p-2 bg-slate-100 rounded-xl">
+                        <button
+                            onClick={() => {
+                                const textarea = document.querySelector('textarea[placeholder="在此输入公考要点、口诀或写作框架..."]') as HTMLTextAreaElement;
+                                if (textarea) {
+                                    const start = textarea.selectionStart;
+                                    const end = textarea.selectionEnd;
+                                    const selectedText = newNote.content.substring(start, end);
+                                    if (selectedText) {
+                                        const newContent = newNote.content.substring(0, start) + `**${selectedText}**` + newNote.content.substring(end);
+                                        setNewNote(prev => ({ ...prev, content: newContent }));
                                     }
-                                }}
-                                className="p-2 rounded-lg hover:bg-slate-200 transition-colors"
-                                title="加粗"
-                            >
-                                <Bold size={16} className="text-slate-600" />
-                            </button>
-                            <button
-                                onClick={() => {
-                                    const textarea = document.querySelector('textarea[placeholder="在此输入公考要点、口诀或写作框架..."]') as HTMLTextAreaElement;
-                                    if (textarea) {
-                                        const start = textarea.selectionStart;
-                                        const end = textarea.selectionEnd;
-                                        const selectedText = newNote.content.substring(start, end);
-                                        if (selectedText) {
-                                            const newContent = newNote.content.substring(0, start) + `==${selectedText}==` + newNote.content.substring(end);
-                                            setNewNote(prev => ({ ...prev, content: newContent }));
-                                        }
+                                }
+                            }}
+                            className="p-2 rounded-lg hover:bg-slate-200 transition-colors"
+                            title="加粗"
+                        >
+                            <Bold size={16} className="text-slate-600" />
+                        </button>
+                        <button
+                            onClick={() => {
+                                const textarea = document.querySelector('textarea[placeholder="在此输入公考要点、口诀或写作框架..."]') as HTMLTextAreaElement;
+                                if (textarea) {
+                                    const start = textarea.selectionStart;
+                                    const end = textarea.selectionEnd;
+                                    const selectedText = newNote.content.substring(start, end);
+                                    if (selectedText) {
+                                        const newContent = newNote.content.substring(0, start) + `==${selectedText}==` + newNote.content.substring(end);
+                                        setNewNote(prev => ({ ...prev, content: newContent }));
                                     }
-                                }}
-                                className="p-2 rounded-lg hover:bg-slate-200 transition-colors"
-                                title="高亮"
-                            >
-                                <Highlighter size={16} className="text-slate-600" />
-                            </button>
-                            <span className="text-[9px] text-slate-400 ml-2">先选中文字，再点击按钮</span>
-                        </div>
-                    )}
+                                }
+                            }}
+                            className="p-2 rounded-lg hover:bg-slate-200 transition-colors"
+                            title="高亮"
+                        >
+                            <Highlighter size={16} className="text-slate-600" />
+                        </button>
+                        <span className="text-[9px] text-slate-400 ml-2">先选中文字，再点击按钮</span>
+                    </div>
                     <div className="space-y-2 flex-1 flex flex-col min-h-[200px]">
                         <label className="text-[10px] font-bold text-slate-400 uppercase">笔记正文</label>
                         <textarea 
