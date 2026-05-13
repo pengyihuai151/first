@@ -27,6 +27,9 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
   });
   const [selectedNote, setSelectedNote] = useState<ExamNote | null>(null);
   const [filter, setFilter] = useState<StudyModule | '全部'>('全部');
+  // 行测笔记细分筛选
+  const [subModuleFilter, setSubModuleFilter] = useState<string>('全部');
+  const [knowledgePointFilter, setKnowledgePointFilter] = useState<string>('全部');
   
   // Essay specific filters
   const [essayTypeFilter, setEssayTypeFilter] = useState<string>('全部');
@@ -45,6 +48,10 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
   // Refs for scrolling
   const scrollModuleRef = useRef<HTMLDivElement>(null);
   const activeModuleRef = useRef<HTMLButtonElement>(null);
+  const scrollSubModuleRef = useRef<HTMLDivElement>(null);
+  const activeSubModuleRef = useRef<HTMLButtonElement>(null);
+  const scrollKnowledgeRef = useRef<HTMLDivElement>(null);
+  const activeKnowledgeRef = useRef<HTMLButtonElement>(null);
   const scrollTypeRef = useRef<HTMLDivElement>(null);
   const activeTypeRef = useRef<HTMLButtonElement>(null);
   const scrollTagRef = useRef<HTMLDivElement>(null);
@@ -351,8 +358,24 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
   const handleCategorySwitch = (cat: '行测' | '申论') => {
     setCategory(cat);
     setFilter('全部');
+    setSubModuleFilter('全部');
+    setKnowledgePointFilter('全部');
     setEssayTypeFilter('全部');
     setEssayTagFilter('全部');
+  };
+
+  // 获取当前模块的细化模块列表
+  const getCurrentSubModules = (): string[] => {
+    if (filter === '全部' || filter === StudyModule.ESSAY) return [];
+    const config = data.config.noteTags[filter];
+    return config?.subModules || [];
+  };
+
+  // 获取当前细化模块的知识点列表
+  const getCurrentKnowledgePoints = (): string[] => {
+    if (filter === '全部' || filter === StudyModule.ESSAY || subModuleFilter === '全部') return [];
+    const config = data.config.noteTags[filter];
+    return config?.knowledgePoints?.[subModuleFilter] || [];
   };
 
   const filteredNotes = data.notes
@@ -366,6 +389,16 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
       let passModuleFilter = true;
       if (category === '行测') {
         passModuleFilter = filter === '全部' || n.moduleId === filter;
+        
+        // 细化模块筛选
+        if (passModuleFilter && subModuleFilter !== '全部') {
+          passModuleFilter = (n.tags || []).includes(subModuleFilter);
+        }
+        
+        // 知识点筛选
+        if (passModuleFilter && knowledgePointFilter !== '全部') {
+          passModuleFilter = (n.tags || []).includes(knowledgePointFilter);
+        }
       }
       
       // For 申论, filter by type and tag
@@ -463,32 +496,105 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
         {/* Filters */}
         <div className="space-y-3">
           {category === '行测' && (
-            <div 
-              ref={scrollModuleRef}
-              className="-mx-4 px-4 overflow-x-auto no-scrollbar"
-            >
-              <div className="flex gap-2 pb-1 min-w-max">
-                {['全部', ...currentModules].map(m => (
-                  <button
-                    key={m}
-                    ref={filter === m ? activeModuleRef : null}
-                    onClick={() => setFilter(m as any)}
-                    className={cn(
-                      "px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-colors border",
-                      filter === m 
-                        ? "bg-slate-800 text-white border-slate-800" 
-                        : "bg-white text-slate-500 border-slate-100 hover:bg-slate-50"
-                    )}
-                  >
-                    {m}
-                  </button>
-                ))}
+            <>
+              {/* 模块筛选 */}
+              <div 
+                ref={scrollModuleRef}
+                className="-mx-4 px-4 overflow-x-auto no-scrollbar"
+              >
+                <div className="flex gap-2 pb-1 min-w-max">
+                  {['全部', ...currentModules].map(m => (
+                    <button
+                      key={m}
+                      ref={filter === m ? activeModuleRef : null}
+                      onClick={() => setFilter(m as any)}
+                      className={cn(
+                        "px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-colors border",
+                        filter === m 
+                          ? "bg-slate-800 text-white border-slate-800" 
+                          : "bg-white text-slate-500 border-slate-100 hover:bg-slate-50"
+                      )}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+              
+              {/* 细化模块筛选 */}
+              {filter !== '全部' && getCurrentSubModules().length > 0 && (
+                <div className="-mx-4 px-4 overflow-x-auto no-scrollbar">
+                  <div className="flex gap-2 pb-1 min-w-max">
+                    <button
+                      onClick={() => setSubModuleFilter('全部')}
+                      className={cn(
+                        "px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors border",
+                        subModuleFilter === '全部'
+                          ? "bg-indigo-100 text-indigo-700 border-indigo-200"
+                          : "bg-white text-slate-500 border-slate-100 hover:bg-slate-50"
+                      )}
+                    >
+                      全部细化
+                    </button>
+                    {getCurrentSubModules().map(sm => (
+                      <button
+                        key={sm}
+                        onClick={() => {
+                          setSubModuleFilter(sm);
+                          setKnowledgePointFilter('全部');
+                        }}
+                        className={cn(
+                          "px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors border",
+                          subModuleFilter === sm
+                            ? "bg-indigo-100 text-indigo-700 border-indigo-200"
+                            : "bg-white text-slate-500 border-slate-100 hover:bg-slate-50"
+                        )}
+                      >
+                        {sm}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* 知识点筛选 */}
+              {filter !== '全部' && getCurrentKnowledgePoints().length > 0 && (
+                <div className="-mx-4 px-4 overflow-x-auto no-scrollbar">
+                  <div className="flex gap-2 pb-1 min-w-max">
+                    <button
+                      onClick={() => setKnowledgePointFilter('全部')}
+                      className={cn(
+                        "px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors border",
+                        knowledgePointFilter === '全部'
+                          ? "bg-teal-100 text-teal-700 border-teal-200"
+                          : "bg-white text-slate-500 border-slate-100 hover:bg-slate-50"
+                      )}
+                    >
+                      全部知识点
+                    </button>
+                    {getCurrentKnowledgePoints().map(kp => (
+                      <button
+                        key={kp}
+                        onClick={() => setKnowledgePointFilter(kp)}
+                        className={cn(
+                          "px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors border",
+                          knowledgePointFilter === kp
+                            ? "bg-teal-100 text-teal-700 border-teal-200"
+                            : "bg-white text-slate-500 border-slate-100 hover:bg-slate-50"
+                        )}
+                      >
+                        {kp}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
           )}
 
           {category === '申论' && (
-            <div className="space-y-2">
+            <>
+                <div className="space-y-2">
                 <div 
                   ref={scrollTypeRef}
                   className="-mx-4 px-4 overflow-x-auto no-scrollbar"
@@ -531,7 +637,8 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                         ))}
                     </div>
                 </div>
-            </div>
+                </div>
+            </>
           )}
         </div>
       </div>
