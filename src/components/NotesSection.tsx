@@ -17,6 +17,14 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
 
   const [category, setCategory] = useState<'行测' | '申论'>('行测');
   const [editingNote, setEditingNote] = useState<ExamNote | null>(null);
+  const [newNote, setNewNote] = useState<Partial<ExamNote>>({
+    moduleId: StudyModule.VERBAL,
+    title: '',
+    content: '',
+    tags: [],
+    images: [],
+    essayTags: []
+  });
   const [selectedNote, setSelectedNote] = useState<ExamNote | null>(null);
   const [filter, setFilter] = useState<StudyModule | '全部'>('全部');
   
@@ -796,45 +804,43 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                         />
                     </div>
 
-                    {/* 图片上传区域（仅行测笔记显示） */}
-                    {newNote.moduleId !== StudyModule.ESSAY && (
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1">
-                                <ImageIcon size={12} /> 图片（可选，多张）
-                            </label>
-                            
-                            {/* 已上传图片预览 */}
-                            {newNote.images && newNote.images.length > 0 && (
-                                <div className="grid grid-cols-3 gap-2">
-                                    {newNote.images.map((img, index) => (
-                                        <div key={index} className="relative aspect-square rounded-xl overflow-hidden bg-slate-100">
-                                            <img src={img} alt={`笔记图片 ${index + 1}`} className="w-full h-full object-cover" />
-                                            <button
-                                                onClick={() => removeImage(index)}
-                                                className="absolute top-1 right-1 bg-rose-500 text-white p-0.5 rounded-full hover:bg-rose-600"
-                                            >
-                                                <X size={12} />
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                            
-                            {/* 上传按钮 */}
-                            <label className="flex items-center justify-center gap-2 px-4 py-3 bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl text-sm text-slate-500 hover:bg-slate-100 hover:border-slate-300 cursor-pointer transition-all">
-                                <ImageIcon size={16} />
-                                <span>点击添加图片</span>
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    multiple
-                                    onChange={handleImageUpload}
-                                    className="hidden"
-                                />
-                            </label>
-                            <p className="text-[9px] text-slate-400">支持多张，自动压缩，节省空间</p>
-                        </div>
-                    )}
+                    {/* 图片上传区域 */}
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1">
+                            <ImageIcon size={12} /> 图片（可选，多张）
+                        </label>
+                        
+                        {/* 已上传图片预览 */}
+                        {newNote.images && newNote.images.length > 0 && (
+                            <div className="grid grid-cols-3 gap-2">
+                                {newNote.images.map((img, index) => (
+                                    <div key={index} className="relative aspect-square rounded-xl overflow-hidden bg-slate-100">
+                                        <img src={img} alt={`笔记图片 ${index + 1}`} className="w-full h-full object-cover" />
+                                        <button
+                                            onClick={() => removeImage(index)}
+                                            className="absolute top-1 right-1 bg-rose-500 text-white p-0.5 rounded-full hover:bg-rose-600"
+                                        >
+                                            <X size={12} />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        
+                        {/* 上传按钮 */}
+                        <label className="flex items-center justify-center gap-2 px-4 py-3 bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl text-sm text-slate-500 hover:bg-slate-100 hover:border-slate-300 cursor-pointer transition-all">
+                            <ImageIcon size={16} />
+                            <span>点击添加图片</span>
+                            <input
+                                type="file"
+                                accept="image/*"
+                                multiple
+                                onChange={handleImageUpload}
+                                className="hidden"
+                            />
+                        </label>
+                        <p className="text-[9px] text-slate-400">支持多张，自动压缩，节省空间</p>
+                    </div>
 
                     {newNote.moduleId === StudyModule.ESSAY && (
                         <div className="flex items-center gap-2 p-2 bg-slate-100 rounded-xl">
@@ -960,8 +966,8 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                   ))}
                 </div>
 
-                {/* 图片显示（仅行测笔记且有图片时显示） */}
-                {selectedNote.moduleId !== StudyModule.ESSAY && selectedNote.images && selectedNote.images.length > 0 && (
+                {/* 图片显示 */}
+                {selectedNote.images && selectedNote.images.length > 0 && (
                   <div className="space-y-2">
                     <div className="text-[10px] font-bold text-slate-400 uppercase">笔记图片</div>
                     <div className="grid grid-cols-2 gap-2">
