@@ -433,7 +433,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
         <header className="flex justify-between items-end">
           <div className="flex-1">
             <h1 className="text-2xl font-bold text-slate-800">知识笔记</h1>
-            <p className="text-sm text-slate-500">
+            <p className="text-xs text-slate-500">
               {category === '行测' ? '行测考点：积少成多' : '申论金句：妙笔生花'}
             </p>
           </div>
@@ -448,7 +448,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="搜索笔记..."
-              className="w-full pl-10 pr-10 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none"
+              className="w-full pl-10 pr-10 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500/20 outline-none"
             />
             {searchQuery && (
               <button
@@ -476,7 +476,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
           <button
             onClick={() => handleCategorySwitch('行测')}
             className={cn(
-              "flex-1 py-2 text-sm font-bold rounded-xl transition-all",
+              "flex-1 py-2 text-xs font-bold rounded-xl transition-all",
               category === '行测' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500"
             )}
           >
@@ -485,7 +485,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
           <button
             onClick={() => handleCategorySwitch('申论')}
             className={cn(
-              "flex-1 py-2 text-sm font-bold rounded-xl transition-all",
+              "flex-1 py-2 text-xs font-bold rounded-xl transition-all",
               category === '申论' ? "bg-white text-amber-600 shadow-sm" : "text-slate-500"
             )}
           >
@@ -706,7 +706,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
              <div className="bg-slate-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto text-slate-300">
                <FileText size={32} />
             </div>
-            <p className="text-slate-400 text-sm italic">空空如也，点右上角开始记录吧。</p>
+            <p className="text-slate-400 text-xs italic">空空如也，点右上角开始记录吧。</p>
           </div>
         )}
       </div>
@@ -736,7 +736,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                                 key={m}
                                 onClick={() => setNewNote(prev => ({ ...prev, moduleId: m }))}
                                 className={cn(
-                                "px-4 py-2 rounded-xl text-sm font-bold transition-all border min-h-[44px]",
+                                "px-4 py-2 rounded-xl text-xs font-bold transition-all border min-h-[44px]",
                                 newNote.moduleId === m 
                                     ? "bg-indigo-600 text-white border-indigo-600" 
                                     : "bg-white text-slate-500 border-slate-100 hover:bg-slate-50"
@@ -760,7 +760,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                                             key={t}
                                             onClick={() => setNewNote(prev => ({ ...prev, essayType: t }))}
                                             className={cn(
-                                                "px-4 py-2 rounded-xl text-sm font-bold transition-all border min-h-[44px]",
+                                                "px-4 py-2 rounded-xl text-xs font-bold transition-all border min-h-[44px]",
                                                 newNote.essayType === t ? "bg-slate-800 text-white border-slate-800" : "bg-white text-slate-500 border-slate-100"
                                             )}
                                         >
@@ -787,7 +787,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                                                 }));
                                             }}
                                             className={cn(
-                                                "px-4 py-2 rounded-xl text-sm font-bold transition-all border min-h-[44px]",
+                                                "px-4 py-2 rounded-xl text-xs font-bold transition-all border min-h-[44px]",
                                                 (newNote.essayTags || []).includes(t) ? "bg-amber-600 text-white border-amber-600" : "bg-white text-slate-500 border-slate-100"
                                             )}
                                         >
@@ -812,7 +812,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                                   setSelectedSubModule(selectedSubModule === t ? null : t);
                                 }}
                                 className={cn(
-                                  "px-4 py-2 rounded-xl text-sm font-bold transition-all border min-h-[44px]",
+                                  "px-4 py-2 rounded-xl text-xs font-bold transition-all border min-h-[44px]",
                                   selectedSubModule === t ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-500 border-slate-100"
                                 )}
                               >
@@ -833,7 +833,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                                   }
                                 }}
                                 placeholder="+细化模块"
-                                className="w-full px-3 py-2 text-sm border-2 border-dashed border-slate-300 rounded-xl outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                                className="w-full px-3 py-2 text-xs border-2 border-dashed border-slate-300 rounded-xl outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
                               />
                               {newSubModule.trim() && (
                                 <button
@@ -862,7 +862,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                                   setSelectedKnowledgePoint(selectedKnowledgePoint === t ? null : t);
                                 }}
                                 className={cn(
-                                  "px-4 py-2 rounded-xl text-sm font-bold transition-all border min-h-[44px]",
+                                  "px-4 py-2 rounded-xl text-xs font-bold transition-all border min-h-[44px]",
                                   selectedKnowledgePoint === t ? "bg-amber-600 text-white border-amber-600" : "bg-white text-slate-500 border-slate-100"
                                 )}
                               >
@@ -884,7 +884,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                                   }
                                 }}
                                 placeholder="+知识点"
-                                className="w-full px-3 py-2 text-sm border-2 border-dashed border-slate-300 rounded-xl outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+                                className="w-full px-3 py-2 text-xs border-2 border-dashed border-slate-300 rounded-xl outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
                               />
                               {newKnowledgePoint.trim() && (
                                 <button
@@ -911,7 +911,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                             type="text"
                             value={newNote.title}
                             onChange={(e) => setNewNote(prev => ({ ...prev, title: e.target.value }))}
-                            className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold"
+                            className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl text-xs focus:ring-2 focus:ring-indigo-500/20 outline-none font-bold"
                             placeholder="核心考点名称/金句主题..."
                         />
                     </div>
@@ -940,7 +940,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                         )}
                         
                         {/* 上传按钮 */}
-                        <label className="flex items-center justify-center gap-2 px-4 py-3 bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl text-sm text-slate-500 hover:bg-slate-100 hover:border-slate-300 cursor-pointer transition-all">
+                        <label className="flex items-center justify-center gap-2 px-4 py-3 bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl text-xs text-slate-500 hover:bg-slate-100 hover:border-slate-300 cursor-pointer transition-all">
                             <ImageIcon size={16} />
                             <span>点击添加图片</span>
                             <input
@@ -1000,7 +1000,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                         <textarea 
                             value={newNote.content}
                             onChange={(e) => setNewNote(prev => ({ ...prev, content: e.target.value }))}
-                            className="w-full flex-1 px-4 py-4 bg-slate-50 border-none rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none resize-none leading-relaxed"
+                            className="w-full flex-1 px-4 py-4 bg-slate-50 border-none rounded-2xl text-xs focus:ring-2 focus:ring-indigo-500/20 outline-none resize-none leading-relaxed"
                             placeholder="在此输入公考要点、口诀或写作框架..."
                         />
                     </div>
@@ -1099,7 +1099,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                 {/* 正文 */}
                 <div className="bg-slate-50 rounded-2xl p-5 min-h-[120px]">
                   <div 
-                    className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap break-words overflow-wrap-anywhere font-sans"
+                    className="text-xs text-slate-700 leading-relaxed whitespace-pre-wrap break-words overflow-wrap-anywhere font-sans"
                     dangerouslySetInnerHTML={{
                       __html: selectedNote.content
                         .replace(/&/g, '&amp;')
@@ -1127,13 +1127,13 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                     handleEdit(selectedNote);
                     setSelectedNote(null);
                   }}
-                  className="flex-1 py-3 rounded-2xl border border-slate-200 text-slate-700 text-sm font-bold flex items-center justify-center gap-2 active:bg-slate-50 transition-colors"
+                  className="flex-1 py-3 rounded-2xl border border-slate-200 text-slate-700 text-xs font-bold flex items-center justify-center gap-2 active:bg-slate-50 transition-colors"
                 >
                   <Edit2 size={15} /> 编辑
                 </button>
                 <button
                   onClick={() => deleteNote(selectedNote.id)}
-                  className="py-3 px-5 rounded-2xl border border-rose-200 text-rose-500 text-sm font-bold flex items-center justify-center gap-2 active:bg-rose-50 transition-colors"
+                  className="py-3 px-5 rounded-2xl border border-rose-200 text-rose-500 text-xs font-bold flex items-center justify-center gap-2 active:bg-rose-50 transition-colors"
                 >
                   <Trash2 size={15} />
                 </button>
