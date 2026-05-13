@@ -81,8 +81,8 @@ export interface ExamNote {
 export interface AppConfig {
   essayTypes: string[];
   essayTags: string[];
-  // 行测笔记标签：{ 模块ID: { subModules: 细化模块[], knowledgePoints: 知识点[] } }
-  noteTags?: Record<string, { subModules: string[], knowledgePoints: string[] }>;
+  // 行测笔记标签：{ 模块ID: { subModules: 细化模块[], knowledgePoints: { 细化模块: 知识点[] } } }
+  noteTags?: Record<string, { subModules: string[], knowledgePoints: Record<string, string[]> }>;
   // 自定义错误原因：{ 模块ID: { 子知识点: 原因数组 } }
   errorReasons?: Record<string, Record<string, string[]>>;
 }

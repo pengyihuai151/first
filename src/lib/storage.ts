@@ -27,14 +27,14 @@ export const storage = {
       config: {
         essayTypes: ['金句', '文章结构', '首尾段'],
         essayTags: ['政治', '社会', '生态', '文化', '经济'],
-        // 行测笔记标签配置：{ 模块ID: { subModules: 细化模块[], knowledgePoints: 知识点[] } }
+        // 行测笔记标签配置：{ 模块ID: { subModules: 细化模块[], knowledgePoints: { 细化模块: 知识点[] } } }
         noteTags: {
-          '言语理解': { subModules: ['逻辑填空', '篇章阅读'], knowledgePoints: [] },
-          '判断推理': { subModules: ['图形推理', '定义判断', '类比推理', '逻辑推理'], knowledgePoints: [] },
-          '数量关系': { subModules: [], knowledgePoints: [] },
-          '资料分析': { subModules: [], knowledgePoints: [] },
-          '常识判断': { subModules: [], knowledgePoints: [] },
-          '政治': { subModules: [], knowledgePoints: [] },
+          '言语理解': { subModules: ['逻辑填空', '篇章阅读'], knowledgePoints: {} },
+          '判断推理': { subModules: ['图形推理', '定义判断', '类比推理', '逻辑推理'], knowledgePoints: {} },
+          '数量关系': { subModules: [], knowledgePoints: {} },
+          '资料分析': { subModules: [], knowledgePoints: {} },
+          '常识判断': { subModules: [], knowledgePoints: {} },
+          '政治': { subModules: [], knowledgePoints: {} },
         },
         errorReasons: {}
       },

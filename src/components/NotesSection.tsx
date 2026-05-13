@@ -140,9 +140,9 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
   // 获取当前模块的标签配置
   const getCurrentNoteTags = () => {
     if (!newNote.moduleId || newNote.moduleId === StudyModule.ESSAY) {
-      return { subModules: [] as string[], knowledgePoints: [] as string[] };
+      return { subModules: [] as string[], knowledgePoints: {} as Record<string, string[]> };
     }
-    return data.config?.noteTags?.[newNote.moduleId] || { subModules: [], knowledgePoints: [] };
+    return data.config?.noteTags?.[newNote.moduleId] || { subModules: [], knowledgePoints: {} };
   };
 
   // 添加细化模块
@@ -163,16 +163,19 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
     onUpdate();
   };
 
-  // 添加知识点
-  const handleAddKnowledgePoint = async (moduleId: string, kp: string) => {
+  // 添加知识点（属于当前细化模块）
+  const handleAddKnowledgePoint = async (moduleId: string, subModule: string, kp: string) => {
     if (!kp.trim()) return;
     const trimmed = kp.trim();
     const noteTags = data.config?.noteTags || {};
     if (!noteTags[moduleId]) {
-      noteTags[moduleId] = { subModules: [], knowledgePoints: [] };
+      noteTags[moduleId] = { subModules: [], knowledgePoints: {} };
     }
-    if (!noteTags[moduleId].knowledgePoints.includes(trimmed)) {
-      noteTags[moduleId].knowledgePoints.push(trimmed);
+    if (!noteTags[moduleId].knowledgePoints[subModule]) {
+      noteTags[moduleId].knowledgePoints[subModule] = [];
+    }
+    if (!noteTags[moduleId].knowledgePoints[subModule].includes(trimmed)) {
+      noteTags[moduleId].knowledgePoints[subModule].push(trimmed);
     }
     await storage.saveData({
       ...data,
@@ -741,11 +744,11 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                           </div>
                         </div>
 
-                        {/* 知识点 */}
+                        {/* 知识点（属于当前细化模块） */}
                         <div className="space-y-2">
                           <label className="text-[10px] font-bold text-slate-400 uppercase">知识点</label>
                           <div className="flex flex-wrap gap-2">
-                            {getCurrentNoteTags().knowledgePoints.map(t => (
+                            {(getCurrentNoteTags().knowledgePoints[selectedSubModule || ''] || []).map(t => (
                               <button
                                 key={t}
                                 onClick={() => {
@@ -759,7 +762,8 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                                 {t}
                               </button>
                             ))}
-                            {/* 新增知识点 */}
+                            {/* 新增知识点（属于当前细化模块） */}
+                            {selectedSubModule && (
                             <div className="relative inline-flex items-center">
                               <input
                                 type="text"
@@ -767,7 +771,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                                 onChange={(e) => setNewKnowledgePoint(e.target.value)}
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter' && newKnowledgePoint.trim()) {
-                                    handleAddKnowledgePoint(newNote.moduleId!, newKnowledgePoint.trim());
+                                    handleAddKnowledgePoint(newNote.moduleId!, selectedSubModule, newKnowledgePoint.trim());
                                     setSelectedKnowledgePoint(newKnowledgePoint.trim());
                                     setNewKnowledgePoint('');
                                   }
@@ -778,7 +782,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                               {newKnowledgePoint.trim() && (
                                 <button
                                   onClick={() => {
-                                    handleAddKnowledgePoint(newNote.moduleId!, newKnowledgePoint.trim());
+                                    handleAddKnowledgePoint(newNote.moduleId!, selectedSubModule, newKnowledgePoint.trim());
                                     setSelectedKnowledgePoint(newKnowledgePoint.trim());
                                     setNewKnowledgePoint('');
                                   }}
@@ -788,6 +792,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                                 </button>
                               )}
                             </div>
+                            )}
                           </div>
                         </div>
                       </div>

@@ -584,25 +584,35 @@ export default function SettingsPage({ data, onUpdate, onNavigate }: { data: App
                       );
                     })
                   ) : (
-                    // Regular Module Notes - Group by tags
+                    // Regular Module Notes - Group by subModule and knowledgePoint tags
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', paddingLeft: '15px' }}>
-                      {config.noteTags.concat('未分类').map(tag => {
-                        const tagNotes = moduleNotes.filter(n => (tag === '未分类' ? (!n.tags || n.tags.length === 0) : n.tags?.includes(tag)));
-                        if (tagNotes.length === 0) return null;
-                        return (
-                          <div key={tag} style={{ marginBottom: '15px' }}>
-                            <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#64748b', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{tag !== '未分类' ? `[ ${tag} ]` : '[ 基础记录 ]'}</div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                              {tagNotes.map(n => (
-                                <div key={n.id} style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
-                                  <h4 style={{ fontWeight: 'bold', color: '#1e293b', marginBottom: '6px', fontSize: '14px' }}>{n.title}</h4>
-                                  <p style={{ fontSize: '13px', color: '#64748b', lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>{n.content}</p>
-                                </div>
-                              ))}
+                      {(() => {
+                        const noteTagsConfig = config.noteTags?.[moduleId];
+                        if (!noteTagsConfig) return null;
+                        // 收集所有细化模块和知识点
+                        const allTags: string[] = [...noteTagsConfig.subModules];
+                        Object.values(noteTagsConfig.knowledgePoints || {}).forEach(kps => {
+                          allTags.push(...kps);
+                        });
+                        const allTagsWithUntagged = allTags.length > 0 ? allTags : ['未分类'];
+                        return allTagsWithUntagged.map(tag => {
+                          const tagNotes = moduleNotes.filter(n => (tag === '未分类' ? (!n.tags || n.tags.length === 0) : n.tags?.includes(tag)));
+                          if (tagNotes.length === 0) return null;
+                          return (
+                            <div key={tag} style={{ marginBottom: '15px' }}>
+                              <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#64748b', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{tag !== '未分类' ? `[ ${tag} ]` : '[ 基础记录 ]'}</div>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                {tagNotes.map(n => (
+                                  <div key={n.id} style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
+                                    <h4 style={{ fontWeight: 'bold', color: '#1e293b', marginBottom: '6px', fontSize: '14px' }}>{n.title}</h4>
+                                    <p style={{ fontSize: '13px', color: '#64748b', lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>{n.content}</p>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        });
+                      })()}
                     </div>
                   )}
                 </div>
