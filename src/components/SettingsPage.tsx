@@ -545,7 +545,7 @@ export default function SettingsPage({ data, onUpdate, onNavigate }: { data: App
                           <h4 style={{ fontSize: '15px', fontWeight: 'bold', color: '#6366f1', marginBottom: '12px', borderBottom: '2px solid #eef2ff', paddingBottom: '6px' }}>● {type}</h4>
                           
                           {tags.map(tag => {
-                            const tagNotes = typeNotes.filter(n => n.essayTag === tag);
+                            const tagNotes = typeNotes.filter(n => n.essayTags?.includes(tag));
                             if (tagNotes.length === 0) return null;
                             return (
                               <div key={tag} style={{ marginBottom: '15px', paddingLeft: '12px' }}>
@@ -564,7 +564,7 @@ export default function SettingsPage({ data, onUpdate, onNavigate }: { data: App
                           
                           {/* Untagged Essay Notes */}
                           {(() => {
-                            const untaggedNotes = typeNotes.filter(n => !n.essayTag);
+                            const untaggedNotes = typeNotes.filter(n => !n.essayTags || n.essayTags.length === 0);
                             if (untaggedNotes.length === 0) return null;
                             return (
                               <div style={{ marginBottom: '15px', paddingLeft: '12px' }}>
@@ -587,7 +587,7 @@ export default function SettingsPage({ data, onUpdate, onNavigate }: { data: App
                     // Regular Module Notes - Group by subModule and knowledgePoint tags
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', paddingLeft: '15px' }}>
                       {(() => {
-                        const noteTagsConfig = config.noteTags?.[moduleId];
+                        const noteTagsConfig = config.noteTags?.[module];
                         if (!noteTagsConfig) return null;
                         // 收集所有细化模块和知识点
                         const allTags: string[] = [...noteTagsConfig.subModules];
