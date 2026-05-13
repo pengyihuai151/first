@@ -253,9 +253,9 @@ export default function Dashboard({ data, onUpdate, onNavigate }: { data: AppDat
           return acc + data.sessions.filter(s => s.date === ds).reduce((a, s) => a + s.duration, 0);
         }, 0) / past7Days.length;
 
-        // 判断是否懈怠：有历史数据且今天不足平均的60%
-        const hasHistoryData = pastAvgMs > 60000; // 至少有1分钟以上的日均记录
-        const isSlacking = hasHistoryData && totalTodayMs < pastAvgMs * 0.6;
+        // 判断是否懈怠：今天学习时间低于8小时
+        const EIGHT_HOURS_MS = 8 * 60 * 60 * 1000;
+        const isSlacking = totalTodayMs < EIGHT_HOURS_MS;
 
         if (!isSlacking) return null;
 
@@ -300,9 +300,9 @@ export default function Dashboard({ data, onUpdate, onNavigate }: { data: AppDat
             <div className="relative">
               <div className="flex items-center gap-2 mb-1">
                 <Zap size={16} className="text-orange-500" />
-                <h3 className="text-sm font-bold text-orange-700">今日骂醒</h3>
+                <h3 className="text-sm font-bold text-orange-700">还不学？</h3>
                 <span className="text-[9px] px-2 py-0.5 rounded-full font-medium ml-auto bg-rose-100 text-rose-500">
-                  距均值差{diffMinutes}分钟
+                  距8小时还差{Math.round((EIGHT_HOURS_MS - totalTodayMs) / 60000)}分钟
                 </span>
               </div>
               <p className="text-sm leading-relaxed font-medium text-rose-700">{quote.text}</p>
