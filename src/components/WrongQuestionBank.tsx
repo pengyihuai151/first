@@ -87,6 +87,8 @@ export default function WrongQuestionBank({
     images: []
   });
   const [customErrorReasonInput, setCustomErrorReasonInput] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [editingTag, setEditingTag] = useState<{ type: 'subModule' | 'errorReason'; value: string; newValue: string } | null>(null);
   
   // 图片相关状态
   const [selectedImage, setSelectedImage] = useState<string | null>(null); // 大图预览
@@ -230,7 +232,20 @@ export default function WrongQuestionBank({
 
   // 判断模块是否有细化模块
   const hasSubModules = (moduleId: string): boolean => {
-    return moduleId in MODULE_SUB_TOPICS && (MODULE_SUB_TOPICS[moduleId]?.length ?? 0) > 0;
+    if (!moduleId) return false;
+    // 有默认细化模块或用户自定义细化模块
+    const hasDefault = moduleId in MODULE_SUB_TOPICS && (MODULE_SUB_TOPICS[moduleId]?.length ?? 0) > 0;
+    const hasCustom = data?.config?.errorReasons?.[moduleId]?.subModules?.length > 0;
+    return hasDefault || hasCustom;
+  };
+
+  // 获取当前模块的所有细化模块（包括默认和自定义）
+  const getAllSubModules = (): string[] => {
+    const moduleId = newQuestion.moduleId || '';
+    const defaultSubs = MODULE_SUB_TOPICS[moduleId] || [];
+    const customSubs = data?.config?.errorReasons?.[moduleId]?.subModules || [];
+    // 合并并去重
+    return [...new Set([...defaultSubs, ...customSubs])];
   };
 
   // 删除图片
@@ -296,6 +311,125 @@ export default function WrongQuestionBank({
     onUpdate();
 
     setCustomErrorReasonInput('');
+  };
+
+  // 编辑错误原因
+  const handleEditErrorReason = async (oldReason: string, newReason: string) => {
+    if (!newQuestion.moduleId) return;
+    
+    const data = await storage.loadData();
+    const newConfig = { ...data.config };
+    const subTopic = newQuestion.subTopic || newQuestion.moduleId;
+    
+    // 更新错误原因
+    const reasons = newConfig.errorReasons[newQuestion.moduleId]?.errorReasons?.[subTopic] || [];
+    const index = reasons.indexOf(oldReason);
+    if (index !== -1) {
+      reasons[index] = newReason;
+    }
+    
+    // 更新配置
+    if (!newConfig.errorReasons[newQuestion.moduleId]) {
+      newConfig.errorReasons[newQuestion.moduleId] = { subModules: [], errorReasons: {} };
+    }
+    if (!newConfig.errorReasons[newQuestion.moduleId].errorReasons) {
+      newConfig.errorReasons[newQuestion.moduleId].errorReasons = {};
+    }
+    newConfig.errorReasons[newQuestion.moduleId].errorReasons[subTopic] = reasons;
+    
+    // 如果当前选中的就是这个原因，更新选中值
+    if (newQuestion.errorReason === oldReason) {
+      setNewQuestion(prev => ({ ...prev, errorReason: newReason }));
+    }
+    
+    await storage.saveData({ ...data, config: newConfig });
+    onUpdate();
+    setEditingTag(null);
+  };
+
+  // 删除错误原因
+  const handleDeleteErrorReason = async (reason: string) => {
+    if (!newQuestion.moduleId) return;
+    
+    const data = await storage.loadData();
+    const newConfig = { ...data.config };
+    const subTopic = newQuestion.subTopic || newQuestion.moduleId;
+    
+    // 删除错误原因
+    const reasons = newConfig.errorReasons[newQuestion.moduleId]?.errorReasons?.[subTopic] || [];
+    newConfig.errorReasons[newQuestion.moduleId].errorReasons[subTopic] = reasons.filter(r => r !== reason);
+    
+    // 如果当前选中的就是这个原因，清除选中
+    if (newQuestion.errorReason === reason) {
+      setNewQuestion(prev => ({ ...prev, errorReason: '' }));
+    }
+    
+    await storage.saveData({ ...data, config: newConfig });
+    onUpdate();
+    setShowDeleteConfirm(null);
+  };
+
+  // 编辑细化模块
+  const handleEditSubModule = async (oldSubModule: string, newSubModule: string) => {
+    if (!newQuestion.moduleId) return;
+    
+    const data = await storage.loadData();
+    const newConfig = { ...data.config };
+    
+    // 更新细化模块列表
+    const subModules = newConfig.errorReasons[newQuestion.moduleId]?.subModules || [];
+    const index = subModules.indexOf(oldSubModule);
+    if (index !== -1) {
+      subModules[index] = newSubModule;
+    }
+    
+    // 更新错误原因中的引用
+    if (newConfig.errorReasons[newQuestion.moduleId]?.errorReasons?.[oldSubModule]) {
+      newConfig.errorReasons[newQuestion.moduleId].errorReasons[newSubModule] = 
+        newConfig.errorReasons[newQuestion.moduleId].errorReasons[oldSubModule];
+      delete newConfig.errorReasons[newQuestion.moduleId].errorReasons[oldSubModule];
+    }
+    
+    // 更新配置
+    if (!newConfig.errorReasons[newQuestion.moduleId]) {
+      newConfig.errorReasons[newQuestion.moduleId] = { subModules: [], errorReasons: {} };
+    }
+    newConfig.errorReasons[newQuestion.moduleId].subModules = subModules;
+    
+    // 如果当前选中的就是这个细化模块，更新选中值
+    if (newQuestion.subTopic === oldSubModule) {
+      setNewQuestion(prev => ({ ...prev, subTopic: newSubModule }));
+    }
+    
+    await storage.saveData({ ...data, config: newConfig });
+    onUpdate();
+    setEditingTag(null);
+  };
+
+  // 删除细化模块
+  const handleDeleteSubModule = async (subModule: string) => {
+    if (!newQuestion.moduleId) return;
+    
+    const data = await storage.loadData();
+    const newConfig = { ...data.config };
+    
+    // 删除细化模块
+    const subModules = newConfig.errorReasons[newQuestion.moduleId]?.subModules || [];
+    newConfig.errorReasons[newQuestion.moduleId].subModules = subModules.filter(s => s !== subModule);
+    
+    // 删除对应的错误原因
+    if (newConfig.errorReasons[newQuestion.moduleId]?.errorReasons?.[subModule]) {
+      delete newConfig.errorReasons[newQuestion.moduleId].errorReasons[subModule];
+    }
+    
+    // 如果当前选中的就是这个细化模块，清除选中
+    if (newQuestion.subTopic === subModule) {
+      setNewQuestion(prev => ({ ...prev, subTopic: '', errorReason: '' }));
+    }
+    
+    await storage.saveData({ ...data, config: newConfig });
+    onUpdate();
+    setShowDeleteConfirm(null);
   };
 
   const saveQuestion = async () => {
@@ -802,21 +936,74 @@ export default function WrongQuestionBank({
                       <Tag size={10} /> 细化模块
                     </label>
                     <div className="flex flex-wrap gap-2 pt-1">
-                      {(MODULE_SUB_TOPICS[newQuestion.moduleId as string] || []).map(sub => {
+                      {getAllSubModules().map(sub => {
                         const isSelected = newQuestion.subTopic === sub;
+                        const isDefault = (MODULE_SUB_TOPICS[newQuestion.moduleId as string] || []).includes(sub);
+                        const isEditing = editingTag?.type === 'subModule' && editingTag?.value === sub;
+                        
                         return (
-                          <button
-                            key={sub}
-                            onClick={() => setNewQuestion(prev => ({ ...prev, subTopic: sub }))}
-                            className={cn(
-                              "px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all border",
-                              isSelected 
-                                ? "bg-indigo-600 text-white border-indigo-600 shadow-sm" 
-                                : "bg-white text-slate-400 border-slate-100 hover:bg-slate-50"
+                          <div key={sub} className="relative group">
+                            {isEditing ? (
+                              <div className="flex items-center gap-1">
+                                <input
+                                  type="text"
+                                  defaultValue={sub}
+                                  className="w-20 px-2 py-1 text-[10px] border border-indigo-300 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500"
+                                  autoFocus
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      handleEditSubModule(sub, (e.target as HTMLInputElement).value);
+                                    } else if (e.key === 'Escape') {
+                                      setEditingTag(null);
+                                    }
+                                  }}
+                                />
+                                <button
+                                  onClick={() => handleEditSubModule(sub, (e.currentTarget.parentElement?.querySelector('input') as HTMLInputElement)?.value || sub)}
+                                  className="p-1 text-emerald-500 hover:bg-emerald-50 rounded"
+                                >
+                                  <Check size={14} />
+                                </button>
+                                <button
+                                  onClick={() => setEditingTag(null)}
+                                  className="p-1 text-slate-400 hover:bg-slate-100 rounded"
+                                >
+                                  <X size={14} />
+                                </button>
+                              </div>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() => setNewQuestion(prev => ({ ...prev, subTopic: sub, errorReason: '' }))}
+                                  className={cn(
+                                    "pr-7 px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all border min-h-[28px]",
+                                    isSelected 
+                                      ? "bg-indigo-600 text-white border-indigo-600 shadow-sm" 
+                                      : "bg-white text-slate-400 border-slate-100 hover:bg-slate-50"
+                                  )}
+                                >
+                                  {sub}
+                                </button>
+                                {/* 编辑和删除按钮 - 仅对自定义标签显示 */}
+                                {!isDefault && (
+                                  <div className="absolute top-0 right-0 flex items-center gap-0.5">
+                                    <button
+                                      onClick={() => setEditingTag({ type: 'subModule', value: sub, newValue: sub })}
+                                      className="p-1 text-blue-400 bg-white/90 hover:bg-blue-50 rounded-l-lg min-w-[24px] min-h-[24px] flex items-center justify-center"
+                                    >
+                                      <Edit2 size={10} />
+                                    </button>
+                                    <button
+                                      onClick={() => setShowDeleteConfirm(`subModule:${sub}`)}
+                                      className="p-1 text-rose-400 bg-white/90 hover:bg-rose-50 rounded-r-lg min-w-[24px] min-h-[24px] flex items-center justify-center"
+                                    >
+                                      <Trash2 size={10} />
+                                    </button>
+                                  </div>
+                                )}
+                              </>
                             )}
-                          >
-                            {sub}
-                          </button>
+                          </div>
                         );
                       })}
                     </div>
@@ -888,22 +1075,72 @@ export default function WrongQuestionBank({
                     <div className="flex flex-wrap gap-2 pt-1">
                       {getCurrentErrorReasons().map(reason => {
                         const isSelected = newQuestion.errorReason === reason;
+                        const isEditing = editingTag?.type === 'errorReason' && editingTag?.value === reason;
+                        
                         return (
-                          <button
-                            key={reason}
-                            onClick={() => setNewQuestion(prev => ({
-                              ...prev,
-                              errorReason: isSelected ? '' : reason
-                            }))}
-                            className={cn(
-                              "px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border",
-                              isSelected
-                                ? "bg-rose-500 text-white border-rose-500 shadow-sm"
-                                : "bg-white text-slate-500 border-slate-100 hover:bg-rose-50 hover:border-rose-200"
+                          <div key={reason} className="relative group">
+                            {isEditing ? (
+                              <div className="flex items-center gap-1">
+                                <input
+                                  type="text"
+                                  defaultValue={reason}
+                                  className="w-20 px-2 py-1 text-[10px] border border-rose-300 rounded-lg outline-none focus:ring-1 focus:ring-rose-500"
+                                  autoFocus
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      handleEditErrorReason(reason, (e.target as HTMLInputElement).value);
+                                    } else if (e.key === 'Escape') {
+                                      setEditingTag(null);
+                                    }
+                                  }}
+                                />
+                                <button
+                                  onClick={() => handleEditErrorReason(reason, (e.currentTarget.parentElement?.querySelector('input') as HTMLInputElement)?.value || reason)}
+                                  className="p-1 text-emerald-500 hover:bg-emerald-50 rounded"
+                                >
+                                  <Check size={14} />
+                                </button>
+                                <button
+                                  onClick={() => setEditingTag(null)}
+                                  className="p-1 text-slate-400 hover:bg-slate-100 rounded"
+                                >
+                                  <X size={14} />
+                                </button>
+                              </div>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() => setNewQuestion(prev => ({
+                                    ...prev,
+                                    errorReason: isSelected ? '' : reason
+                                  }))}
+                                  className={cn(
+                                    "pr-7 px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border min-h-[28px]",
+                                    isSelected
+                                      ? "bg-rose-500 text-white border-rose-500 shadow-sm"
+                                      : "bg-white text-slate-500 border-slate-100 hover:bg-rose-50 hover:border-rose-200"
+                                  )}
+                                >
+                                  {reason}
+                                </button>
+                                {/* 编辑和删除按钮 - 移动端默认显示 */}
+                                <div className="absolute top-0 right-0 flex items-center gap-0.5">
+                                  <button
+                                    onClick={() => setEditingTag({ type: 'errorReason', value: reason, newValue: reason })}
+                                    className="p-1 text-blue-400 bg-white/90 hover:bg-blue-50 rounded-l-lg min-w-[24px] min-h-[24px] flex items-center justify-center"
+                                  >
+                                    <Edit2 size={10} />
+                                  </button>
+                                  <button
+                                    onClick={() => setShowDeleteConfirm(reason)}
+                                    className="p-1 text-rose-400 bg-white/90 hover:bg-rose-50 rounded-r-lg min-w-[24px] min-h-[24px] flex items-center justify-center"
+                                  >
+                                    <Trash2 size={10} />
+                                  </button>
+                                </div>
+                              </>
                             )}
-                          >
-                            {reason}
-                          </button>
+                          </div>
                         );
                       })}
                     </div>
@@ -940,6 +1177,42 @@ export default function WrongQuestionBank({
                     </div>
                   ) : null}
                 </div>
+
+                {/* 删除确认弹窗 */}
+                {showDeleteConfirm && (
+                  <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl p-6 w-full max-w-[280px] shadow-2xl">
+                      <h3 className="text-lg font-bold text-slate-800 mb-2">确认删除</h3>
+                      <p className="text-sm text-slate-500 mb-4">
+                        确定要删除
+                        {showDeleteConfirm.startsWith('subModule:') 
+                          ? `细化模块"${showDeleteConfirm.replace('subModule:', '')}"` 
+                          : `错误原因"${showDeleteConfirm}"`}
+                        吗？
+                      </p>
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => setShowDeleteConfirm(null)}
+                          className="flex-1 px-4 py-2.5 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-colors"
+                        >
+                          取消
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (showDeleteConfirm.startsWith('subModule:')) {
+                              handleDeleteSubModule(showDeleteConfirm.replace('subModule:', ''));
+                            } else {
+                              handleDeleteErrorReason(showDeleteConfirm);
+                            }
+                          }}
+                          className="flex-1 px-4 py-2.5 bg-rose-500 text-white rounded-xl font-bold hover:bg-rose-600 transition-colors"
+                        >
+                          删除
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="p-6 bg-slate-50/50 border-t border-slate-100 italic">
                 <button 
