@@ -955,14 +955,14 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                                   >
                                     {t}
                                   </button>
-                                  <div className="absolute -top-1 -right-1 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <div className="absolute -top-1 -right-1 flex gap-0.5 opacity-0 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         setEditingSubModule(t);
                                         setEditValue(t);
                                       }}
-                                      className="bg-slate-100 text-slate-500 p-1 rounded-full hover:bg-indigo-100"
+                                      className="bg-slate-100 text-slate-500 p-1 rounded-full hover:bg-indigo-100 min-w-[24px] min-h-[24px] flex items-center justify-center"
                                     >
                                       <Edit2 size={10} />
                                     </button>
@@ -971,7 +971,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                                         e.stopPropagation();
                                         handleDeleteSubModule(newNote.moduleId!, t);
                                       }}
-                                      className="bg-slate-100 text-rose-500 p-1 rounded-full hover:bg-rose-100"
+                                      className="bg-slate-100 text-rose-500 p-1 rounded-full hover:bg-rose-100 min-w-[24px] min-h-[24px] flex items-center justify-center"
                                     >
                                       <Trash2 size={10} />
                                     </button>
@@ -1065,14 +1065,14 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                                   >
                                     {t}
                                   </button>
-                                  <div className="absolute -top-1 -right-1 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <div className="absolute -top-1 -right-1 flex gap-0.5 opacity-0 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         setEditingKnowledgePoint({ subModule: selectedSubModule!, name: t });
                                         setEditValue(t);
                                       }}
-                                      className="bg-slate-100 text-slate-500 p-1 rounded-full hover:bg-amber-100"
+                                      className="bg-slate-100 text-slate-500 p-1 rounded-full hover:bg-amber-100 min-w-[24px] min-h-[24px] flex items-center justify-center"
                                     >
                                       <Edit2 size={10} />
                                     </button>
@@ -1081,7 +1081,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                                         e.stopPropagation();
                                         handleDeleteKnowledgePoint(newNote.moduleId!, selectedSubModule!, t);
                                       }}
-                                      className="bg-slate-100 text-rose-500 p-1 rounded-full hover:bg-rose-100"
+                                      className="bg-slate-100 text-rose-500 p-1 rounded-full hover:bg-rose-100 min-w-[24px] min-h-[24px] flex items-center justify-center"
                                     >
                                       <Trash2 size={10} />
                                     </button>

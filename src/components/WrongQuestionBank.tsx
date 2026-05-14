@@ -584,13 +584,13 @@ export default function WrongQuestionBank({
                   <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                     <button 
                       onClick={() => handleEdit(q)}
-                      className="p-2 text-slate-300 hover:text-indigo-500 active:bg-indigo-50 active:text-indigo-500 rounded-full transition-all"
+                      className="p-2 min-w-[44px] min-h-[44px] text-indigo-400 md:text-slate-300 hover:text-indigo-500 md:hover:text-indigo-500 active:bg-indigo-50 active:text-indigo-500 rounded-full transition-all flex items-center justify-center"
                     >
                       <Edit2 size={16} />
                     </button>
                     <button 
                       onClick={() => deleteQuestion(q.id)}
-                      className="p-2 text-slate-300 hover:text-rose-500 active:bg-rose-50 active:text-rose-500 rounded-full transition-all"
+                      className="p-2 min-w-[44px] min-h-[44px] text-rose-400 md:text-slate-300 hover:text-rose-500 md:hover:text-rose-500 active:bg-rose-50 active:text-rose-500 rounded-full transition-all flex items-center justify-center"
                     >
                       <Trash2 size={16} />
                     </button>
