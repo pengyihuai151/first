@@ -266,33 +266,45 @@ export default function WrongQuestionBank({
 
   // 保存新的自定义细化模块
   const handleAddNewSubModule = async () => {
-    if (!newSubModuleInput.trim()) {
+    const inputValue = newSubModuleInput.trim();
+    if (!inputValue) {
       alert('请输入细化模块名称');
       return;
     }
 
     const moduleId = newQuestion.moduleId || '';
-    const newSub = newSubModuleInput.trim();
-
-    // 更新 config
-    const newConfig = { ...data.config } || {};
-    if (!newConfig.errorReasons) {
-      newConfig.errorReasons = {};
-    }
-    if (!newConfig.errorReasons[moduleId]) {
-      newConfig.errorReasons[moduleId] = { subModules: [], errorReasons: {} };
-    }
-    if (!newConfig.errorReasons[moduleId].subModules.includes(newSub)) {
-      newConfig.errorReasons[moduleId].subModules.push(newSub);
-      newConfig.errorReasons[moduleId].errorReasons[newSub] = [];
+    if (!moduleId) {
+      alert('请先选择模块');
+      return;
     }
 
-    // 保存到 storage
-    await storage.saveData({ ...data, config: newConfig });
-    onUpdate();
+    try {
+      // 重新加载最新数据
+      const latestData = await storage.loadData();
+      const newConfig = { ...(latestData.config || {}) };
+      
+      if (!newConfig.errorReasons) {
+        newConfig.errorReasons = {};
+      }
+      if (!newConfig.errorReasons[moduleId]) {
+        newConfig.errorReasons[moduleId] = { subModules: [], errorReasons: {} };
+      }
+      
+      // 添加新的细化模块
+      if (!newConfig.errorReasons[moduleId].subModules.includes(inputValue)) {
+        newConfig.errorReasons[moduleId].subModules.push(inputValue);
+        newConfig.errorReasons[moduleId].errorReasons[inputValue] = [];
+      }
 
-    setNewSubModuleInput('');
-    setShowNewSubModuleInput(false);
+      await storage.saveData({ ...latestData, config: newConfig });
+      onUpdate();
+
+      setNewSubModuleInput('');
+      setShowNewSubModuleInput(false);
+    } catch (error) {
+      console.error('添加细化模块失败:', error);
+      alert('添加失败，请重试');
+    }
   };
 
   // 获取当前模块和细化模块的错误原因列表
@@ -313,14 +325,19 @@ export default function WrongQuestionBank({
 
   // 保存新的自定义错误原因
   const addCustomErrorReason = async () => {
-    if (!customErrorReasonInput.trim()) {
+    const inputValue = customErrorReasonInput.trim();
+    if (!inputValue) {
       alert('请输入错误原因');
       return;
     }
 
-    const moduleId = newQuestion.moduleId || 'default';
+    const moduleId = newQuestion.moduleId || '';
     const subTopic = newQuestion.subTopic || '';
-    const newReason = customErrorReasonInput.trim();
+
+    if (!moduleId) {
+      alert('请先选择模块');
+      return;
+    }
 
     // 如果该模块有细化模块但没选择，提示用户
     if (hasSubModules(moduleId) && !subTopic) {
@@ -328,28 +345,35 @@ export default function WrongQuestionBank({
       return;
     }
 
-    // 更新 config（新的三级结构）
-    const newConfig = { ...data.config } || {};
-    if (!newConfig.errorReasons) {
-      newConfig.errorReasons = {};
-    }
-    if (!newConfig.errorReasons[moduleId]) {
-      newConfig.errorReasons[moduleId] = { subModules: [], errorReasons: {} };
-    }
-    if (!newConfig.errorReasons[moduleId].errorReasons[subTopic]) {
-      newConfig.errorReasons[moduleId].errorReasons[subTopic] = [];
-    }
-    
-    // 添加新原因，去重
-    if (!newConfig.errorReasons[moduleId].errorReasons[subTopic].includes(newReason)) {
-      newConfig.errorReasons[moduleId].errorReasons[subTopic].push(newReason);
-    }
+    try {
+      // 重新加载最新数据
+      const latestData = await storage.loadData();
+      
+      // 更新 config（新的三级结构）
+      const newConfig = { ...(latestData.config || {}) };
+      if (!newConfig.errorReasons) {
+        newConfig.errorReasons = {};
+      }
+      if (!newConfig.errorReasons[moduleId]) {
+        newConfig.errorReasons[moduleId] = { subModules: [], errorReasons: {} };
+      }
+      if (!newConfig.errorReasons[moduleId].errorReasons[subTopic]) {
+        newConfig.errorReasons[moduleId].errorReasons[subTopic] = [];
+      }
+      
+      // 添加新原因，去重
+      if (!newConfig.errorReasons[moduleId].errorReasons[subTopic].includes(inputValue)) {
+        newConfig.errorReasons[moduleId].errorReasons[subTopic].push(inputValue);
+      }
 
-    // 保存到 storage
-    await storage.saveData({ ...data, config: newConfig });
-    onUpdate();
+      await storage.saveData({ ...latestData, config: newConfig });
+      onUpdate();
 
-    setCustomErrorReasonInput('');
+      setCustomErrorReasonInput('');
+    } catch (error) {
+      console.error('添加错误原因失败:', error);
+      alert('添加失败，请重试');
+    }
   };
 
   // 编辑错误原因
