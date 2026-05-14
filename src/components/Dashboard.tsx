@@ -23,14 +23,8 @@ export default function Dashboard({ data, onUpdate, onNavigate }: { data: AppDat
   const [selectedNote, setSelectedNote] = React.useState<ExamNote | null>(null);
   const displayIndex = tempIndex !== null ? tempIndex : dailyIndex;
   
-  // 懈怠提醒语录自动刷新（每60秒换一条）
-  const [lazyQuoteIndex, setLazyQuoteIndex] = React.useState(() => Math.floor(Math.random() * 21));
-  React.useEffect(() => {
-    const timer = setInterval(() => {
-      setLazyQuoteIndex(Math.floor(Math.random() * 21));
-    }, 60000);
-    return () => clearInterval(timer);
-  }, []);
+  // 懈怠提醒语录（每次加载随机一条，不自动刷新）
+  const [lazyQuoteIndex] = React.useState(() => Math.floor(Math.random() * 21));
 
   // 阅读打卡状态（提升到组件顶层，避免 IIFE 内 hooks 风险）
   const [readingShuffleKey, setReadingShuffleKey] = React.useState(0);
