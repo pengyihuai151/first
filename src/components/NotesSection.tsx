@@ -960,7 +960,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                                 )}
                                 {/* 悬停显示编辑删除图标 */}
                                 {!editingSubModule && (
-                                  <div className="absolute -top-1.5 -right-1.5 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <div className="absolute -top-1.5 -right-1.5 flex gap-0.5 opacity-0 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                                     <button
                                       onClick={() => { setEditingSubModule(t); setEditValue(t); }}
                                       className="w-6 h-6 bg-slate-100 hover:bg-indigo-100 rounded-full flex items-center justify-center text-slate-500 hover:text-indigo-600 shadow-sm"
@@ -1070,7 +1070,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                                   )}
                                   {/* 悬停显示编辑删除图标 */}
                                   {!editingKnowledgePoint && (
-                                    <div className="absolute -top-1.5 -right-1.5 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <div className="absolute -top-1.5 -right-1.5 flex gap-0.5 opacity-0 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                                       <button
                                         onClick={() => { setEditingKnowledgePoint({ subModule: selectedSubModule!, name: t }); setEditValue(t); }}
                                         className="w-6 h-6 bg-slate-100 hover:bg-amber-100 rounded-full flex items-center justify-center text-slate-500 hover:text-amber-600 shadow-sm"
