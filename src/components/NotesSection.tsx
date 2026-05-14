@@ -871,7 +871,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                         </span>
                     ))}
                 </div>
-                <div className="flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                <div className="flex gap-1 opacity-100 transition-opacity">
                     <button onClick={(e) => { e.stopPropagation(); handleEdit(n); }} className="text-slate-400 p-2 active:bg-indigo-50 active:text-indigo-600 rounded-full">
                         <Edit2 size={14} />
                     </button>
