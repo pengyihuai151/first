@@ -87,10 +87,8 @@ export default function WrongQuestionBank({
     images: []
   });
   const [customErrorReasonInput, setCustomErrorReasonInput] = useState('');
-  const [showNewSubModuleInput, setShowNewSubModuleInput] = useState(false);
-  const [newSubModuleInput, setNewSubModuleInput] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
-  const [editingTag, setEditingTag] = useState<{ type: 'subModule' | 'errorReason'; value: string; newValue: string } | null>(null);
+  const [editingTag, setEditingTag] = useState<{ type: 'errorReason'; value: string; newValue: string } | null>(null);
   
   // 图片相关状态
   const [selectedImage, setSelectedImage] = useState<string | null>(null); // 大图预览
@@ -195,15 +193,10 @@ export default function WrongQuestionBank({
         image: imageDataUrl,
         callback: async (croppedImage) => {
           try {
-            // 裁剪后的图片再压缩
-            // 将 base64 转为 File 对象以便压缩
             const response = await fetch(croppedImage);
             const blob = await response.blob();
             const croppedFile = new File([blob], 'cropped.jpg', { type: 'image/jpeg' });
-            
             const compressed = await compressImage(croppedFile, 1000, 0.6);
-            
-            // 添加到现有图片数组
             setNewQuestion(prev => ({
               ...prev,
               images: [...(prev.images || []), compressed]
@@ -216,18 +209,6 @@ export default function WrongQuestionBank({
       });
     };
     
-    // 更新本地 config 立即生效
-    setConfig(prev => ({
-      ...prev,
-      errorReasons: {
-        ...(prev.errorReasons || {}),
-        [moduleId]: {
-          ...((prev.errorReasons || {})[moduleId] || {}),
-          [subTopic]: reasons
-        }
-      }
-    }));
-
     // 清空 input
     e.target.value = '';
   };
@@ -264,49 +245,6 @@ export default function WrongQuestionBank({
     return newQuestion.subTopic || newQuestion.moduleId || 'default';
   };
 
-  // 保存新的自定义细化模块
-  const handleAddNewSubModule = async () => {
-    const inputValue = newSubModuleInput.trim();
-    if (!inputValue) {
-      alert('请输入细化模块名称');
-      return;
-    }
-
-    const moduleId = newQuestion.moduleId || '';
-    if (!moduleId) {
-      alert('请先选择模块');
-      return;
-    }
-
-    try {
-      // 重新加载最新数据
-      const latestData = await storage.loadData();
-      const newConfig = { ...(latestData.config || {}) };
-      
-      if (!newConfig.errorReasons) {
-        newConfig.errorReasons = {};
-      }
-      if (!newConfig.errorReasons[moduleId]) {
-        newConfig.errorReasons[moduleId] = { subModules: [], errorReasons: {} };
-      }
-      
-      // 添加新的细化模块
-      if (!newConfig.errorReasons[moduleId].subModules.includes(inputValue)) {
-        newConfig.errorReasons[moduleId].subModules.push(inputValue);
-        newConfig.errorReasons[moduleId].errorReasons[inputValue] = [];
-      }
-
-      await storage.saveData({ ...latestData, config: newConfig });
-      onUpdate();
-
-      setNewSubModuleInput('');
-      setShowNewSubModuleInput(false);
-    } catch (error) {
-      console.error('添加细化模块失败:', error);
-      alert('添加失败，请重试');
-    }
-  };
-
   // 获取当前模块和细化模块的错误原因列表
   const getCurrentErrorReasons = (): string[] => {
     const moduleId = newQuestion.moduleId || '';
@@ -317,8 +255,11 @@ export default function WrongQuestionBank({
       return [];
     }
     
+    // 对于没有细化模块的模块，直接用 moduleId 作为 key
+    const errorKey = subTopic || moduleId;
+    
     // 从 config 中获取该模块+细化模块的错误原因
-    const customReasons = data.config?.errorReasons?.[moduleId]?.errorReasons?.[subTopic] || [];
+    const customReasons = data.config?.errorReasons?.[moduleId]?.errorReasons?.[errorKey] || [];
     
     return customReasons;
   };
@@ -327,7 +268,6 @@ export default function WrongQuestionBank({
   const addCustomErrorReason = async () => {
     const inputValue = customErrorReasonInput.trim();
     if (!inputValue) {
-      alert('请输入错误原因');
       return;
     }
 
@@ -345,6 +285,9 @@ export default function WrongQuestionBank({
       return;
     }
 
+    // 对于没有细化模块的模块，直接用 moduleId 作为 key
+    const errorKey = subTopic || moduleId;
+
     try {
       // 重新加载最新数据
       const latestData = await storage.loadData();
@@ -357,19 +300,18 @@ export default function WrongQuestionBank({
       if (!newConfig.errorReasons[moduleId]) {
         newConfig.errorReasons[moduleId] = { subModules: [], errorReasons: {} };
       }
-      if (!newConfig.errorReasons[moduleId].errorReasons[subTopic]) {
-        newConfig.errorReasons[moduleId].errorReasons[subTopic] = [];
+      if (!newConfig.errorReasons[moduleId].errorReasons[errorKey]) {
+        newConfig.errorReasons[moduleId].errorReasons[errorKey] = [];
       }
       
       // 添加新原因，去重
-      if (!newConfig.errorReasons[moduleId].errorReasons[subTopic].includes(inputValue)) {
-        newConfig.errorReasons[moduleId].errorReasons[subTopic].push(inputValue);
+      if (!newConfig.errorReasons[moduleId].errorReasons[errorKey].includes(inputValue)) {
+        newConfig.errorReasons[moduleId].errorReasons[errorKey].push(inputValue);
       }
 
       await storage.saveData({ ...latestData, config: newConfig });
-      onUpdate();
-
       setCustomErrorReasonInput('');
+      onUpdate();
     } catch (error) {
       console.error('添加错误原因失败:', error);
       alert('添加失败，请重试');
@@ -425,69 +367,6 @@ export default function WrongQuestionBank({
     // 如果当前选中的就是这个原因，清除选中
     if (newQuestion.errorReason === reason) {
       setNewQuestion(prev => ({ ...prev, errorReason: '' }));
-    }
-    
-    await storage.saveData({ ...data, config: newConfig });
-    onUpdate();
-    setShowDeleteConfirm(null);
-  };
-
-  // 编辑细化模块
-  const handleEditSubModule = async (oldSubModule: string, newSubModule: string) => {
-    if (!newQuestion.moduleId) return;
-    
-    const data = await storage.loadData();
-    const newConfig = { ...data.config };
-    
-    // 更新细化模块列表
-    const subModules = newConfig.errorReasons[newQuestion.moduleId]?.subModules || [];
-    const index = subModules.indexOf(oldSubModule);
-    if (index !== -1) {
-      subModules[index] = newSubModule;
-    }
-    
-    // 更新错误原因中的引用
-    if (newConfig.errorReasons[newQuestion.moduleId]?.errorReasons?.[oldSubModule]) {
-      newConfig.errorReasons[newQuestion.moduleId].errorReasons[newSubModule] = 
-        newConfig.errorReasons[newQuestion.moduleId].errorReasons[oldSubModule];
-      delete newConfig.errorReasons[newQuestion.moduleId].errorReasons[oldSubModule];
-    }
-    
-    // 更新配置
-    if (!newConfig.errorReasons[newQuestion.moduleId]) {
-      newConfig.errorReasons[newQuestion.moduleId] = { subModules: [], errorReasons: {} };
-    }
-    newConfig.errorReasons[newQuestion.moduleId].subModules = subModules;
-    
-    // 如果当前选中的就是这个细化模块，更新选中值
-    if (newQuestion.subTopic === oldSubModule) {
-      setNewQuestion(prev => ({ ...prev, subTopic: newSubModule }));
-    }
-    
-    await storage.saveData({ ...data, config: newConfig });
-    onUpdate();
-    setEditingTag(null);
-  };
-
-  // 删除细化模块
-  const handleDeleteSubModule = async (subModule: string) => {
-    if (!newQuestion.moduleId) return;
-    
-    const data = await storage.loadData();
-    const newConfig = { ...data.config };
-    
-    // 删除细化模块
-    const subModules = newConfig.errorReasons[newQuestion.moduleId]?.subModules || [];
-    newConfig.errorReasons[newQuestion.moduleId].subModules = subModules.filter(s => s !== subModule);
-    
-    // 删除对应的错误原因
-    if (newConfig.errorReasons[newQuestion.moduleId]?.errorReasons?.[subModule]) {
-      delete newConfig.errorReasons[newQuestion.moduleId].errorReasons[subModule];
-    }
-    
-    // 如果当前选中的就是这个细化模块，清除选中
-    if (newQuestion.subTopic === subModule) {
-      setNewQuestion(prev => ({ ...prev, subTopic: '', errorReason: '' }));
     }
     
     await storage.saveData({ ...data, config: newConfig });
@@ -992,135 +871,31 @@ export default function WrongQuestionBank({
                   </div>
                 </div>
 
-                {/* 细化模块选择（始终显示，支持添加） */}
-                {newQuestion.moduleId && (
+                {/* 细化模块选择 */}
+                {newQuestion.moduleId && hasSubModules(newQuestion.moduleId) && (
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1">
                       <Tag size={10} /> 细化模块
                     </label>
                     <div className="flex flex-wrap gap-2 pt-1">
-                      {getAllSubModules().map(sub => {
+                      {(MODULE_SUB_TOPICS[newQuestion.moduleId as string] || []).map(sub => {
                         const isSelected = newQuestion.subTopic === sub;
-                        const isDefault = (MODULE_SUB_TOPICS[newQuestion.moduleId as string] || []).includes(sub);
-                        const isEditing = editingTag?.type === 'subModule' && editingTag?.value === sub;
-                        
                         return (
-                          <div key={sub} className="relative group">
-                            {isEditing ? (
-                              <div className="flex items-center gap-1">
-                                <input
-                                  type="text"
-                                  defaultValue={sub}
-                                  className="w-20 px-2 py-1 text-[10px] border border-indigo-300 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500"
-                                  autoFocus
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                      handleEditSubModule(sub, (e.target as HTMLInputElement).value);
-                                    } else if (e.key === 'Escape') {
-                                      setEditingTag(null);
-                                    }
-                                  }}
-                                />
-                                <button
-                                  onClick={() => handleEditSubModule(sub, (e.currentTarget.parentElement?.querySelector('input') as HTMLInputElement)?.value || sub)}
-                                  className="p-1 text-emerald-500 hover:bg-emerald-50 rounded"
-                                >
-                                  <Check size={14} />
-                                </button>
-                                <button
-                                  onClick={() => setEditingTag(null)}
-                                  className="p-1 text-slate-400 hover:bg-slate-100 rounded"
-                                >
-                                  <X size={14} />
-                                </button>
-                              </div>
-                            ) : (
-                              <>
-                                <div className="relative">
-                                  <button
-                                    onClick={() => setNewQuestion(prev => ({ ...prev, subTopic: sub, errorReason: '' }))}
-                                    className={cn(
-                                      "pr-14 px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all border min-h-[28px]",
-                                      isSelected 
-                                        ? "bg-indigo-600 text-white border-indigo-600 shadow-sm" 
-                                        : "bg-white text-slate-400 border-slate-100 hover:bg-slate-50"
-                                    )}
-                                  >
-                                    {sub}
-                                  </button>
-                                  {/* 编辑和删除按钮 - 仅对自定义标签显示，移到右边 */}
-                                  {!isDefault && (
-                                    <div className="absolute right-1 top-1/2 -translate-y-1/2 flex gap-0.5">
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setEditingTag({ type: 'subModule', value: sub, newValue: sub });
-                                        }}
-                                        className="p-1 text-blue-400 hover:text-blue-600 hover:bg-blue-50 rounded min-w-[24px] min-h-[24px] flex items-center justify-center"
-                                      >
-                                        <Edit2 size={12} />
-                                      </button>
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setShowDeleteConfirm(`subModule:${sub}`);
-                                        }}
-                                        className="p-1 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded min-w-[24px] min-h-[24px] flex items-center justify-center"
-                                      >
-                                        <Trash2 size={12} />
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                              </>
+                          <button
+                            key={sub}
+                            onClick={() => setNewQuestion(prev => ({ ...prev, subTopic: sub, errorReason: '' }))}
+                            className={cn(
+                              "px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all border min-h-[28px]",
+                              isSelected 
+                                ? "bg-indigo-600 text-white border-indigo-600 shadow-sm" 
+                                : "bg-white text-slate-400 border-slate-100 hover:bg-slate-50"
                             )}
-                          </div>
+                          >
+                            {sub}
+                          </button>
                         );
                       })}
                     </div>
-                    {/* 新增细化模块输入 */}
-                    {showNewSubModuleInput ? (
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          value={newSubModuleInput}
-                          onChange={(e) => setNewSubModuleInput(e.target.value)}
-                          placeholder="输入细化模块名称"
-                          className="flex-1 min-w-[120px] px-3 py-1.5 text-[10px] border border-indigo-300 rounded-xl outline-none focus:ring-1 focus:ring-indigo-500"
-                          autoFocus
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              handleAddNewSubModule();
-                            } else if (e.key === 'Escape') {
-                              setShowNewSubModuleInput(false);
-                              setNewSubModuleInput('');
-                            }
-                          }}
-                        />
-                        <button
-                          onClick={handleAddNewSubModule}
-                          className="p-1.5 text-emerald-500 hover:bg-emerald-50 rounded-lg min-w-[28px] min-h-[28px] flex items-center justify-center"
-                        >
-                          <Check size={14} />
-                        </button>
-                        <button
-                          onClick={() => {
-                            setShowNewSubModuleInput(false);
-                            setNewSubModuleInput('');
-                          }}
-                          className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-lg min-w-[28px] min-h-[28px] flex items-center justify-center"
-                        >
-                          <X size={14} />
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => setShowNewSubModuleInput(true)}
-                        className="mt-1 px-3 py-1.5 text-[10px] font-bold text-indigo-500 bg-indigo-50 border border-dashed border-indigo-300 rounded-xl hover:bg-indigo-100 transition-colors"
-                      >
-                        + 新增细化模块
-                      </button>
-                    )}
                   </div>
                 )}
 
@@ -1185,98 +960,83 @@ export default function WrongQuestionBank({
                   <label className="text-[10px] font-bold text-slate-400 uppercase">
                     错误原因 {newQuestion.subTopic ? `@${newQuestion.subTopic}` : `@${newQuestion.moduleId}`}
                   </label>
-                  {getCurrentErrorReasons().length > 0 ? (
+                  {getCurrentErrorReasons().length > 0 && (
                     <div className="flex flex-wrap gap-2 pt-1">
                       {getCurrentErrorReasons().map(reason => {
                         const isSelected = newQuestion.errorReason === reason;
                         const isEditing = editingTag?.type === 'errorReason' && editingTag?.value === reason;
                         
-                        return (
-                          <div key={reason} className="relative group">
-                            {isEditing ? (
-                              <div className="flex items-center gap-1">
-                                <input
-                                  type="text"
-                                  defaultValue={reason}
-                                  className="w-20 px-2 py-1 text-[10px] border border-rose-300 rounded-lg outline-none focus:ring-1 focus:ring-rose-500"
-                                  autoFocus
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                      handleEditErrorReason(reason, (e.target as HTMLInputElement).value);
-                                    } else if (e.key === 'Escape') {
-                                      setEditingTag(null);
-                                    }
-                                  }}
-                                />
-                                <button
-                                  onClick={() => handleEditErrorReason(reason, (e.currentTarget.parentElement?.querySelector('input') as HTMLInputElement)?.value || reason)}
-                                  className="p-1 text-emerald-500 hover:bg-emerald-50 rounded"
-                                >
-                                  <Check size={14} />
-                                </button>
-                                <button
-                                  onClick={() => setEditingTag(null)}
-                                  className="p-1 text-slate-400 hover:bg-slate-100 rounded"
-                                >
-                                  <X size={14} />
-                                </button>
-                              </div>
-                            ) : (
-                              <>
-                                <div className="relative">
-                                  <button
-                                    onClick={() => setNewQuestion(prev => ({
-                                      ...prev,
-                                      errorReason: isSelected ? '' : reason
-                                    }))}
-                                    className={cn(
-                                      "pr-14 px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border min-h-[28px]",
-                                      isSelected
-                                        ? "bg-rose-500 text-white border-rose-500 shadow-sm"
-                                        : "bg-white text-slate-500 border-slate-100 hover:bg-rose-50 hover:border-rose-200"
-                                    )}
-                                  >
-                                    {reason}
-                                  </button>
-                                  {/* 编辑和删除按钮 - 移到右边 */}
-                                  <div className="absolute right-1 top-1/2 -translate-y-1/2 flex gap-0.5">
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setEditingTag({ type: 'errorReason', value: reason, newValue: reason });
-                                      }}
-                                      className="p-1 text-blue-400 hover:text-blue-600 hover:bg-blue-50 rounded min-w-[24px] min-h-[24px] flex items-center justify-center"
-                                    >
-                                      <Edit2 size={12} />
-                                    </button>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setShowDeleteConfirm(reason);
-                                      }}
-                                      className="p-1 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded min-w-[24px] min-h-[24px] flex items-center justify-center"
-                                    >
-                                      <Trash2 size={12} />
-                                    </button>
-                                  </div>
-                                </div>
-                              </>
-                            )}
+                        return isEditing ? (
+                          <div key={reason} className="flex items-center gap-1">
+                            <input
+                              type="text"
+                              defaultValue={reason}
+                              className="w-24 px-2 py-1 text-xs border border-rose-300 rounded-lg outline-none focus:ring-1 focus:ring-rose-500"
+                              autoFocus
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  handleEditErrorReason(reason, (e.target as HTMLInputElement).value);
+                                } else if (e.key === 'Escape') {
+                                  setEditingTag(null);
+                                }
+                              }}
+                            />
+                            <button
+                              onClick={() => handleEditErrorReason(reason, (document.activeElement as HTMLInputElement)?.value || reason)}
+                              className="p-1 text-emerald-500 hover:bg-emerald-50 rounded"
+                            >
+                              <Check size={14} />
+                            </button>
+                            <button
+                              onClick={() => setEditingTag(null)}
+                              className="p-1 text-slate-400 hover:bg-slate-100 rounded"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        ) : (
+                          <div key={reason} className="flex items-center gap-1">
+                            <button
+                              onClick={() => setNewQuestion(prev => ({
+                                ...prev,
+                                errorReason: isSelected ? '' : reason
+                              }))}
+                              className={cn(
+                                "px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all border min-h-[28px]",
+                                isSelected
+                                  ? "bg-rose-500 text-white border-rose-500 shadow-sm"
+                                  : "bg-white text-slate-500 border-slate-100 hover:bg-rose-50 hover:border-rose-200"
+                              )}
+                            >
+                              {reason}
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingTag({ type: 'errorReason', value: reason, newValue: reason });
+                              }}
+                              className="p-1 text-slate-300 hover:text-blue-500 rounded"
+                            >
+                              <Edit2 size={10} />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setShowDeleteConfirm(reason);
+                              }}
+                              className="p-1 text-slate-300 hover:text-rose-500 rounded"
+                            >
+                              <Trash2 size={10} />
+                            </button>
                           </div>
                         );
                       })}
                     </div>
-                  ) : (
-                    <p className="text-[11px] text-slate-400 italic py-1">
-                      {newQuestion.moduleId
-                        ? '该模块暂无已保存的错误原因，请在下方添加'
-                        : '请先选择模块'}
-                    </p>
                   )}
                   
                   {/* 自定义错误原因输入 */}
-                  {newQuestion.moduleId ? (
-                    <div className="flex gap-2 pt-2">
+                  {newQuestion.moduleId && (
+                    <div className="flex gap-2 pt-1">
                       <input 
                         type="text"
                         value={customErrorReasonInput}
@@ -1284,7 +1044,7 @@ export default function WrongQuestionBank({
                         placeholder="添加新的错误原因..."
                         className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-rose-500/20 outline-none"
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
+                          if (e.key === 'Enter' && customErrorReasonInput.trim()) {
                             addCustomErrorReason();
                           }
                         }}
@@ -1297,7 +1057,7 @@ export default function WrongQuestionBank({
                         添加
                       </button>
                     </div>
-                  ) : null}
+                  )}
                 </div>
 
                 {/* 删除确认弹窗 */}
