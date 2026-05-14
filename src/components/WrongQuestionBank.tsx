@@ -87,6 +87,8 @@ export default function WrongQuestionBank({
     images: []
   });
   const [customErrorReasonInput, setCustomErrorReasonInput] = useState('');
+  const [showKnowledgePointInput, setShowKnowledgePointInput] = useState(false);
+  const [newKnowledgePointInput, setNewKnowledgePointInput] = useState('');
   
   // 图片相关状态
   const [selectedImage, setSelectedImage] = useState<string | null>(null); // 大图预览
@@ -229,6 +231,22 @@ export default function WrongQuestionBank({
     e.target.value = '';
   };
 
+  // 判断模块是否有细化模块
+  const hasSubModules = (moduleId: string): boolean => {
+    return moduleId in MODULE_SUB_TOPICS && (MODULE_SUB_TOPICS[moduleId]?.length ?? 0) > 0;
+  };
+
+  // 获取当前可选的知识点列表
+  const getAvailableKnowledgePoints = (): string[] => {
+    const moduleId = newQuestion.moduleId || '';
+    const subTopic = newQuestion.subTopic || '';
+    
+    // 从 config 中获取该模块+细化模块的知识点
+    const savedPoints = data.config?.noteTags?.[moduleId]?.knowledgePoints?.[subTopic] || [];
+    
+    return savedPoints;
+  };
+
   // 删除图片
   const removeImage = (index: number) => {
     setNewQuestion(prev => ({
@@ -245,15 +263,61 @@ export default function WrongQuestionBank({
     return newQuestion.moduleId || 'default';
   };
 
-  // 获取当前模块和细分知识点的错误原因列表（仅自定义，无默认）
+  // 获取当前模块和细化模块的错误原因列表
   const getCurrentErrorReasons = (): string[] => {
-    const moduleId = newQuestion.moduleId || 'default';
-    const subTopic = getCurrentSubTopic();
+    const moduleId = newQuestion.moduleId || '';
+    const subTopic = newQuestion.subTopic || '';
     
-    // 从 config 中获取该模块+知识点的自定义错误原因
-    const customReasons = data.config?.errorReasons?.[moduleId]?.[subTopic] || [];
+    // 如果有细化模块但没选择，则返回空数组
+    if (hasSubModules(moduleId) && !subTopic) {
+      return [];
+    }
+    
+    // 从 config 中获取该模块+细化模块的错误原因
+    const customReasons = data.config?.errorReasons?.[moduleId]?.errorReasons?.[subTopic] || [];
     
     return customReasons;
+  };
+
+  // 添加新的知识点
+  const handleAddNewKnowledgePoint = async () => {
+    if (!newKnowledgePointInput.trim()) {
+      return;
+    }
+
+    const moduleId = newQuestion.moduleId || '';
+    const subTopic = newQuestion.subTopic || '';
+    const newPoint = newKnowledgePointInput.trim();
+
+    // 更新 config
+    const newConfig = { ...data.config } || {};
+    if (!newConfig.noteTags) {
+      newConfig.noteTags = {};
+    }
+    if (!newConfig.noteTags[moduleId]) {
+      newConfig.noteTags[moduleId] = { subModules: [], knowledgePoints: {} };
+    }
+    if (!newConfig.noteTags[moduleId].knowledgePoints[subTopic]) {
+      newConfig.noteTags[moduleId].knowledgePoints[subTopic] = [];
+    }
+
+    // 添加新知识点，去重
+    if (!newConfig.noteTags[moduleId].knowledgePoints[subTopic].includes(newPoint)) {
+      newConfig.noteTags[moduleId].knowledgePoints[subTopic].push(newPoint);
+    }
+
+    // 保存到 storage
+    await storage.saveData({ ...data, config: newConfig });
+    onUpdate();
+
+    // 选中这个新知识点
+    setNewQuestion(prev => ({
+      ...prev,
+      tags: [...(prev.tags || []), newPoint]
+    }));
+
+    setNewKnowledgePointInput('');
+    setShowKnowledgePointInput(false);
   };
 
   // 保存新的自定义错误原因
@@ -264,36 +328,44 @@ export default function WrongQuestionBank({
     }
 
     const moduleId = newQuestion.moduleId || 'default';
-    const subTopic = getCurrentSubTopic();
+    const subTopic = newQuestion.subTopic || '';
     const newReason = customErrorReasonInput.trim();
 
-    // 更新 config
+    // 更新 config（新的三级结构）
     const newConfig = { ...data.config } || {};
     if (!newConfig.errorReasons) {
       newConfig.errorReasons = {};
     }
     if (!newConfig.errorReasons[moduleId]) {
-      newConfig.errorReasons[moduleId] = {};
+      newConfig.errorReasons[moduleId] = { subModules: [], errorReasons: {} };
     }
-    if (!newConfig.errorReasons[moduleId][subTopic]) {
-      newConfig.errorReasons[moduleId][subTopic] = [];
+    if (!newConfig.errorReasons[moduleId].errorReasons[subTopic]) {
+      newConfig.errorReasons[moduleId].errorReasons[subTopic] = [];
     }
     
     // 添加新原因，去重
-    if (!newConfig.errorReasons[moduleId][subTopic].includes(newReason)) {
-      newConfig.errorReasons[moduleId][subTopic].push(newReason);
+    if (!newConfig.errorReasons[moduleId].errorReasons[subTopic].includes(newReason)) {
+      newConfig.errorReasons[moduleId].errorReasons[subTopic].push(newReason);
     }
 
     // 保存到 storage
     await storage.saveData({ ...data, config: newConfig });
     onUpdate();
 
-    // 选中这个新原因
-    setNewQuestion(prev => ({ ...prev, errorReason: newReason }));
     setCustomErrorReasonInput('');
   };
 
   const saveQuestion = async () => {
+    // 验证：有细化模块的必须选择细化模块
+    if (hasSubModules(newQuestion.moduleId || '') && !newQuestion.subTopic) {
+      alert('请选择细化模块');
+      return;
+    }
+    // 验证：知识点必须至少选择一个
+    if (!newQuestion.tags || newQuestion.tags.length === 0) {
+      alert('请至少选择一个知识点');
+      return;
+    }
     if (!newQuestion.errorReason) {
       alert('请选择错误原因');
       return;
@@ -310,6 +382,7 @@ export default function WrongQuestionBank({
           await storage.updateWrongQuestion({
             ...existing,
             moduleId: newQuestion.moduleId as StudyModule,
+            subTopic: newQuestion.subTopic || undefined,
             analysis: newQuestion.analysis || '',
             tags: newQuestion.tags || [],
             errorReason: newQuestion.errorReason || '',
@@ -320,6 +393,7 @@ export default function WrongQuestionBank({
         await storage.addWrongQuestion({
           id: uuidv4(),
           moduleId: newQuestion.moduleId as StudyModule,
+          subTopic: newQuestion.subTopic || undefined,
           analysis: newQuestion.analysis || '',
           tags: newQuestion.tags || [],
           errorReason: newQuestion.errorReason || '',
@@ -786,22 +860,54 @@ export default function WrongQuestionBank({
                   </div>
                 </div>
 
+                {/* 细化模块选择（如果有） */}
+                {hasSubModules(newQuestion.moduleId || '') && (
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1">
+                      <Tag size={10} /> 细化模块
+                    </label>
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {(MODULE_SUB_TOPICS[newQuestion.moduleId as string] || []).map(sub => {
+                        const isSelected = newQuestion.subTopic === sub;
+                        return (
+                          <button
+                            key={sub}
+                            onClick={() => setNewQuestion(prev => ({ ...prev, subTopic: sub }))}
+                            className={cn(
+                              "px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all border",
+                              isSelected 
+                                ? "bg-indigo-600 text-white border-indigo-600 shadow-sm" 
+                                : "bg-white text-slate-400 border-slate-100 hover:bg-slate-50"
+                            )}
+                          >
+                            {sub}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* 知识点选择（多选） */}
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1">
-                     <Tag size={10} /> 细分知识点 (必选)
+                     <Tag size={10} /> 知识点（多选）
                   </label>
                   <div className="flex flex-wrap gap-2 pt-1">
-                    {(MODULE_SUB_TOPICS[newQuestion.moduleId as string] || []).map(tag => {
+                    {getAvailableKnowledgePoints().map(tag => {
                       const isSelected = newQuestion.tags?.includes(tag);
                       return (
                         <button
                           key={tag}
                           onClick={() => {
-                            // 单选：直接设置为这个 tag
-                            setNewQuestion(prev => ({ ...prev, tags: [tag] }));
+                            const currentTags = newQuestion.tags || [];
+                            const newTags = isSelected 
+                              ? currentTags.filter(t => t !== tag)
+                              : [...currentTags, tag];
+                            setNewQuestion(prev => ({ ...prev, tags: newTags }));
                           }}
                           className={cn(
-                            "px-2.5 py-1 rounded-lg text-[9px] font-bold transition-all border",
+                            "px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all border",
                             isSelected 
                               ? "bg-indigo-600 text-white border-indigo-600 shadow-sm" 
                               : "bg-white text-slate-400 border-slate-100 hover:bg-slate-50"
@@ -811,7 +917,39 @@ export default function WrongQuestionBank({
                         </button>
                       );
                     })}
+                    {/* 新增知识点按钮 */}
+                    {newQuestion.tags && newQuestion.tags.length > 0 && (
+                      <button
+                        onClick={() => setShowKnowledgePointInput(!showKnowledgePointInput)}
+                        className="px-2.5 py-1 rounded-lg text-[10px] font-bold border border-dashed border-indigo-300 text-indigo-500 hover:bg-indigo-50 transition-all"
+                      >
+                        + 新增
+                      </button>
+                    )}
                   </div>
+                  {showKnowledgePointInput && (
+                    <div className="flex gap-2 pt-2">
+                      <input 
+                        type="text"
+                        value={newKnowledgePointInput}
+                        onChange={(e) => setNewKnowledgePointInput(e.target.value)}
+                        placeholder="输入新知识点名称..."
+                        className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && newKnowledgePointInput.trim()) {
+                            handleAddNewKnowledgePoint();
+                          }
+                        }}
+                        autoFocus
+                      />
+                      <button 
+                        onClick={handleAddNewKnowledgePoint}
+                        className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-bold"
+                      >
+                        保存
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -872,7 +1010,9 @@ export default function WrongQuestionBank({
 
                 {/* 错误原因（手动添加） */}
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase">错误原因（手动添加，按知识点保存）</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase">
+                    错误原因 {newQuestion.subTopic ? `@${newQuestion.subTopic}` : ''} {newQuestion.tags?.length ? `(${newQuestion.tags.join(', ')})` : ''}
+                  </label>
                   {getCurrentErrorReasons().length > 0 ? (
                     <div className="flex flex-wrap gap-2 pt-1">
                       {getCurrentErrorReasons().map(reason => {
@@ -885,7 +1025,7 @@ export default function WrongQuestionBank({
                               errorReason: isSelected ? '' : reason
                             }))}
                             className={cn(
-                              "px-2.5 py-1.5 rounded-lg text-[9px] font-bold transition-all border",
+                              "px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border",
                               isSelected
                                 ? "bg-rose-500 text-white border-rose-500 shadow-sm"
                                 : "bg-white text-slate-500 border-slate-100 hover:bg-rose-50 hover:border-rose-200"
@@ -897,30 +1037,37 @@ export default function WrongQuestionBank({
                       })}
                     </div>
                   ) : (
-                    <p className="text-[11px] text-slate-400 italic py-1">该知识点暂无已保存的错误原因，请在下方添加</p>
+                    <p className="text-[11px] text-slate-400 italic py-1">
+                      {newQuestion.tags?.length 
+                        ? '该知识点暂无已保存的错误原因，请在下方添加'
+                        : '请先选择细化模块和知识点'}
+                    </p>
                   )}
                   
                   {/* 自定义错误原因输入 */}
-                  <div className="flex gap-2 pt-2">
-                    <input 
-                      type="text"
-                      value={customErrorReasonInput}
-                      onChange={(e) => setCustomErrorReasonInput(e.target.value)}
-                      placeholder="添加新的错误原因..."
-                      className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-rose-500/20 outline-none"
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          addCustomErrorReason();
-                        }
-                      }}
-                    />
-                    <button 
-                      onClick={addCustomErrorReason}
-                      className="px-4 py-2 bg-rose-500 text-white rounded-xl text-sm font-bold hover:bg-rose-600 transition-colors"
-                    >
-                      添加
-                    </button>
-                  </div>
+                  {newQuestion.tags?.length ? (
+                    <div className="flex gap-2 pt-2">
+                      <input 
+                        type="text"
+                        value={customErrorReasonInput}
+                        onChange={(e) => setCustomErrorReasonInput(e.target.value)}
+                        placeholder="添加新的错误原因..."
+                        className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-rose-500/20 outline-none"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            addCustomErrorReason();
+                          }
+                        }}
+                      />
+                      <button 
+                        onClick={addCustomErrorReason}
+                        disabled={!customErrorReasonInput.trim()}
+                        className="px-4 py-2 bg-rose-500 text-white rounded-xl text-sm font-bold hover:bg-rose-600 transition-colors disabled:opacity-50"
+                      >
+                        添加
+                      </button>
+                    </div>
+                  ) : null}
                 </div>
               </div>
               <div className="p-6 bg-slate-50/50 border-t border-slate-100 italic">

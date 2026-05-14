@@ -156,13 +156,59 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
   const handleAddSubModule = async (moduleId: string, subModule: string) => {
     if (!subModule.trim()) return;
     const trimmed = subModule.trim();
-    const noteTags = data.config?.noteTags || {};
+    const noteTags = { ...(data.config?.noteTags || {}) };
     if (!noteTags[moduleId]) {
-      noteTags[moduleId] = { subModules: [], knowledgePoints: [] };
+      noteTags[moduleId] = { subModules: [], knowledgePoints: {} };
     }
     if (!noteTags[moduleId].subModules.includes(trimmed)) {
       noteTags[moduleId].subModules.push(trimmed);
+      noteTags[moduleId].knowledgePoints[trimmed] = [];
     }
+    await storage.saveData({
+      ...data,
+      config: { ...data.config, noteTags }
+    });
+    onUpdate();
+  };
+
+  // 修改细化模块名称
+  const handleEditSubModule = async (moduleId: string, oldName: string, newName: string) => {
+    if (!newName.trim() || oldName === newName.trim()) return;
+    const trimmed = newName.trim();
+    const noteTags = { ...(data.config?.noteTags || {}) };
+    if (!noteTags[moduleId]) return;
+    
+    const index = noteTags[moduleId].subModules.indexOf(oldName);
+    if (index === -1) return;
+    
+    // 更新 subModules
+    noteTags[moduleId].subModules[index] = trimmed;
+    
+    // 更新 knowledgePoints 中的 key
+    if (noteTags[moduleId].knowledgePoints[oldName]) {
+      noteTags[moduleId].knowledgePoints[trimmed] = [...noteTags[moduleId].knowledgePoints[oldName]];
+      delete noteTags[moduleId].knowledgePoints[oldName];
+    }
+    
+    await storage.saveData({
+      ...data,
+      config: { ...data.config, noteTags }
+    });
+    onUpdate();
+  };
+
+  // 删除细化模块
+  const handleDeleteSubModule = async (moduleId: string, subModule: string) => {
+    if (!confirm(`确定要删除细化模块"${subModule}"及其下的所有知识点吗？`)) return;
+    const noteTags = { ...(data.config?.noteTags || {}) };
+    if (!noteTags[moduleId]) return;
+    
+    // 删除 subModule
+    noteTags[moduleId].subModules = noteTags[moduleId].subModules.filter(s => s !== subModule);
+    
+    // 删除对应的知识点
+    delete noteTags[moduleId].knowledgePoints[subModule];
+    
     await storage.saveData({
       ...data,
       config: { ...data.config, noteTags }
@@ -174,7 +220,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
   const handleAddKnowledgePoint = async (moduleId: string, subModule: string, kp: string) => {
     if (!kp.trim()) return;
     const trimmed = kp.trim();
-    const noteTags = data.config?.noteTags || {};
+    const noteTags = { ...(data.config?.noteTags || {}) };
     if (!noteTags[moduleId]) {
       noteTags[moduleId] = { subModules: [], knowledgePoints: {} };
     }
@@ -191,8 +237,47 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
     onUpdate();
   };
 
+  // 修改知识点名称
+  const handleEditKnowledgePoint = async (moduleId: string, subModule: string, oldName: string, newName: string) => {
+    if (!newName.trim() || oldName === newName.trim()) return;
+    const trimmed = newName.trim();
+    const noteTags = { ...(data.config?.noteTags || {}) };
+    if (!noteTags[moduleId]?.knowledgePoints[subModule]) return;
+    
+    const index = noteTags[moduleId].knowledgePoints[subModule].indexOf(oldName);
+    if (index === -1) return;
+    
+    noteTags[moduleId].knowledgePoints[subModule][index] = trimmed;
+    
+    await storage.saveData({
+      ...data,
+      config: { ...data.config, noteTags }
+    });
+    onUpdate();
+  };
+
+  // 删除知识点
+  const handleDeleteKnowledgePoint = async (moduleId: string, subModule: string, kp: string) => {
+    if (!confirm(`确定要删除知识点"${kp}"吗？`)) return;
+    const noteTags = { ...(data.config?.noteTags || {}) };
+    if (!noteTags[moduleId]?.knowledgePoints[subModule]) return;
+    
+    noteTags[moduleId].knowledgePoints[subModule] = noteTags[moduleId].knowledgePoints[subModule].filter(k => k !== kp);
+    
+    await storage.saveData({
+      ...data,
+      config: { ...data.config, noteTags }
+    });
+    onUpdate();
+  };
+
   const [newSubModule, setNewSubModule] = useState('');
   const [newKnowledgePoint, setNewKnowledgePoint] = useState('');
+  
+  // 编辑状态
+  const [editingSubModule, setEditingSubModule] = useState<string | null>(null);
+  const [editingKnowledgePoint, setEditingKnowledgePoint] = useState<{ subModule: string; name: string } | null>(null);
+  const [editValue, setEditValue] = useState('');
 
   // 行测笔记标签
   const [selectedSubModule, setSelectedSubModule] = useState<string | null>(null);
@@ -826,18 +911,73 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                           <label className="text-[10px] font-bold text-slate-400 uppercase">细化模块</label>
                           <div className="flex flex-wrap gap-2">
                             {getCurrentNoteTags().subModules.map(t => (
-                              <button
-                                key={t}
-                                onClick={() => {
-                                  setSelectedSubModule(selectedSubModule === t ? null : t);
-                                }}
-                                className={cn(
-                                  "px-4 py-2 rounded-xl text-xs font-bold transition-all border min-h-[44px]",
-                                  selectedSubModule === t ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-500 border-slate-100"
-                                )}
-                              >
-                                {t}
-                              </button>
+                              editingSubModule === t ? (
+                                <div key={t} className="flex items-center gap-1">
+                                  <input
+                                    type="text"
+                                    value={editValue}
+                                    onChange={(e) => setEditValue(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') {
+                                        handleEditSubModule(newNote.moduleId!, t, editValue);
+                                        setEditingSubModule(null);
+                                      }
+                                    }}
+                                    className="px-2 py-1 text-xs border-2 border-indigo-400 rounded-lg outline-none w-24"
+                                    autoFocus
+                                  />
+                                  <button
+                                    onClick={() => {
+                                      handleEditSubModule(newNote.moduleId!, t, editValue);
+                                      setEditingSubModule(null);
+                                    }}
+                                    className="text-indigo-600 font-bold min-w-[44px] min-h-[44px] flex items-center justify-center"
+                                  >
+                                    ✓
+                                  </button>
+                                  <button
+                                    onClick={() => setEditingSubModule(null)}
+                                    className="text-slate-400 font-bold min-w-[44px] min-h-[44px] flex items-center justify-center"
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+                              ) : (
+                                <div key={t} className="group relative flex items-center">
+                                  <button
+                                    onClick={() => {
+                                      setSelectedSubModule(selectedSubModule === t ? null : t);
+                                    }}
+                                    className={cn(
+                                      "px-4 py-2 rounded-xl text-xs font-bold transition-all border min-h-[44px]",
+                                      selectedSubModule === t ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-500 border-slate-100"
+                                    )}
+                                  >
+                                    {t}
+                                  </button>
+                                  <div className="absolute -top-1 -right-1 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setEditingSubModule(t);
+                                        setEditValue(t);
+                                      }}
+                                      className="bg-slate-100 text-slate-500 p-1 rounded-full hover:bg-indigo-100"
+                                    >
+                                      <Edit2 size={10} />
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeleteSubModule(newNote.moduleId!, t);
+                                      }}
+                                      className="bg-slate-100 text-rose-500 p-1 rounded-full hover:bg-rose-100"
+                                    >
+                                      <Trash2 size={10} />
+                                    </button>
+                                  </div>
+                                </div>
+                              )
                             ))}
                             {/* 新增细化模块 */}
                             <div className="relative inline-flex items-center w-full max-w-[180px]">
@@ -876,23 +1016,78 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                           <label className="text-[10px] font-bold text-slate-400 uppercase">知识点（多选）</label>
                           <div className="flex flex-wrap gap-2">
                             {(getCurrentNoteTags().knowledgePoints[selectedSubModule || ''] || []).map(t => (
-                              <button
-                                key={t}
-                                onClick={() => {
-                                  // 多选：点击切换选中状态
-                                  if (selectedKnowledgePoints.includes(t)) {
-                                    setSelectedKnowledgePoints(selectedKnowledgePoints.filter(k => k !== t));
-                                  } else {
-                                    setSelectedKnowledgePoints([...selectedKnowledgePoints, t]);
-                                  }
-                                }}
-                                className={cn(
-                                  "px-4 py-2 rounded-xl text-xs font-bold transition-all border min-h-[44px]",
-                                  selectedKnowledgePoints.includes(t) ? "bg-amber-600 text-white border-amber-600" : "bg-white text-slate-500 border-slate-100"
-                                )}
-                              >
-                                {t}
-                              </button>
+                              editingKnowledgePoint?.name === t ? (
+                                <div key={t} className="flex items-center gap-1">
+                                  <input
+                                    type="text"
+                                    value={editValue}
+                                    onChange={(e) => setEditValue(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') {
+                                        handleEditKnowledgePoint(newNote.moduleId!, selectedSubModule!, t, editValue);
+                                        setEditingKnowledgePoint(null);
+                                      }
+                                    }}
+                                    className="px-2 py-1 text-xs border-2 border-amber-400 rounded-lg outline-none w-24"
+                                    autoFocus
+                                  />
+                                  <button
+                                    onClick={() => {
+                                      handleEditKnowledgePoint(newNote.moduleId!, selectedSubModule!, t, editValue);
+                                      setEditingKnowledgePoint(null);
+                                    }}
+                                    className="text-amber-600 font-bold min-w-[44px] min-h-[44px] flex items-center justify-center"
+                                  >
+                                    ✓
+                                  </button>
+                                  <button
+                                    onClick={() => setEditingKnowledgePoint(null)}
+                                    className="text-slate-400 font-bold min-w-[44px] min-h-[44px] flex items-center justify-center"
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+                              ) : (
+                                <div key={t} className="group relative flex items-center">
+                                  <button
+                                    onClick={() => {
+                                      // 多选：点击切换选中状态
+                                      if (selectedKnowledgePoints.includes(t)) {
+                                        setSelectedKnowledgePoints(selectedKnowledgePoints.filter(k => k !== t));
+                                      } else {
+                                        setSelectedKnowledgePoints([...selectedKnowledgePoints, t]);
+                                      }
+                                    }}
+                                    className={cn(
+                                      "px-4 py-2 rounded-xl text-xs font-bold transition-all border min-h-[44px]",
+                                      selectedKnowledgePoints.includes(t) ? "bg-amber-600 text-white border-amber-600" : "bg-white text-slate-500 border-slate-100"
+                                    )}
+                                  >
+                                    {t}
+                                  </button>
+                                  <div className="absolute -top-1 -right-1 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setEditingKnowledgePoint({ subModule: selectedSubModule!, name: t });
+                                        setEditValue(t);
+                                      }}
+                                      className="bg-slate-100 text-slate-500 p-1 rounded-full hover:bg-amber-100"
+                                    >
+                                      <Edit2 size={10} />
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeleteKnowledgePoint(newNote.moduleId!, selectedSubModule!, t);
+                                      }}
+                                      className="bg-slate-100 text-rose-500 p-1 rounded-full hover:bg-rose-100"
+                                    >
+                                      <Trash2 size={10} />
+                                    </button>
+                                  </div>
+                                </div>
+                              )
                             ))}
                             {/* 新增知识点（属于当前细化模块） */}
                             {selectedSubModule && (

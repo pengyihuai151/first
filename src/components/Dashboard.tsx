@@ -22,6 +22,15 @@ export default function Dashboard({ data, onUpdate, onNavigate }: { data: AppDat
   const [tempIndex, setTempIndex] = React.useState<number | null>(null);
   const [selectedNote, setSelectedNote] = React.useState<ExamNote | null>(null);
   const displayIndex = tempIndex !== null ? tempIndex : dailyIndex;
+  
+  // 懈怠提醒语录自动刷新（每60秒换一条）
+  const [lazyQuoteIndex, setLazyQuoteIndex] = React.useState(() => Math.floor(Math.random() * 21));
+  React.useEffect(() => {
+    const timer = setInterval(() => {
+      setLazyQuoteIndex(Math.floor(Math.random() * 21));
+    }, 60000);
+    return () => clearInterval(timer);
+  }, []);
 
   // 阅读打卡状态（提升到组件顶层，避免 IIFE 内 hooks 风险）
   const [readingShuffleKey, setReadingShuffleKey] = React.useState(0);
@@ -261,32 +270,30 @@ export default function Dashboard({ data, onUpdate, onNavigate }: { data: AppDat
 
         // 懈怠语录库（全犀利版）
         const lazyQuotes = [
-          { text: "你现在的对手，正在你偷懒的时候多刷了10道题。你在干嘛？", type: "strict" },
-          { text: "公考不是比谁聪明，是比谁能坐得住。你今天屁股粘椅子了吗？", type: "strict" },
-          { text: "别人在卷，你在躺？上岸名单里真的没你的位置。", type: "strict" },
-          { text: "今天的「明天再学」，就是考场上那道哭着做不出来的题。", type: "strict" },
-          { text: "你的对手不会因为你累了就停下来，人家巴不得你多歇会儿。", type: "strict" },
-          { text: "刷手机这半小时，够你做完一套资料分析了。你刷爽了，对手学爽了。", type: "strict" },
-          { text: "每天差1小时，一个月就是30小时。这30小时能提多少分，你心里有数。", type: "strict" },
-          { text: "别假装努力在那拍照片发朋友圈，成绩出来的时候没人看你朋友圈。", type: "strict" },
-          { text: "你现在流的汗，都是当初脑子进的水——还不赶紧把脑子里的水抖出来学！", type: "strict" },
-          { text: "上岸和落榜之间，差的从来不是智商，是你能不能每天老老实实坐那8小时。", type: "strict" },
-          { text: "你已经浪费了多少天了？再浪费一天，离上岸就远一天。", type: "strict" },
-          { text: "别跟我说你累了，比你优秀的人比你还努力，你有什么资格说累？", type: "strict" },
-          { text: "现在不学，等出成绩那天哭都来不及。哭有用的话，大家都在家哭好了。", type: "strict" },
-          { text: "你是想现在苦几个月，还是想以后一辈子后悔当初没努力？", type: "strict" },
-          { text: "你的竞争对手在图书馆学到闭馆，你在家里学到上床睡觉。这就是差距。", type: "strict" },
-          { text: "别再给自己找借口了，什么今天状态不好、明天再学，都是懒的借口。", type: "strict" },
-          { text: "公考是千军万马过独木桥，你不往前挤，就会被别人挤下去。", type: "strict" },
-          { text: "你想想你父母期待的眼神，你想想你同学都上岸了，你还在这偷懒？", type: "strict" },
-          { text: "现在多学一分钟，考场上就多一分底气。现在少学一分钟，考场上就多一分后悔。", type: "strict" },
-          { text: "别等到报名的时候才开始着急，别等到考试前才开始抱佛脚，佛脚也不是谁都能抱到的。", type: "strict" },
+          "你现在的对手，正在你偷懒的时候多刷了10道题。你在干嘛？",
+          "公考不是比谁聪明，是比谁能坐得住。你今天屁股粘椅子了吗？",
+          "别人在卷，你在躺？上岸名单里真的没你的位置。",
+          "今天的「明天再学」，就是考场上那道哭着做不出来的题。",
+          "你的对手不会因为你累了就停下来，人家巴不得你多歇会儿。",
+          "刷手机这半小时，够你做完一套资料分析了。你刷爽了，对手学爽了。",
+          "每天差1小时，一个月就是30小时。这30小时能提多少分，你心里有数。",
+          "别假装努力在那拍照片发朋友圈，成绩出来的时候没人看你朋友圈。",
+          "你现在流的汗，都是当初脑子进的水——还不赶紧把脑子里的水抖出来学！",
+          "上岸和落榜之间，差的从来不是智商，是你能不能每天老老实实坐那8小时。",
+          "你已经浪费了多少天了？再浪费一天，离上岸就远一天。",
+          "别跟我说你累了，比你优秀的人比你还努力，你有什么资格说累？",
+          "现在不学，等出成绩那天哭都来不及。哭有用的话，大家都在家哭好了。",
+          "你是想现在苦几个月，还是想以后一辈子后悔当初没努力？",
+          "你的竞争对手在图书馆学到闭馆，你在家里学到上床睡觉。这就是差距。",
+          "别再给自己找借口了，什么今天状态不好、明天再学，都是懒的借口。",
+          "公考是千军万马过独木桥，你不往前挤，就会被别人挤下去。",
+          "你想想你父母期待的眼神，你想想你同学都上岸了，你还在这偷懒？",
+          "现在多学一分钟，考场上就多一分底气。现在少学一分钟，考场上就多一分后悔。",
+          "别等到报名的时候才开始着急，别等到考试前才开始抱佛脚，佛脚也不是谁都能抱到的。",
         ];
 
-        // 每次刷新都随机选择语录
-        const randomIndex = Math.floor(Math.random() * lazyQuotes.length);
-        const quote = lazyQuotes[randomIndex] || lazyQuotes[0];
-        const isStrict = true; // 现在全是犀利版
+        // 使用自动刷新的索引
+        const quoteText = lazyQuotes[lazyQuoteIndex % lazyQuotes.length];
         const diffMinutes = Math.round((pastAvgMs - totalTodayMs) / 60000);
 
         return (
@@ -305,7 +312,7 @@ export default function Dashboard({ data, onUpdate, onNavigate }: { data: AppDat
                   距8小时还差{Math.round((EIGHT_HOURS_MS - totalTodayMs) / 60000)}分钟
                 </span>
               </div>
-              <p className="text-sm leading-relaxed font-medium text-rose-700">{quote.text}</p>
+              <p className="text-sm leading-relaxed font-medium text-rose-700">{quoteText}</p>
 
               <button
                 onClick={() => onNavigate('study')}

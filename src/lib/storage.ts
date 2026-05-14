@@ -81,7 +81,15 @@ export const storage = {
           '常识判断': { subModules: [], knowledgePoints: {} },
           '政治': { subModules: [], knowledgePoints: {} },
         },
-        errorReasons: {}
+        // 错误原因配置：与 noteTags 结构一致
+        errorReasons: {
+          '言语理解': { subModules: ['逻辑填空', '篇章阅读'], errorReasons: {} },
+          '判断推理': { subModules: ['图形推理', '定义判断', '类比推理', '逻辑推理'], errorReasons: {} },
+          '数量关系': { subModules: [], errorReasons: {} },
+          '资料分析': { subModules: [], errorReasons: {} },
+          '常识判断': { subModules: [], errorReasons: {} },
+          '政治': { subModules: [], errorReasons: {} },
+        },
       },
       readingCheckIns: {}
     };
