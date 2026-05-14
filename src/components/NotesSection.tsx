@@ -943,38 +943,36 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                                   </button>
                                 </div>
                               ) : (
-                                <div key={t} className="relative flex items-center">
+                                <div key={t} className="flex flex-col w-full">
                                   <button
                                     onClick={() => {
                                       setSelectedSubModule(selectedSubModule === t ? null : t);
                                     }}
                                     className={cn(
-                                      "pr-16 px-4 py-2 rounded-xl text-xs font-bold transition-all border min-h-[44px] w-full text-left",
+                                      "px-4 py-2 rounded-xl text-xs font-bold transition-all border min-h-[44px] text-left",
                                       selectedSubModule === t ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-500 border-slate-100"
                                     )}
                                   >
                                     {t}
                                   </button>
-                                  {/* 编辑和删除按钮 - 移到标签右边，完全覆盖右侧区域 */}
-                                  <div className="absolute right-0 top-0 bottom-0 flex items-center gap-1 px-2">
+                                  {/* 编辑和删除按钮 - 移到标签下方，不遮挡点击区域 */}
+                                  <div className="flex items-center gap-2 mt-1">
                                     <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
+                                      onClick={() => {
                                         setEditingSubModule(t);
                                         setEditValue(t);
                                       }}
-                                      className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg min-w-[32px] min-h-[32px] flex items-center justify-center"
+                                      className="flex-1 py-1 text-[10px] text-slate-400 hover:text-indigo-600 bg-slate-50 hover:bg-indigo-50 rounded-lg min-h-[32px]"
                                     >
-                                      <Edit2 size={12} />
+                                      编辑
                                     </button>
                                     <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
+                                      onClick={() => {
                                         handleDeleteSubModule(newNote.moduleId!, t);
                                       }}
-                                      className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg min-w-[32px] min-h-[32px] flex items-center justify-center"
+                                      className="flex-1 py-1 text-[10px] text-slate-400 hover:text-rose-600 bg-slate-50 hover:bg-rose-50 rounded-lg min-h-[32px]"
                                     >
-                                      <Trash2 size={12} />
+                                      删除
                                     </button>
                                   </div>
                                 </div>
@@ -1049,7 +1047,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                                   </button>
                                 </div>
                               ) : (
-                                <div key={t} className="relative flex items-center">
+                                <div key={t} className="flex flex-col w-full">
                                   <button
                                     onClick={() => {
                                       // 多选：点击切换选中状态
@@ -1060,32 +1058,30 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                                       }
                                     }}
                                     className={cn(
-                                      "pr-16 px-4 py-2 rounded-xl text-xs font-bold transition-all border min-h-[44px] w-full text-left",
+                                      "px-4 py-2 rounded-xl text-xs font-bold transition-all border min-h-[44px] text-left",
                                       selectedKnowledgePoints.includes(t) ? "bg-amber-600 text-white border-amber-600" : "bg-white text-slate-500 border-slate-100"
                                     )}
                                   >
                                     {t}
                                   </button>
-                                  {/* 编辑和删除按钮 - 移到标签右边，完全覆盖右侧区域 */}
-                                  <div className="absolute right-0 top-0 bottom-0 flex items-center gap-1 px-2">
+                                  {/* 编辑和删除按钮 - 移到标签下方，不遮挡点击区域 */}
+                                  <div className="flex items-center gap-2 mt-1">
                                     <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
+                                      onClick={() => {
                                         setEditingKnowledgePoint({ subModule: selectedSubModule!, name: t });
                                         setEditValue(t);
                                       }}
-                                      className="p-1 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg min-w-[32px] min-h-[32px] flex items-center justify-center"
+                                      className="flex-1 py-1 text-[10px] text-slate-400 hover:text-amber-600 bg-slate-50 hover:bg-amber-50 rounded-lg min-h-[32px]"
                                     >
-                                      <Edit2 size={12} />
+                                      编辑
                                     </button>
                                     <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
+                                      onClick={() => {
                                         handleDeleteKnowledgePoint(newNote.moduleId!, selectedSubModule!, t);
                                       }}
-                                      className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg min-w-[32px] min-h-[32px] flex items-center justify-center"
+                                      className="flex-1 py-1 text-[10px] text-slate-400 hover:text-rose-600 bg-slate-50 hover:bg-rose-50 rounded-lg min-h-[32px]"
                                     >
-                                      <Trash2 size={12} />
+                                      删除
                                     </button>
                                   </div>
                                 </div>

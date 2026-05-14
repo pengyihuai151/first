@@ -290,7 +290,7 @@ export default function WrongQuestionBank({
 
     try {
       // 重新加载最新数据
-      const latestData = await storage.loadData();
+      const latestData = await storage.getData();
       
       // 更新 config（新的三级结构）
       const newConfig = { ...(latestData.config || {}) };
@@ -322,7 +322,7 @@ export default function WrongQuestionBank({
   const handleEditErrorReason = async (oldReason: string, newReason: string) => {
     if (!newQuestion.moduleId) return;
     
-    const data = await storage.loadData();
+    const data = await storage.getData();
     const newConfig = { ...data.config };
     const subTopic = newQuestion.subTopic || newQuestion.moduleId;
     
@@ -356,7 +356,7 @@ export default function WrongQuestionBank({
   const handleDeleteErrorReason = async (reason: string) => {
     if (!newQuestion.moduleId) return;
     
-    const data = await storage.loadData();
+    const data = await storage.getData();
     const newConfig = { ...data.config };
     const subTopic = newQuestion.subTopic || newQuestion.moduleId;
     
