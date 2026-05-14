@@ -87,6 +87,8 @@ export default function WrongQuestionBank({
     images: []
   });
   const [customErrorReasonInput, setCustomErrorReasonInput] = useState('');
+  const [showNewSubModuleInput, setShowNewSubModuleInput] = useState(false);
+  const [newSubModuleInput, setNewSubModuleInput] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [editingTag, setEditingTag] = useState<{ type: 'subModule' | 'errorReason'; value: string; newValue: string } | null>(null);
   
@@ -260,6 +262,37 @@ export default function WrongQuestionBank({
   const getCurrentSubTopic = (): string => {
     // 直接使用 subTopic
     return newQuestion.subTopic || newQuestion.moduleId || 'default';
+  };
+
+  // 保存新的自定义细化模块
+  const handleAddNewSubModule = async () => {
+    if (!newSubModuleInput.trim()) {
+      alert('请输入细化模块名称');
+      return;
+    }
+
+    const moduleId = newQuestion.moduleId || '';
+    const newSub = newSubModuleInput.trim();
+
+    // 更新 config
+    const newConfig = { ...data.config } || {};
+    if (!newConfig.errorReasons) {
+      newConfig.errorReasons = {};
+    }
+    if (!newConfig.errorReasons[moduleId]) {
+      newConfig.errorReasons[moduleId] = { subModules: [], errorReasons: {} };
+    }
+    if (!newConfig.errorReasons[moduleId].subModules.includes(newSub)) {
+      newConfig.errorReasons[moduleId].subModules.push(newSub);
+      newConfig.errorReasons[moduleId].errorReasons[newSub] = [];
+    }
+
+    // 保存到 storage
+    await storage.saveData({ ...data, config: newConfig });
+    onUpdate();
+
+    setNewSubModuleInput('');
+    setShowNewSubModuleInput(false);
   };
 
   // 获取当前模块和细化模块的错误原因列表
@@ -1007,6 +1040,49 @@ export default function WrongQuestionBank({
                         );
                       })}
                     </div>
+                    {/* 新增细化模块输入 */}
+                    {showNewSubModuleInput ? (
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={newSubModuleInput}
+                          onChange={(e) => setNewSubModuleInput(e.target.value)}
+                          placeholder="输入细化模块名称"
+                          className="flex-1 min-w-[120px] px-3 py-1.5 text-[10px] border border-indigo-300 rounded-xl outline-none focus:ring-1 focus:ring-indigo-500"
+                          autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              handleAddNewSubModule();
+                            } else if (e.key === 'Escape') {
+                              setShowNewSubModuleInput(false);
+                              setNewSubModuleInput('');
+                            }
+                          }}
+                        />
+                        <button
+                          onClick={handleAddNewSubModule}
+                          className="p-1.5 text-emerald-500 hover:bg-emerald-50 rounded-lg min-w-[28px] min-h-[28px] flex items-center justify-center"
+                        >
+                          <Check size={14} />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowNewSubModuleInput(false);
+                            setNewSubModuleInput('');
+                          }}
+                          className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-lg min-w-[28px] min-h-[28px] flex items-center justify-center"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setShowNewSubModuleInput(true)}
+                        className="mt-1 px-3 py-1.5 text-[10px] font-bold text-indigo-500 bg-indigo-50 border border-dashed border-indigo-300 rounded-xl hover:bg-indigo-100 transition-colors"
+                      >
+                        + 新增细化模块
+                      </button>
+                    )}
                   </div>
                 )}
 
