@@ -297,8 +297,23 @@ export default function WrongQuestionBank({
       if (!newConfig.errorReasons) {
         newConfig.errorReasons = {};
       }
-      if (!newConfig.errorReasons[moduleId]) {
-        newConfig.errorReasons[moduleId] = { subModules: [], errorReasons: {} };
+      
+      // 迁移：如果是旧结构（数组），转换为新结构（对象）
+      if (!newConfig.errorReasons[moduleId] || Array.isArray(newConfig.errorReasons[moduleId])) {
+        // 保留旧的错误原因数据
+        const oldReasons = Array.isArray(newConfig.errorReasons[moduleId]) 
+          ? newConfig.errorReasons[moduleId] 
+          : [];
+        // 获取该模块的默认细化模块
+        const defaultSubTopics = MODULE_SUB_TOPICS[moduleId] || [];
+        // 初始化新结构
+        newConfig.errorReasons[moduleId] = { 
+          subModules: defaultSubTopics, 
+          errorReasons: { [moduleId]: oldReasons }  // 旧数据放到模块ID键下
+        };
+      }
+      if (!newConfig.errorReasons[moduleId].errorReasons) {
+        newConfig.errorReasons[moduleId].errorReasons = {};
       }
       if (!newConfig.errorReasons[moduleId].errorReasons[errorKey]) {
         newConfig.errorReasons[moduleId].errorReasons[errorKey] = [];
@@ -326,6 +341,19 @@ export default function WrongQuestionBank({
     const newConfig = { ...data.config };
     const subTopic = newQuestion.subTopic || newQuestion.moduleId;
     
+    // 迁移：确保结构正确
+    if (!newConfig.errorReasons) newConfig.errorReasons = {};
+    if (!newConfig.errorReasons[newQuestion.moduleId] || Array.isArray(newConfig.errorReasons[newQuestion.moduleId])) {
+      const defaultSubTopics = MODULE_SUB_TOPICS[newQuestion.moduleId] || [];
+      newConfig.errorReasons[newQuestion.moduleId] = { 
+        subModules: defaultSubTopics, 
+        errorReasons: { [newQuestion.moduleId]: [] } 
+      };
+    }
+    if (!newConfig.errorReasons[newQuestion.moduleId].errorReasons) {
+      newConfig.errorReasons[newQuestion.moduleId].errorReasons = {};
+    }
+    
     // 更新错误原因
     const reasons = newConfig.errorReasons[newQuestion.moduleId]?.errorReasons?.[subTopic] || [];
     const index = reasons.indexOf(oldReason);
@@ -334,12 +362,6 @@ export default function WrongQuestionBank({
     }
     
     // 更新配置
-    if (!newConfig.errorReasons[newQuestion.moduleId]) {
-      newConfig.errorReasons[newQuestion.moduleId] = { subModules: [], errorReasons: {} };
-    }
-    if (!newConfig.errorReasons[newQuestion.moduleId].errorReasons) {
-      newConfig.errorReasons[newQuestion.moduleId].errorReasons = {};
-    }
     newConfig.errorReasons[newQuestion.moduleId].errorReasons[subTopic] = reasons;
     
     // 如果当前选中的就是这个原因，更新选中值
@@ -359,6 +381,19 @@ export default function WrongQuestionBank({
     const data = await storage.getData();
     const newConfig = { ...data.config };
     const subTopic = newQuestion.subTopic || newQuestion.moduleId;
+    
+    // 迁移：确保结构正确
+    if (!newConfig.errorReasons) newConfig.errorReasons = {};
+    if (!newConfig.errorReasons[newQuestion.moduleId] || Array.isArray(newConfig.errorReasons[newQuestion.moduleId])) {
+      const defaultSubTopics = MODULE_SUB_TOPICS[newQuestion.moduleId] || [];
+      newConfig.errorReasons[newQuestion.moduleId] = { 
+        subModules: defaultSubTopics, 
+        errorReasons: { [newQuestion.moduleId]: [] } 
+      };
+    }
+    if (!newConfig.errorReasons[newQuestion.moduleId].errorReasons) {
+      newConfig.errorReasons[newQuestion.moduleId].errorReasons = {};
+    }
     
     // 删除错误原因
     const reasons = newConfig.errorReasons[newQuestion.moduleId]?.errorReasons?.[subTopic] || [];
