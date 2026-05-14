@@ -908,78 +908,77 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                       <div className="space-y-4">
                         {/* 细化模块 */}
                         <div className="space-y-2">
-                          <label className="text-[10px] font-bold text-slate-400 uppercase">细化模块</label>
+                          <div className="flex items-center justify-between">
+                            <label className="text-xs font-bold text-slate-500">细化模块</label>
+                          </div>
                           <div className="flex flex-wrap gap-2">
                             {getCurrentNoteTags().subModules.map(t => (
-                              editingSubModule === t ? (
-                                <div key={t} className="flex items-center gap-1">
-                                  <input
-                                    type="text"
-                                    value={editValue}
-                                    onChange={(e) => setEditValue(e.target.value)}
-                                    onKeyDown={(e) => {
-                                      if (e.key === 'Enter') {
+                              <div key={t} className="relative group">
+                                {editingSubModule === t ? (
+                                  <div className="flex items-center gap-1 bg-white rounded-xl border-2 border-indigo-400 overflow-hidden shadow-sm">
+                                    <input
+                                      type="text"
+                                      value={editValue}
+                                      onChange={(e) => setEditValue(e.target.value)}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          handleEditSubModule(newNote.moduleId!, t, editValue);
+                                          setEditingSubModule(null);
+                                        }
+                                      }}
+                                      className="px-3 py-2 text-sm outline-none w-28 bg-transparent"
+                                      autoFocus
+                                    />
+                                    <button
+                                      onClick={() => {
                                         handleEditSubModule(newNote.moduleId!, t, editValue);
                                         setEditingSubModule(null);
-                                      }
-                                    }}
-                                    className="px-2 py-1 text-xs border-2 border-indigo-400 rounded-lg outline-none w-24"
-                                    autoFocus
-                                  />
+                                      }}
+                                      className="px-3 py-2 text-indigo-600 hover:bg-indigo-50 font-bold"
+                                    >
+                                      ✓
+                                    </button>
+                                    <button
+                                      onClick={() => setEditingSubModule(null)}
+                                      className="px-3 py-2 text-slate-400 hover:bg-slate-50 font-bold"
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
+                                ) : (
                                   <button
-                                    onClick={() => {
-                                      handleEditSubModule(newNote.moduleId!, t, editValue);
-                                      setEditingSubModule(null);
-                                    }}
-                                    className="text-indigo-600 font-bold min-w-[44px] min-h-[44px] flex items-center justify-center"
-                                  >
-                                    ✓
-                                  </button>
-                                  <button
-                                    onClick={() => setEditingSubModule(null)}
-                                    className="text-slate-400 font-bold min-w-[44px] min-h-[44px] flex items-center justify-center"
-                                  >
-                                    ✕
-                                  </button>
-                                </div>
-                              ) : (
-                                <div key={t} className="flex flex-col w-full">
-                                  <button
-                                    onClick={() => {
-                                      setSelectedSubModule(selectedSubModule === t ? null : t);
-                                    }}
+                                    onClick={() => setSelectedSubModule(selectedSubModule === t ? null : t)}
                                     className={cn(
-                                      "px-4 py-2 rounded-xl text-xs font-bold transition-all border min-h-[44px] text-left",
-                                      selectedSubModule === t ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-500 border-slate-100"
+                                      "px-4 py-2.5 rounded-xl text-sm font-medium transition-all border shadow-sm",
+                                      selectedSubModule === t 
+                                        ? "bg-indigo-600 text-white border-indigo-600 shadow-indigo-200" 
+                                        : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300"
                                     )}
                                   >
                                     {t}
                                   </button>
-                                  {/* 编辑和删除按钮 - 移到标签下方，不遮挡点击区域 */}
-                                  <div className="flex items-center gap-2 mt-1">
+                                )}
+                                {/* 悬停显示编辑删除图标 */}
+                                {!editingSubModule && (
+                                  <div className="absolute -top-1.5 -right-1.5 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <button
-                                      onClick={() => {
-                                        setEditingSubModule(t);
-                                        setEditValue(t);
-                                      }}
-                                      className="flex-1 py-1 text-[10px] text-slate-400 hover:text-indigo-600 bg-slate-50 hover:bg-indigo-50 rounded-lg min-h-[32px]"
+                                      onClick={() => { setEditingSubModule(t); setEditValue(t); }}
+                                      className="w-6 h-6 bg-slate-100 hover:bg-indigo-100 rounded-full flex items-center justify-center text-slate-500 hover:text-indigo-600 shadow-sm"
                                     >
-                                      编辑
+                                      <Edit2 size={12} />
                                     </button>
                                     <button
-                                      onClick={() => {
-                                        handleDeleteSubModule(newNote.moduleId!, t);
-                                      }}
-                                      className="flex-1 py-1 text-[10px] text-slate-400 hover:text-rose-600 bg-slate-50 hover:bg-rose-50 rounded-lg min-h-[32px]"
+                                      onClick={() => handleDeleteSubModule(newNote.moduleId!, t)}
+                                      className="w-6 h-6 bg-slate-100 hover:bg-rose-100 rounded-full flex items-center justify-center text-slate-500 hover:text-rose-600 shadow-sm"
                                     >
-                                      删除
+                                      <Trash2 size={12} />
                                     </button>
                                   </div>
-                                </div>
-                              )
+                                )}
+                              </div>
                             ))}
-                            {/* 新增细化模块 */}
-                            <div className="relative inline-flex items-center w-full max-w-[180px]">
+                            {/* 新增细化模块输入框 */}
+                            <div className="flex items-center bg-white rounded-xl border-2 border-dashed border-slate-300 overflow-hidden shadow-sm focus-within:border-indigo-400 transition-colors">
                               <input
                                 type="text"
                                 value={newSubModule}
@@ -991,8 +990,8 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                                     setNewSubModule('');
                                   }
                                 }}
-                                placeholder="+细化模块"
-                                className="w-full px-3 py-2 text-xs border-2 border-dashed border-slate-300 rounded-xl outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                                placeholder="+ 添加"
+                                className="px-3 py-2.5 text-sm outline-none w-24 placeholder:text-slate-400 bg-transparent"
                               />
                               {newSubModule.trim() && (
                                 <button
@@ -1001,7 +1000,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                                     setSelectedSubModule(newSubModule.trim());
                                     setNewSubModule('');
                                   }}
-                                  className="absolute right-2 text-indigo-600 font-bold text-lg active:scale-90"
+                                  className="px-2 py-2 text-indigo-600 hover:bg-indigo-50 font-bold"
                                 >
                                   ✓
                                 </button>
@@ -1011,115 +1010,115 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                         </div>
 
                         {/* 知识点（属于当前细化模块，可多选） */}
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-bold text-slate-400 uppercase">知识点（多选）</label>
-                          <div className="flex flex-wrap gap-2">
-                            {(getCurrentNoteTags().knowledgePoints[selectedSubModule || ''] || []).map(t => (
-                              editingKnowledgePoint?.name === t ? (
-                                <div key={t} className="flex items-center gap-1">
-                                  <input
-                                    type="text"
-                                    value={editValue}
-                                    onChange={(e) => setEditValue(e.target.value)}
-                                    onKeyDown={(e) => {
-                                      if (e.key === 'Enter') {
-                                        handleEditKnowledgePoint(newNote.moduleId!, selectedSubModule!, t, editValue);
-                                        setEditingKnowledgePoint(null);
-                                      }
-                                    }}
-                                    className="px-2 py-1 text-xs border-2 border-amber-400 rounded-lg outline-none w-24"
-                                    autoFocus
-                                  />
+                        {selectedSubModule && (
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <label className="text-xs font-bold text-slate-500">知识点</label>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {(getCurrentNoteTags().knowledgePoints[selectedSubModule] || []).map(t => (
+                                <div key={t} className="relative group">
+                                  {editingKnowledgePoint?.name === t ? (
+                                    <div className="flex items-center gap-1 bg-white rounded-xl border-2 border-amber-400 overflow-hidden shadow-sm">
+                                      <input
+                                        type="text"
+                                        value={editValue}
+                                        onChange={(e) => setEditValue(e.target.value)}
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter') {
+                                            handleEditKnowledgePoint(newNote.moduleId!, selectedSubModule!, t, editValue);
+                                            setEditingKnowledgePoint(null);
+                                          }
+                                        }}
+                                        className="px-3 py-2 text-sm outline-none w-28 bg-transparent"
+                                        autoFocus
+                                      />
+                                      <button
+                                        onClick={() => {
+                                          handleEditKnowledgePoint(newNote.moduleId!, selectedSubModule!, t, editValue);
+                                          setEditingKnowledgePoint(null);
+                                        }}
+                                        className="px-3 py-2 text-amber-600 hover:bg-amber-50 font-bold"
+                                      >
+                                        ✓
+                                      </button>
+                                      <button
+                                        onClick={() => setEditingKnowledgePoint(null)}
+                                        className="px-3 py-2 text-slate-400 hover:bg-slate-50 font-bold"
+                                      >
+                                        ✕
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      onClick={() => {
+                                        if (selectedKnowledgePoints.includes(t)) {
+                                          setSelectedKnowledgePoints(selectedKnowledgePoints.filter(k => k !== t));
+                                        } else {
+                                          setSelectedKnowledgePoints([...selectedKnowledgePoints, t]);
+                                        }
+                                      }}
+                                      className={cn(
+                                        "px-4 py-2.5 rounded-xl text-sm font-medium transition-all border shadow-sm",
+                                        selectedKnowledgePoints.includes(t) 
+                                          ? "bg-amber-500 text-white border-amber-500 shadow-amber-200" 
+                                          : "bg-white text-slate-600 border-slate-200 hover:border-amber-300"
+                                      )}
+                                    >
+                                      {t}
+                                    </button>
+                                  )}
+                                  {/* 悬停显示编辑删除图标 */}
+                                  {!editingKnowledgePoint && (
+                                    <div className="absolute -top-1.5 -right-1.5 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <button
+                                        onClick={() => { setEditingKnowledgePoint({ subModule: selectedSubModule!, name: t }); setEditValue(t); }}
+                                        className="w-6 h-6 bg-slate-100 hover:bg-amber-100 rounded-full flex items-center justify-center text-slate-500 hover:text-amber-600 shadow-sm"
+                                      >
+                                        <Edit2 size={12} />
+                                      </button>
+                                      <button
+                                        onClick={() => handleDeleteKnowledgePoint(newNote.moduleId!, selectedSubModule!, t)}
+                                        className="w-6 h-6 bg-slate-100 hover:bg-rose-100 rounded-full flex items-center justify-center text-slate-500 hover:text-rose-600 shadow-sm"
+                                      >
+                                        <Trash2 size={12} />
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                              {/* 新增知识点输入框 */}
+                              <div className="flex items-center bg-white rounded-xl border-2 border-dashed border-slate-300 overflow-hidden shadow-sm focus-within:border-amber-400 transition-colors">
+                                <input
+                                  type="text"
+                                  value={newKnowledgePoint}
+                                  onChange={(e) => setNewKnowledgePoint(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && newKnowledgePoint.trim()) {
+                                      handleAddKnowledgePoint(newNote.moduleId!, selectedSubModule, newKnowledgePoint.trim());
+                                      setSelectedKnowledgePoints([...selectedKnowledgePoints, newKnowledgePoint.trim()]);
+                                      setNewKnowledgePoint('');
+                                    }
+                                  }}
+                                  placeholder="+ 添加"
+                                  className="px-3 py-2.5 text-sm outline-none w-24 placeholder:text-slate-400 bg-transparent"
+                                />
+                                {newKnowledgePoint.trim() && (
                                   <button
                                     onClick={() => {
-                                      handleEditKnowledgePoint(newNote.moduleId!, selectedSubModule!, t, editValue);
-                                      setEditingKnowledgePoint(null);
+                                      handleAddKnowledgePoint(newNote.moduleId!, selectedSubModule, newKnowledgePoint.trim());
+                                      setSelectedKnowledgePoints([...selectedKnowledgePoints, newKnowledgePoint.trim()]);
+                                      setNewKnowledgePoint('');
                                     }}
-                                    className="text-amber-600 font-bold min-w-[44px] min-h-[44px] flex items-center justify-center"
+                                    className="px-2 py-2 text-amber-600 hover:bg-amber-50 font-bold"
                                   >
                                     ✓
                                   </button>
-                                  <button
-                                    onClick={() => setEditingKnowledgePoint(null)}
-                                    className="text-slate-400 font-bold min-w-[44px] min-h-[44px] flex items-center justify-center"
-                                  >
-                                    ✕
-                                  </button>
-                                </div>
-                              ) : (
-                                <div key={t} className="flex flex-col w-full">
-                                  <button
-                                    onClick={() => {
-                                      // 多选：点击切换选中状态
-                                      if (selectedKnowledgePoints.includes(t)) {
-                                        setSelectedKnowledgePoints(selectedKnowledgePoints.filter(k => k !== t));
-                                      } else {
-                                        setSelectedKnowledgePoints([...selectedKnowledgePoints, t]);
-                                      }
-                                    }}
-                                    className={cn(
-                                      "px-4 py-2 rounded-xl text-xs font-bold transition-all border min-h-[44px] text-left",
-                                      selectedKnowledgePoints.includes(t) ? "bg-amber-600 text-white border-amber-600" : "bg-white text-slate-500 border-slate-100"
-                                    )}
-                                  >
-                                    {t}
-                                  </button>
-                                  {/* 编辑和删除按钮 - 移到标签下方，不遮挡点击区域 */}
-                                  <div className="flex items-center gap-2 mt-1">
-                                    <button
-                                      onClick={() => {
-                                        setEditingKnowledgePoint({ subModule: selectedSubModule!, name: t });
-                                        setEditValue(t);
-                                      }}
-                                      className="flex-1 py-1 text-[10px] text-slate-400 hover:text-amber-600 bg-slate-50 hover:bg-amber-50 rounded-lg min-h-[32px]"
-                                    >
-                                      编辑
-                                    </button>
-                                    <button
-                                      onClick={() => {
-                                        handleDeleteKnowledgePoint(newNote.moduleId!, selectedSubModule!, t);
-                                      }}
-                                      className="flex-1 py-1 text-[10px] text-slate-400 hover:text-rose-600 bg-slate-50 hover:bg-rose-50 rounded-lg min-h-[32px]"
-                                    >
-                                      删除
-                                    </button>
-                                  </div>
-                                </div>
-                              )
-                            ))}
-                            {/* 新增知识点（属于当前细化模块） */}
-                            {selectedSubModule && (
-                            <div className="relative inline-flex items-center w-full max-w-[180px]">
-                              <input
-                                type="text"
-                                value={newKnowledgePoint}
-                                onChange={(e) => setNewKnowledgePoint(e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter' && newKnowledgePoint.trim()) {
-                                    handleAddKnowledgePoint(newNote.moduleId!, selectedSubModule, newKnowledgePoint.trim());
-                                    setSelectedKnowledgePoints([...selectedKnowledgePoints, newKnowledgePoint.trim()]);
-                                    setNewKnowledgePoint('');
-                                  }
-                                }}
-                                placeholder="+知识点"
-                                className="w-full px-3 py-2 text-xs border-2 border-dashed border-slate-300 rounded-xl outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
-                              />
-                              {newKnowledgePoint.trim() && (
-                                <button
-                                  onClick={() => {
-                                    handleAddKnowledgePoint(newNote.moduleId!, selectedSubModule, newKnowledgePoint.trim());
-                                    setSelectedKnowledgePoints([...selectedKnowledgePoints, newKnowledgePoint.trim()]);
-                                    setNewKnowledgePoint('');
-                                  }}
-                                  className="absolute right-2 text-amber-600 font-bold text-lg active:scale-90"
-                                >
-                                  ✓
-                                </button>
-                              )}
+                                )}
+                              </div>
                             </div>
-                            )}
                           </div>
-                        </div>
+                        )}
                       </div>
                     )}
 
