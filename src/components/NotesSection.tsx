@@ -204,9 +204,12 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
       notes: updatedNotes,
       config: { ...data.config, noteTags }
     });
-    // 更新 selectedNote 以同步显示
-    if (selectedNote && selectedNote.moduleId === moduleId && selectedNote.tags?.includes(oldName)) {
-      setSelectedNote({ ...selectedNote, tags: selectedNote.tags.map(t => t === oldName ? trimmed : t) });
+    // 从更新后的笔记列表中找到对应的笔记来更新 selectedNote
+    if (selectedNote) {
+      const updatedNote = updatedNotes.find(n => n.id === selectedNote.id);
+      if (updatedNote) {
+        setSelectedNote(updatedNote);
+      }
     }
     onUpdate();
   };
@@ -240,9 +243,12 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
       notes: updatedNotes,
       config: { ...data.config, noteTags }
     });
-    // 更新 selectedNote 以同步显示
-    if (selectedNote && selectedNote.moduleId === moduleId && selectedNote.tags) {
-      setSelectedNote({ ...selectedNote, tags: selectedNote.tags.filter(t => !tagsToRemove.includes(t)) });
+    // 从更新后的笔记列表中找到对应的笔记来更新 selectedNote
+    if (selectedNote) {
+      const updatedNote = updatedNotes.find(n => n.id === selectedNote.id);
+      if (updatedNote) {
+        setSelectedNote(updatedNote);
+      }
     }
     onUpdate();
   };
@@ -323,9 +329,12 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
       notes: updatedNotes,
       config: { ...data.config, noteTags }
     });
-    // 更新 selectedNote 以同步显示
-    if (selectedNote && selectedNote.moduleId === moduleId && selectedNote.tags?.includes(kp)) {
-      setSelectedNote({ ...selectedNote, tags: selectedNote.tags.filter(t => t !== kp) });
+    // 从更新后的笔记列表中找到对应的笔记来更新 selectedNote
+    if (selectedNote) {
+      const updatedNote = updatedNotes.find(n => n.id === selectedNote.id);
+      if (updatedNote) {
+        setSelectedNote(updatedNote);
+      }
     }
     onUpdate();
   };
