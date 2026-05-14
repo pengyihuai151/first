@@ -190,8 +190,18 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
       delete noteTags[moduleId].knowledgePoints[oldName];
     }
     
+    // 更新所有使用该标签的笔记
+    const notes = data.notes || [];
+    const updatedNotes = notes.map(note => {
+      if (note.moduleId === moduleId && note.tags && note.tags.includes(oldName)) {
+        return { ...note, tags: note.tags.map(t => t === oldName ? trimmed : t) };
+      }
+      return note;
+    });
+    
     await storage.saveData({
       ...data,
+      notes: updatedNotes,
       config: { ...data.config, noteTags }
     });
     onUpdate();
@@ -206,11 +216,24 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
     // 删除 subModule
     noteTags[moduleId].subModules = noteTags[moduleId].subModules.filter(s => s !== subModule);
     
+    // 获取要删除的知识点列表
+    const deletedKnowledgePoints = Object.keys(noteTags[moduleId].knowledgePoints || {});
     // 删除对应的知识点
     delete noteTags[moduleId].knowledgePoints[subModule];
     
+    // 更新所有使用该标签的笔记（移除已删除的标签）
+    const notes = data.notes || [];
+    const tagsToRemove = [subModule, ...deletedKnowledgePoints];
+    const updatedNotes = notes.map(note => {
+      if (note.moduleId === moduleId && note.tags) {
+        return { ...note, tags: note.tags.filter(t => !tagsToRemove.includes(t)) };
+      }
+      return note;
+    });
+    
     await storage.saveData({
       ...data,
+      notes: updatedNotes,
       config: { ...data.config, noteTags }
     });
     onUpdate();
@@ -249,8 +272,18 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
     
     noteTags[moduleId].knowledgePoints[subModule][index] = trimmed;
     
+    // 更新所有使用该标签的笔记
+    const notes = data.notes || [];
+    const updatedNotes = notes.map(note => {
+      if (note.moduleId === moduleId && note.tags && note.tags.includes(oldName)) {
+        return { ...note, tags: note.tags.map(t => t === oldName ? trimmed : t) };
+      }
+      return note;
+    });
+    
     await storage.saveData({
       ...data,
+      notes: updatedNotes,
       config: { ...data.config, noteTags }
     });
     onUpdate();
@@ -264,8 +297,18 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
     
     noteTags[moduleId].knowledgePoints[subModule] = noteTags[moduleId].knowledgePoints[subModule].filter(k => k !== kp);
     
+    // 更新所有使用该标签的笔记（移除已删除的标签）
+    const notes = data.notes || [];
+    const updatedNotes = notes.map(note => {
+      if (note.moduleId === moduleId && note.tags && note.tags.includes(kp)) {
+        return { ...note, tags: note.tags.filter(t => t !== kp) };
+      }
+      return note;
+    });
+    
     await storage.saveData({
       ...data,
+      notes: updatedNotes,
       config: { ...data.config, noteTags }
     });
     onUpdate();
