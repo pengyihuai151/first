@@ -394,9 +394,24 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
     }
     
     // 行测笔记：将细化模块和知识点合并到 tags
+    // 知识点只保存当前细化模块下的，不混合其他细化模块的知识点
     const noteTags: string[] = [];
-    if (selectedSubModule) noteTags.push(selectedSubModule);
-    noteTags.push(...selectedKnowledgePoints);
+    if (selectedSubModule) {
+      noteTags.push(selectedSubModule);
+      // 只添加当前细化模块下的知识点
+      const currentSubModuleKnowledgePoints = selectedKnowledgePoints.filter(kp => {
+        // 查找该知识点属于哪个细化模块
+        const currentNoteTags = data.config?.noteTags?.[newNote.moduleId || ''];
+        if (!currentNoteTags?.knowledgePoints) return false;
+        for (const [sm, kps] of Object.entries(currentNoteTags.knowledgePoints)) {
+          if (sm === selectedSubModule && kps.includes(kp)) {
+            return true;
+          }
+        }
+        return false;
+      });
+      noteTags.push(...currentSubModuleKnowledgePoints);
+    }
     
     try {
       if (editingNote) {
