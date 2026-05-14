@@ -955,7 +955,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                                   >
                                     {t}
                                   </button>
-                                  <div className="absolute -top-1 -right-1 flex gap-0.5 opacity-0 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                                  <div className="absolute -top-1 -right-1 flex gap-0.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
@@ -1065,7 +1065,7 @@ export default function NotesSection({ data, onUpdate }: { data: AppData; onUpda
                                   >
                                     {t}
                                   </button>
-                                  <div className="absolute -top-1 -right-1 flex gap-0.5 opacity-0 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                                  <div className="absolute -top-1 -right-1 flex gap-0.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();

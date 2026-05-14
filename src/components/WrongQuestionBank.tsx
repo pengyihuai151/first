@@ -322,6 +322,12 @@ export default function WrongQuestionBank({
     const subTopic = newQuestion.subTopic || '';
     const newReason = customErrorReasonInput.trim();
 
+    // 如果该模块有细化模块但没选择，提示用户
+    if (hasSubModules(moduleId) && !subTopic) {
+      alert('请先选择一个细化模块');
+      return;
+    }
+
     // 更新 config（新的三级结构）
     const newConfig = { ...data.config } || {};
     if (!newConfig.errorReasons) {
