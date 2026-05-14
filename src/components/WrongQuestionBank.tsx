@@ -87,8 +87,6 @@ export default function WrongQuestionBank({
     images: []
   });
   const [customErrorReasonInput, setCustomErrorReasonInput] = useState('');
-  const [showKnowledgePointInput, setShowKnowledgePointInput] = useState(false);
-  const [newKnowledgePointInput, setNewKnowledgePointInput] = useState('');
   
   // 图片相关状态
   const [selectedImage, setSelectedImage] = useState<string | null>(null); // 大图预览
@@ -99,7 +97,6 @@ export default function WrongQuestionBank({
   const [viewerLastDistance, setViewerLastDistance] = useState(0); // 双指缩放上次距离
   const [cropperState, setCropperState] = useState<{ image: string; callback: (cropped: string) => void } | null>(null); // 裁剪状态
 
-  // 获取当前选中的细分知识点（取第一个选中的，或者没有子模块就用模块名）
   // 图片查看器 - 重置状态
   const resetViewerState = () => {
     setViewerScale(1);
@@ -236,17 +233,6 @@ export default function WrongQuestionBank({
     return moduleId in MODULE_SUB_TOPICS && (MODULE_SUB_TOPICS[moduleId]?.length ?? 0) > 0;
   };
 
-  // 获取当前可选的知识点列表
-  const getAvailableKnowledgePoints = (): string[] => {
-    const moduleId = newQuestion.moduleId || '';
-    const subTopic = newQuestion.subTopic || '';
-    
-    // 从 config 中获取该模块+细化模块的知识点
-    const savedPoints = data.config?.noteTags?.[moduleId]?.knowledgePoints?.[subTopic] || [];
-    
-    return savedPoints;
-  };
-
   // 删除图片
   const removeImage = (index: number) => {
     setNewQuestion(prev => ({
@@ -255,12 +241,10 @@ export default function WrongQuestionBank({
     }));
   };
 
+  // 获取当前细化模块（用于错误原因 key）
   const getCurrentSubTopic = (): string => {
-    if (newQuestion.tags && newQuestion.tags.length > 0) {
-      return newQuestion.tags[0];
-    }
-    // 如果没有子模块，就用模块名作为 key
-    return newQuestion.moduleId || 'default';
+    // 直接使用 subTopic
+    return newQuestion.subTopic || newQuestion.moduleId || 'default';
   };
 
   // 获取当前模块和细化模块的错误原因列表
@@ -277,47 +261,6 @@ export default function WrongQuestionBank({
     const customReasons = data.config?.errorReasons?.[moduleId]?.errorReasons?.[subTopic] || [];
     
     return customReasons;
-  };
-
-  // 添加新的知识点
-  const handleAddNewKnowledgePoint = async () => {
-    if (!newKnowledgePointInput.trim()) {
-      return;
-    }
-
-    const moduleId = newQuestion.moduleId || '';
-    const subTopic = newQuestion.subTopic || '';
-    const newPoint = newKnowledgePointInput.trim();
-
-    // 更新 config
-    const newConfig = { ...data.config } || {};
-    if (!newConfig.noteTags) {
-      newConfig.noteTags = {};
-    }
-    if (!newConfig.noteTags[moduleId]) {
-      newConfig.noteTags[moduleId] = { subModules: [], knowledgePoints: {} };
-    }
-    if (!newConfig.noteTags[moduleId].knowledgePoints[subTopic]) {
-      newConfig.noteTags[moduleId].knowledgePoints[subTopic] = [];
-    }
-
-    // 添加新知识点，去重
-    if (!newConfig.noteTags[moduleId].knowledgePoints[subTopic].includes(newPoint)) {
-      newConfig.noteTags[moduleId].knowledgePoints[subTopic].push(newPoint);
-    }
-
-    // 保存到 storage
-    await storage.saveData({ ...data, config: newConfig });
-    onUpdate();
-
-    // 选中这个新知识点
-    setNewQuestion(prev => ({
-      ...prev,
-      tags: [...(prev.tags || []), newPoint]
-    }));
-
-    setNewKnowledgePointInput('');
-    setShowKnowledgePointInput(false);
   };
 
   // 保存新的自定义错误原因
@@ -359,11 +302,6 @@ export default function WrongQuestionBank({
     // 验证：有细化模块的必须选择细化模块
     if (hasSubModules(newQuestion.moduleId || '') && !newQuestion.subTopic) {
       alert('请选择细化模块');
-      return;
-    }
-    // 验证：知识点必须至少选择一个
-    if (!newQuestion.tags || newQuestion.tags.length === 0) {
-      alert('请至少选择一个知识点');
       return;
     }
     if (!newQuestion.errorReason) {
@@ -450,7 +388,7 @@ export default function WrongQuestionBank({
     .filter(q => !examId || q.examId === examId)
     .filter(q => filter === '全部' || q.moduleId === filter)
     .filter(q => masteredFilter === '全部' || (masteredFilter === '已掌握' ? q.mastered : !q.mastered))
-    .filter(q => tagFilter === '全部' || tagFilter === '全部知识点' || q.tags?.includes(tagFilter))
+    .filter(q => tagFilter === '全部' || tagFilter === '全部细化模块' || q.subTopic === tagFilter)
     .filter(q => reasonFilter === '全部' || q.errorReason === reasonFilter)
     .filter(q => q.analysis && q.analysis.includes(search))
     .sort((a, b) => b.createdAt - a.createdAt);
@@ -539,17 +477,30 @@ export default function WrongQuestionBank({
             </div>
           </div>
 
-          {/* Sub-topic (Tag) Filter */}
-          {filter !== '全部' && (MODULE_SUB_TOPICS[filter as string] || []).length > 0 && (
+          {/* 细化模块筛选 */}
+          {filter !== '全部' && hasSubModules(filter) && (
             <div ref={tagScrollRef} className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-              {['全部知识点', ...(MODULE_SUB_TOPICS[filter as string] || [])].map(tag => (
+              <button
+                key="全部细化模块"
+                ref={tagFilter === '全部细化模块' ? activeTagRef : null}
+                onClick={() => setTagFilter('全部细化模块')}
+                className={cn(
+                  "px-3 py-1.5 rounded-xl text-[10px] font-bold whitespace-nowrap transition-all border",
+                  tagFilter === '全部细化模块' || tagFilter === '全部'
+                    ? "bg-indigo-500 text-white border-indigo-500 shadow-sm" 
+                    : "bg-white text-slate-400 border-slate-100"
+                )}
+              >
+                全部
+              </button>
+              {(MODULE_SUB_TOPICS[filter as string] || []).map(tag => (
                 <button
                   key={tag}
                   ref={tagFilter === tag ? activeTagRef : null}
                   onClick={() => setTagFilter(tag)}
                   className={cn(
                     "px-3 py-1.5 rounded-xl text-[10px] font-bold whitespace-nowrap transition-all border",
-                    tagFilter === tag || (tag === '全部知识点' && tagFilter === '全部')
+                    tagFilter === tag
                       ? "bg-indigo-500 text-white border-indigo-500 shadow-sm" 
                       : "bg-white text-slate-400 border-slate-100"
                   )}
@@ -646,13 +597,13 @@ export default function WrongQuestionBank({
                   </div>
                 </div>
                 <div className="space-y-3">
-                  <div className="flex flex-wrap gap-1.5 pt-1">
-                        {q.tags?.map(tag => (
-                          <span key={tag} className="px-2 py-0.5 bg-indigo-50 text-indigo-500 rounded-md text-[9px] font-bold">
-                            # {tag}
-                          </span>
-                        ))}
-                      </div>
+                  {q.subTopic && (
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      <span className="px-2 py-0.5 bg-indigo-50 text-indigo-500 rounded-md text-[9px] font-bold">
+                        @ {q.subTopic}
+                      </span>
+                    </div>
+                  )}
                   {q.analysis && (
                     <div className="pt-2">
                        <p className="text-[11px] text-slate-500 line-clamp-1 italic">解析: {q.analysis}</p>
@@ -710,18 +661,17 @@ export default function WrongQuestionBank({
 
               <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
                 <div className="space-y-4">
-                  <section>
-                    <h4 className="text-[10px] font-bold text-slate-400 uppercase mb-2 flex items-center gap-2">
-                       <div className="w-1 h-3 bg-indigo-500 rounded-full" /> 知识点标签
-                    </h4>
-                    <div className="flex flex-wrap gap-2">
-                      {viewingQuestion.tags?.map(tag => (
-                        <span key={tag} className="px-3 py-1 bg-indigo-50 text-indigo-500 rounded-full text-xs font-bold">
-                          # {tag}
-                        </span>
-                      ))}
-                    </div>
-                  </section>
+                  {/* 细化模块 */}
+                  {viewingQuestion.subTopic && (
+                    <section>
+                      <h4 className="text-[10px] font-bold text-slate-400 uppercase mb-2 flex items-center gap-2">
+                         <div className="w-1 h-3 bg-indigo-500 rounded-full" /> 细化模块
+                      </h4>
+                      <span className="px-3 py-1 bg-indigo-50 text-indigo-500 rounded-full text-xs font-bold">
+                        @ {viewingQuestion.subTopic}
+                      </span>
+                    </section>
+                  )}
 
                   {/* 错误原因 */}
                   {viewingQuestion.errorReason && (
@@ -750,21 +700,6 @@ export default function WrongQuestionBank({
                           >
                             <img src={img} alt={`错题图片 ${index + 1}`} className="w-full h-full object-cover" />
                           </div>
-                        ))}
-                      </div>
-                    </section>
-                  )}
-
-                  {(viewingQuestion.tags?.length || 0) > 0 && (
-                    <section>
-                      <h4 className="text-[10px] font-bold text-slate-400 uppercase mb-2 flex items-center gap-2">
-                         <Tag size={10} className="text-indigo-500" /> 知识点
-                      </h4>
-                      <div className="flex flex-wrap gap-2">
-                        {viewingQuestion.tags?.map(tag => (
-                          <span key={tag} className="px-3 py-1 bg-indigo-50 text-indigo-500 rounded-lg text-[11px] font-bold border border-indigo-100">
-                            # {tag}
-                          </span>
                         ))}
                       </div>
                     </section>
@@ -888,70 +823,6 @@ export default function WrongQuestionBank({
                   </div>
                 )}
 
-                {/* 知识点选择（多选） */}
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1">
-                     <Tag size={10} /> 知识点（多选）
-                  </label>
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    {getAvailableKnowledgePoints().map(tag => {
-                      const isSelected = newQuestion.tags?.includes(tag);
-                      return (
-                        <button
-                          key={tag}
-                          onClick={() => {
-                            const currentTags = newQuestion.tags || [];
-                            const newTags = isSelected 
-                              ? currentTags.filter(t => t !== tag)
-                              : [...currentTags, tag];
-                            setNewQuestion(prev => ({ ...prev, tags: newTags }));
-                          }}
-                          className={cn(
-                            "px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all border",
-                            isSelected 
-                              ? "bg-indigo-600 text-white border-indigo-600 shadow-sm" 
-                              : "bg-white text-slate-400 border-slate-100 hover:bg-slate-50"
-                          )}
-                        >
-                          {tag}
-                        </button>
-                      );
-                    })}
-                    {/* 新增知识点按钮 */}
-                    {newQuestion.tags && newQuestion.tags.length > 0 && (
-                      <button
-                        onClick={() => setShowKnowledgePointInput(!showKnowledgePointInput)}
-                        className="px-2.5 py-1 rounded-lg text-[10px] font-bold border border-dashed border-indigo-300 text-indigo-500 hover:bg-indigo-50 transition-all"
-                      >
-                        + 新增
-                      </button>
-                    )}
-                  </div>
-                  {showKnowledgePointInput && (
-                    <div className="flex gap-2 pt-2">
-                      <input 
-                        type="text"
-                        value={newKnowledgePointInput}
-                        onChange={(e) => setNewKnowledgePointInput(e.target.value)}
-                        placeholder="输入新知识点名称..."
-                        className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none"
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && newKnowledgePointInput.trim()) {
-                            handleAddNewKnowledgePoint();
-                          }
-                        }}
-                        autoFocus
-                      />
-                      <button 
-                        onClick={handleAddNewKnowledgePoint}
-                        className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-bold"
-                      >
-                        保存
-                      </button>
-                    </div>
-                  )}
-                </div>
-
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold text-slate-400 uppercase">个人复盘/思路</label>
                   <textarea 
@@ -1011,7 +882,7 @@ export default function WrongQuestionBank({
                 {/* 错误原因（手动添加） */}
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold text-slate-400 uppercase">
-                    错误原因 {newQuestion.subTopic ? `@${newQuestion.subTopic}` : ''} {newQuestion.tags?.length ? `(${newQuestion.tags.join(', ')})` : ''}
+                    错误原因 {newQuestion.subTopic ? `@${newQuestion.subTopic}` : `@${newQuestion.moduleId}`}
                   </label>
                   {getCurrentErrorReasons().length > 0 ? (
                     <div className="flex flex-wrap gap-2 pt-1">
@@ -1038,14 +909,14 @@ export default function WrongQuestionBank({
                     </div>
                   ) : (
                     <p className="text-[11px] text-slate-400 italic py-1">
-                      {newQuestion.tags?.length 
-                        ? '该知识点暂无已保存的错误原因，请在下方添加'
-                        : '请先选择细化模块和知识点'}
+                      {newQuestion.moduleId
+                        ? '该模块暂无已保存的错误原因，请在下方添加'
+                        : '请先选择模块'}
                     </p>
                   )}
                   
                   {/* 自定义错误原因输入 */}
-                  {newQuestion.tags?.length ? (
+                  {newQuestion.moduleId ? (
                     <div className="flex gap-2 pt-2">
                       <input 
                         type="text"
