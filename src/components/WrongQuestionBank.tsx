@@ -1012,34 +1012,42 @@ export default function WrongQuestionBank({
                               </div>
                             ) : (
                               <>
-                                <button
-                                  onClick={() => setNewQuestion(prev => ({ ...prev, subTopic: sub, errorReason: '' }))}
-                                  className={cn(
-                                    "pr-7 px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all border min-h-[28px]",
-                                    isSelected 
-                                      ? "bg-indigo-600 text-white border-indigo-600 shadow-sm" 
-                                      : "bg-white text-slate-400 border-slate-100 hover:bg-slate-50"
+                                <div className="relative">
+                                  <button
+                                    onClick={() => setNewQuestion(prev => ({ ...prev, subTopic: sub, errorReason: '' }))}
+                                    className={cn(
+                                      "pr-14 px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all border min-h-[28px]",
+                                      isSelected 
+                                        ? "bg-indigo-600 text-white border-indigo-600 shadow-sm" 
+                                        : "bg-white text-slate-400 border-slate-100 hover:bg-slate-50"
+                                    )}
+                                  >
+                                    {sub}
+                                  </button>
+                                  {/* 编辑和删除按钮 - 仅对自定义标签显示，移到右边 */}
+                                  {!isDefault && (
+                                    <div className="absolute right-1 top-1/2 -translate-y-1/2 flex gap-0.5">
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setEditingTag({ type: 'subModule', value: sub, newValue: sub });
+                                        }}
+                                        className="p-1 text-blue-400 hover:text-blue-600 hover:bg-blue-50 rounded min-w-[24px] min-h-[24px] flex items-center justify-center"
+                                      >
+                                        <Edit2 size={12} />
+                                      </button>
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setShowDeleteConfirm(`subModule:${sub}`);
+                                        }}
+                                        className="p-1 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded min-w-[24px] min-h-[24px] flex items-center justify-center"
+                                      >
+                                        <Trash2 size={12} />
+                                      </button>
+                                    </div>
                                   )}
-                                >
-                                  {sub}
-                                </button>
-                                {/* 编辑和删除按钮 - 仅对自定义标签显示 */}
-                                {!isDefault && (
-                                  <div className="absolute top-0 right-0 flex items-center gap-0.5">
-                                    <button
-                                      onClick={() => setEditingTag({ type: 'subModule', value: sub, newValue: sub })}
-                                      className="p-1 text-blue-400 bg-white/90 hover:bg-blue-50 rounded-l-lg min-w-[24px] min-h-[24px] flex items-center justify-center"
-                                    >
-                                      <Edit2 size={10} />
-                                    </button>
-                                    <button
-                                      onClick={() => setShowDeleteConfirm(`subModule:${sub}`)}
-                                      className="p-1 text-rose-400 bg-white/90 hover:bg-rose-50 rounded-r-lg min-w-[24px] min-h-[24px] flex items-center justify-center"
-                                    >
-                                      <Trash2 size={10} />
-                                    </button>
-                                  </div>
-                                )}
+                                </div>
                               </>
                             )}
                           </div>
@@ -1191,34 +1199,42 @@ export default function WrongQuestionBank({
                               </div>
                             ) : (
                               <>
-                                <button
-                                  onClick={() => setNewQuestion(prev => ({
-                                    ...prev,
-                                    errorReason: isSelected ? '' : reason
-                                  }))}
-                                  className={cn(
-                                    "pr-7 px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border min-h-[28px]",
-                                    isSelected
-                                      ? "bg-rose-500 text-white border-rose-500 shadow-sm"
-                                      : "bg-white text-slate-500 border-slate-100 hover:bg-rose-50 hover:border-rose-200"
-                                  )}
-                                >
-                                  {reason}
-                                </button>
-                                {/* 编辑和删除按钮 - 移动端默认显示 */}
-                                <div className="absolute top-0 right-0 flex items-center gap-0.5">
+                                <div className="relative">
                                   <button
-                                    onClick={() => setEditingTag({ type: 'errorReason', value: reason, newValue: reason })}
-                                    className="p-1 text-blue-400 bg-white/90 hover:bg-blue-50 rounded-l-lg min-w-[24px] min-h-[24px] flex items-center justify-center"
+                                    onClick={() => setNewQuestion(prev => ({
+                                      ...prev,
+                                      errorReason: isSelected ? '' : reason
+                                    }))}
+                                    className={cn(
+                                      "pr-14 px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all border min-h-[28px]",
+                                      isSelected
+                                        ? "bg-rose-500 text-white border-rose-500 shadow-sm"
+                                        : "bg-white text-slate-500 border-slate-100 hover:bg-rose-50 hover:border-rose-200"
+                                    )}
                                   >
-                                    <Edit2 size={10} />
+                                    {reason}
                                   </button>
-                                  <button
-                                    onClick={() => setShowDeleteConfirm(reason)}
-                                    className="p-1 text-rose-400 bg-white/90 hover:bg-rose-50 rounded-r-lg min-w-[24px] min-h-[24px] flex items-center justify-center"
-                                  >
-                                    <Trash2 size={10} />
-                                  </button>
+                                  {/* 编辑和删除按钮 - 移到右边 */}
+                                  <div className="absolute right-1 top-1/2 -translate-y-1/2 flex gap-0.5">
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setEditingTag({ type: 'errorReason', value: reason, newValue: reason });
+                                      }}
+                                      className="p-1 text-blue-400 hover:text-blue-600 hover:bg-blue-50 rounded min-w-[24px] min-h-[24px] flex items-center justify-center"
+                                    >
+                                      <Edit2 size={12} />
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setShowDeleteConfirm(reason);
+                                      }}
+                                      className="p-1 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded min-w-[24px] min-h-[24px] flex items-center justify-center"
+                                    >
+                                      <Trash2 size={12} />
+                                    </button>
+                                  </div>
                                 </div>
                               </>
                             )}
