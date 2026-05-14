@@ -968,8 +968,8 @@ export default function WrongQuestionBank({
                   </div>
                 </div>
 
-                {/* 细化模块选择（如果有） */}
-                {hasSubModules(newQuestion.moduleId || '') && (
+                {/* 细化模块选择（始终显示，支持添加） */}
+                {newQuestion.moduleId && (
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1">
                       <Tag size={10} /> 细化模块
