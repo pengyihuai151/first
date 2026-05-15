@@ -14,6 +14,7 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
   const [showResume, setShowResume] = useState(false); // 显示继续计时提示
   const [showReminder, setShowReminder] = useState(false); // 显示久学提醒
   const [isWakeLockActive, setIsWakeLockActive] = useState(false); // 屏幕常亮状态
+  const [prePauseTime, setPrePauseTime] = useState(0); // 暂停前的时间
   const wakeLockRef = useRef<any>(null); // Wake Lock 引用
   const startTimeRef = useRef<number | null>(null);
   const intervalRef = useRef<any>(null);
@@ -64,14 +65,14 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
 
   useEffect(() => {
     if (isRunning && !isPaused) {
-      // 开始或继续计时
-      const effectiveStartTime = pauseTimeRef.current 
-        ? Date.now() - (timeRef.current - totalPausedDurationRef.current)
-        : Date.now() - timeRef.current;
+      // 开始或继续计时 - 使用 prePauseTime 来避免闭包问题
+      const baseTime = prePauseTime || timeRef.current;
+      const effectiveStartTime = Date.now() - baseTime;
       startTimeRef.current = effectiveStartTime;
+      totalPausedDurationRef.current = 0;
       
       intervalRef.current = setInterval(() => {
-        const newTime = Date.now() - (startTimeRef.current || 0) + totalPausedDurationRef.current;
+        const newTime = Date.now() - (startTimeRef.current || 0);
         timeRef.current = newTime;
         setTime(newTime);
         
@@ -89,6 +90,7 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
     } else if (isRunning && isPaused) {
       // 暂停
       if (intervalRef.current) clearInterval(intervalRef.current);
+      setPrePauseTime(timeRef.current); // 保存暂停前的时间
       pauseTimeRef.current = Date.now();
     } else {
       // 停止
@@ -97,7 +99,7 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [isRunning, isPaused, pauseTimeRef.current, totalPausedDurationRef.current, data.settings.studyReminderEnabled, data.settings.studyReminderMinutes]);
+  }, [isRunning, isPaused, data.settings.studyReminderEnabled, data.settings.studyReminderMinutes]);
 
   // 组件卸载时保存状态（切换 Tab 时触发）
   useEffect(() => {
