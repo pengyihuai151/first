@@ -97,7 +97,7 @@ export default function StudyRoom({ data, onUpdate }: { data: AppData; onUpdate:
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [isRunning, isPaused, data.settings.studyReminderEnabled, data.settings.studyReminderMinutes]);
+  }, [isRunning, isPaused, pauseTimeRef.current, totalPausedDurationRef.current, data.settings.studyReminderEnabled, data.settings.studyReminderMinutes]);
 
   // 组件卸载时保存状态（切换 Tab 时触发）
   useEffect(() => {
